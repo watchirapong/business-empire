@@ -40,7 +40,6 @@ export default function InvestmentPhase({ players, companies, onComplete }: Inve
     );
   }
 
-  const playerKey = `${currentPlayer.name}-${currentCompany.name}`;
   const currentPlayerInvestments = investments[currentPlayer.name] || {};
   const totalInvested = Object.values(currentPlayerInvestments).reduce((sum, amount) => sum + amount, 0);
   const remainingMoney = 100000 - totalInvested;

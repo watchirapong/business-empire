@@ -48,7 +48,6 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
     submittedPlayers: new Set()
   });
   const [newCompanyName, setNewCompanyName] = useState('');
-  const [currentInvestment, setCurrentInvestment] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
   
   // New state for simultaneous investing
@@ -222,7 +221,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       socket.off('gameReset');
       socket.off('error');
     };
-  }, [socket]);
+  }, [socket, gameId, playerName]);
 
   const addMessage = (message: string) => {
     setMessages(prev => [...prev, message]);
@@ -263,9 +262,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
     setHasSubmitted(true);
   };
 
-  const handlePlayerReady = () => {
-    socket.emit('playerReady', { gameId });
-  };
+
 
   const handleResetGame = () => {
     socket.emit('resetGame', { gameId });
@@ -482,7 +479,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                       
                       {totalInvestmentAmount > remainingMoney && (
                         <div className="mt-4 bg-red-500/20 border border-red-400/50 rounded-lg p-3">
-                          <div className="text-red-200 text-sm">⚠️ You're investing more than you have! Please adjust your investments.</div>
+                          <div className="text-red-200 text-sm">⚠️ You&apos;re investing more than you have! Please adjust your investments.</div>
                         </div>
                       )}
                     </div>
