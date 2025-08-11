@@ -27,6 +27,15 @@ app.prepare().then(() => {
   io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
 
+    // Reset all games (admin function)
+    socket.on('resetAllGames', () => {
+      console.log('Resetting all games...');
+      games.clear();
+      gameHosts.clear();
+      console.log('All games have been reset');
+      socket.emit('gamesReset', { message: 'All games have been reset successfully' });
+    });
+
     // Join or create a game room
     socket.on('joinGame', ({ playerName, gameId }) => {
       const roomId = gameId || 'default';
@@ -270,6 +279,56 @@ app.prepare().then(() => {
           hostId: game.hostId
         };
         io.to(roomId).emit('gameReset', serializedGame);
+      }
+    });
+
+    // Kick player (only host can kick)
+    socket.on('kickPlayer', ({ playerId, gameId }) => {
+      const roomId = gameId || 'default';
+      const game = games.get(roomId);
+      
+      if (game && game.hostId === socket.id) {
+        const playerToKick = game.players.find(p => p.id === playerId);
+        
+        if (playerToKick && playerToKick.id !== socket.id) { // Host cannot kick themselves
+          // Remove player from game
+          game.players = game.players.filter(p => p.id !== playerId);
+          game.readyPlayers.delete(playerId);
+          game.submittedPlayers.delete(playerId);
+          delete game.investments[playerId];
+          
+          // If no players left, delete the game
+          if (game.players.length === 0) {
+            games.delete(roomId);
+            gameHosts.delete(roomId);
+            io.to(roomId).emit('gameDeleted', { message: 'Game deleted - no players remaining' });
+          } else {
+            // Send updated game state to remaining players
+            const serializedGame = {
+              ...game,
+              submittedPlayers: Array.from(game.submittedPlayers),
+              readyPlayers: Array.from(game.readyPlayers),
+              hostId: game.hostId
+            };
+            io.to(roomId).emit('gameState', serializedGame);
+            io.to(roomId).emit('playerKicked', { 
+              playerId, 
+              playerName: playerToKick.name,
+              totalPlayers: game.players.length 
+            });
+            
+            // Notify the kicked player
+            io.to(playerId).emit('kickedFromGame', { 
+              message: `You have been kicked from the game by the host.` 
+            });
+          }
+        } else if (playerToKick && playerToKick.id === socket.id) {
+          socket.emit('error', { message: 'You cannot kick yourself!' });
+        } else {
+          socket.emit('error', { message: 'Player not found!' });
+        }
+      } else if (game && game.hostId !== socket.id) {
+        socket.emit('error', { message: 'Only the host can kick players!' });
       }
     });
 

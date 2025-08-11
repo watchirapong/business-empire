@@ -202,6 +202,25 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       localStorage.removeItem(`game_${gameId}_investments`);
     });
 
+    socket.on('playerKicked', ({ playerId, playerName, totalPlayers }) => {
+      console.log('Player kicked:', playerName, 'Total:', totalPlayers);
+      addMessage(`${playerName} was kicked from the game (${totalPlayers} players remaining)`);
+    });
+
+    socket.on('kickedFromGame', ({ message }) => {
+      console.log('Kicked from game:', message);
+      alert(message);
+      onBackToLobby();
+    });
+
+    socket.on('gameDeleted', ({ message }) => {
+      console.log('Game deleted:', message);
+      addMessage(message);
+      setTimeout(() => {
+        onBackToLobby();
+      }, 2000);
+    });
+
     // Handle error messages
     socket.on('error', ({ message }) => {
       console.error('Server error:', message);
@@ -219,6 +238,9 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       socket.off('playerSubmitted');
       socket.off('allPlayersSubmitted');
       socket.off('gameReset');
+      socket.off('playerKicked');
+      socket.off('kickedFromGame');
+      socket.off('gameDeleted');
       socket.off('error');
     };
   }, [socket, gameId, playerName]);
@@ -266,6 +288,18 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
 
   const handleResetGame = () => {
     socket.emit('resetGame', { gameId });
+  };
+
+  const handleResetCurrentGame = () => {
+    if (window.confirm('Are you sure you want to reset this game? This will clear all players, companies, and investments.')) {
+      socket.emit('resetGame', { gameId });
+    }
+  };
+
+  const handleKickPlayer = (playerId: string, playerName: string) => {
+    if (window.confirm(`Are you sure you want to kick ${playerName} from the game?`)) {
+      socket.emit('kickPlayer', { playerId, gameId });
+    }
   };
 
   // Calculate total investment amount
@@ -328,7 +362,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {gameState.players.map((player, index) => (
-                  <div key={player.id} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4 border border-white/10 hover:border-white/20 transition-all duration-200">
+                  <div key={player.id} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4 border border-white/10 hover:border-white/20 transition-all duration-200 group relative">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
@@ -360,6 +394,17 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                         <div className="text-gray-400 text-xs">Capital</div>
                       </div>
                     </div>
+                    
+                    {/* Kick Button (only for host, not for themselves) */}
+                    {gameState.hostId === socket.id && player.id !== socket.id && (
+                      <button
+                        onClick={() => handleKickPlayer(player.id, player.name)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105"
+                        title={`Kick ${player.name}`}
+                      >
+                        🚫
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

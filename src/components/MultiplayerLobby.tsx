@@ -60,6 +60,33 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
     setGameId(id);
   };
 
+  const handleResetAllGames = () => {
+    if (window.confirm('Are you sure you want to reset all games? This will clear all active games and rooms.')) {
+      // Use the current domain for Socket.IO connection
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+      const host = window.location.hostname;
+      const port = window.location.port || (protocol === 'https:' ? '443' : '80');
+      const socketUrl = `${protocol}//${host}${port !== '80' && port !== '443' ? ':' + port : ''}`;
+      
+      const tempSocket = io(socketUrl);
+      
+      tempSocket.on('connect', () => {
+        tempSocket.emit('resetAllGames');
+      });
+
+      tempSocket.on('gamesReset', ({ message }) => {
+        alert(message);
+        tempSocket.disconnect();
+      });
+
+      tempSocket.on('connect_error', (err) => {
+        console.error('Connection error:', err);
+        alert('Failed to reset games. Please try again.');
+        tempSocket.disconnect();
+      });
+    }
+  };
+
   return (
     <div className="text-center">
       <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-bounce">🎮</div>
@@ -161,6 +188,19 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
               <span>Highest final value wins the battle!</span>
             </li>
           </ul>
+        </div>
+
+        {/* Reset Button */}
+        <div className="text-center">
+          <button
+            onClick={handleResetAllGames}
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-lg sm:rounded-xl font-bold border border-red-500/50 hover:border-red-400 transition-all duration-300 text-sm sm:text-base"
+          >
+            🔄 Reset All Games
+          </button>
+          <p className="text-red-300 text-xs mt-2">
+            Use this to clear all active games and start fresh
+          </p>
         </div>
       </div>
     </div>
