@@ -8,6 +8,8 @@ const handle = app.getRequestHandler();
 
 // Game state management
 const games = new Map();
+// Track host names for each game to allow reconnection
+const gameHosts = new Map();
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -42,6 +44,7 @@ app.prepare().then(() => {
           submittedPlayers: new Set(),
           hostId: socket.id // First player becomes the host
         });
+        gameHosts.set(roomId, playerName); // Store host name
       }
 
       const game = games.get(roomId);
@@ -52,12 +55,19 @@ app.prepare().then(() => {
         investments: {}
       };
 
-      // Check if player already exists
-      const existingPlayerIndex = game.players.findIndex(p => p.id === socket.id);
+      // Check if player already exists (by name, not socket ID)
+      const existingPlayerIndex = game.players.findIndex(p => p.name === playerName);
       if (existingPlayerIndex === -1) {
         game.players.push(player);
       } else {
+        // Update existing player with new socket ID
         game.players[existingPlayerIndex] = player;
+      }
+
+      // Check if this player should be the host (either first player or reconnecting host)
+      const isHost = gameHosts.get(roomId) === playerName;
+      if (isHost) {
+        game.hostId = socket.id;
       }
 
       // Send updated game state to all players in the room
@@ -260,13 +270,42 @@ app.prepare().then(() => {
       console.log('Player disconnected:', socket.id);
       // Remove player from all games
       games.forEach((game, roomId) => {
+        const disconnectedPlayer = game.players.find(p => p.id === socket.id);
         game.players = game.players.filter(p => p.id !== socket.id);
         game.readyPlayers.delete(socket.id);
         game.submittedPlayers.delete(socket.id);
         
+        // If the host disconnected, we need to handle host transfer
+        if (disconnectedPlayer && game.hostId === socket.id) {
+          console.log('Host disconnected:', disconnectedPlayer.name);
+          
+          // If there are other players, transfer host to the next player
+          if (game.players.length > 0) {
+            const newHost = game.players[0];
+            game.hostId = newHost.id;
+            gameHosts.set(roomId, newHost.name); // Update host name
+            console.log('Host transferred to:', newHost.name);
+          } else {
+            // No players left, clean up the game
+            games.delete(roomId);
+            gameHosts.delete(roomId);
+            console.log('Game deleted - no players remaining');
+            return;
+          }
+        }
+        
         if (game.players.length === 0) {
           games.delete(roomId);
+          gameHosts.delete(roomId);
         } else {
+          // Send updated game state to remaining players
+          const serializedGame = {
+            ...game,
+            submittedPlayers: Array.from(game.submittedPlayers),
+            readyPlayers: Array.from(game.readyPlayers),
+            hostId: game.hostId
+          };
+          io.to(roomId).emit('gameState', serializedGame);
           io.to(roomId).emit('playerLeft', { playerId: socket.id, totalPlayers: game.players.length });
         }
       });
