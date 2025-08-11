@@ -61,64 +61,62 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8">
-      <div className="text-center mb-8">
-        <div className="text-4xl mb-4">🎮</div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Join Multiplayer Game
-        </h2>
-        <p className="text-gray-600">
-          Connect with friends and play together in real-time!
-        </p>
-      </div>
+    <div className="text-center">
+      <div className="text-6xl mb-6 animate-bounce">🎮</div>
+      <h2 className="text-3xl font-bold text-white mb-4 neon-text">
+        🚀 JOIN BATTLE ARENA
+      </h2>
+      <p className="text-purple-300 text-lg mb-8">
+        Connect with warriors and dominate the financial battlefield!
+      </p>
 
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-md mx-auto">
         {/* Player Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Your Name *
+          <label className="block text-sm font-bold text-cyan-300 mb-3 uppercase tracking-wide">
+            ⚔️ WARRIOR NAME *
           </label>
           <input
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your warrior name"
+            className="w-full px-6 py-4 bg-black/50 border border-purple-500/50 rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold"
             maxLength={20}
           />
         </div>
 
         {/* Game ID */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Game Room ID
+          <label className="block text-sm font-bold text-cyan-300 mb-3 uppercase tracking-wide">
+            🏰 BATTLE ARENA ID
           </label>
-          <div className="flex space-x-2">
+          <div className="flex space-x-3">
             <input
               type="text"
               value={gameId}
               onChange={(e) => setGameId(e.target.value.toUpperCase())}
-              placeholder="Enter game ID or leave empty for default"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter arena ID or leave empty for default"
+              className="flex-1 px-6 py-4 bg-black/50 border border-purple-500/50 rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold"
               maxLength={6}
             />
             <button
               onClick={generateGameId}
-              className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              title="Generate random game ID"
+              className="px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 font-bold border border-purple-400/50 hover:border-purple-300"
+              title="Generate random arena ID"
             >
               🎲
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Share this ID with friends to join the same game
+          <p className="text-xs text-purple-300/70 mt-2">
+            Share this ID with your allies to join the same battle arena
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 animate-pulse">
+            <p className="text-red-300 text-sm font-semibold">⚠️ {error}</p>
           </div>
         )}
 
@@ -126,30 +124,42 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
         <button
           onClick={handleJoinGame}
           disabled={isConnecting || !playerName.trim()}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+          className={`w-full py-6 rounded-2xl font-bold text-xl transition-all duration-300 transform hover:scale-105 ${
             isConnecting || !playerName.trim()
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-2xl shadow-purple-500/50 glow'
           }`}
         >
           {isConnecting ? (
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Connecting...</span>
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>ESTABLISHING CONNECTION...</span>
             </div>
           ) : (
-            '🚀 Join Game'
+            '⚡ ENTER BATTLE ARENA ⚡'
           )}
         </button>
 
         {/* Instructions */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-800 mb-2">How to play:</h4>
-          <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Enter your name and join a game room</li>
-            <li>• Share the game ID with friends</li>
-            <li>• Wait for all players to join</li>
-            <li>• Add companies and start investing!</li>
+        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-6 border border-blue-500/30">
+          <h4 className="font-bold text-blue-300 mb-3 text-lg">🎯 BATTLE INSTRUCTIONS:</h4>
+          <ul className="text-sm text-blue-200 space-y-2">
+            <li className="flex items-center">
+              <span className="text-blue-400 mr-2">⚔️</span>
+              <span>Enter your warrior name and join a battle arena</span>
+            </li>
+            <li className="flex items-center">
+              <span className="text-blue-400 mr-2">🏢</span>
+              <span>Host can add companies to invest in</span>
+            </li>
+            <li className="flex items-center">
+              <span className="text-blue-400 mr-2">💰</span>
+              <span>All players invest simultaneously</span>
+            </li>
+            <li className="flex items-center">
+              <span className="text-blue-400 mr-2">🏆</span>
+              <span>Highest final value wins the battle!</span>
+            </li>
           </ul>
         </div>
       </div>
