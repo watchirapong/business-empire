@@ -120,21 +120,21 @@ export default function BusinessGame() {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
 
-      <div className="relative z-10 py-8 px-4">
+      <div className="relative z-10 py-4 px-3 sm:py-8 sm:px-4">
         <div className="max-w-6xl mx-auto">
           {/* Game Title */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-6 sm:mb-12">
             <div className="inline-block bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
-              <h1 className="text-6xl md:text-7xl font-black mb-4 tracking-tight">
-                🏢 BUSINESS EMPIRE
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-2 sm:mb-4 tracking-tight leading-tight">
+                🏢 BUSINESS<br className="sm:hidden" /> EMPIRE
               </h1>
             </div>
             <div className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-              <p className="text-xl md:text-2xl font-semibold mb-2">
+              <p className="text-sm sm:text-xl md:text-2xl font-semibold mb-1 sm:mb-2">
                 Strategic Investment Simulation
               </p>
             </div>
-            <div className="text-cyan-300 text-lg font-mono">
+            <div className="text-cyan-300 text-xs sm:text-lg font-mono">
               Starting Capital: {STARTING_MONEY.toLocaleString()}฿
             </div>
           </div>
@@ -142,32 +142,32 @@ export default function BusinessGame() {
           {/* Game Mode Selection */}
           {gameMode === 'menu' && (
             <div className="max-w-4xl mx-auto">
-              <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl p-12">
-                <div className="text-center mb-12">
-                  <h2 className="text-4xl font-bold text-white mb-4">
+              <div className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-purple-500/30 shadow-2xl p-6 sm:p-8 md:p-12">
+                <div className="text-center mb-8 sm:mb-12">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-4">
                     🎮 SELECT GAME MODE
                   </h2>
-                  <p className="text-purple-300 text-xl">
+                  <p className="text-purple-300 text-sm sm:text-lg md:text-xl">
                     Choose your path to financial domination!
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
                   {/* Single Player */}
                   <div 
-                    className="group relative bg-gradient-to-br from-blue-900/50 to-cyan-900/50 rounded-2xl p-8 border border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25"
+                    className="group relative bg-gradient-to-br from-blue-900/50 to-cyan-900/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25"
                     onClick={() => setGameMode('single')}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10">
-                      <div className="text-6xl mb-6 animate-pulse">🎯</div>
-                      <h3 className="text-2xl font-bold text-blue-300 mb-4 group-hover:text-blue-200 transition-colors">
+                      <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-pulse">🎯</div>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-300 mb-2 sm:mb-4 group-hover:text-blue-200 transition-colors">
                         SINGLE PLAYER
                       </h3>
-                      <p className="text-blue-200 text-lg mb-6">
+                      <p className="text-blue-200 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
                         Master the art of investment in a controlled environment
                       </p>
-                      <div className="space-y-2 text-blue-300/80">
+                      <div className="space-y-1 sm:space-y-2 text-blue-300/80 text-xs sm:text-sm">
                         <div className="flex items-center">
                           <span className="text-blue-400 mr-2">⚡</span>
                           <span>Set up your own players</span>
@@ -181,8 +181,8 @@ export default function BusinessGame() {
                           <span>Practice strategies</span>
                         </div>
                       </div>
-                      <div className="mt-6 text-center">
-                        <div className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-xl group-hover:from-blue-500 group-hover:to-cyan-500 transition-all duration-300 transform group-hover:scale-105">
+                      <div className="mt-4 sm:mt-6 text-center">
+                        <div className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-lg sm:rounded-xl group-hover:from-blue-500 group-hover:to-cyan-500 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
                           START SOLO
                         </div>
                       </div>
@@ -191,19 +191,19 @@ export default function BusinessGame() {
 
                   {/* Multiplayer */}
                   <div 
-                    className="group relative bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-2xl p-8 border border-purple-500/30 hover:border-purple-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25"
+                    className="group relative bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-purple-500/30 hover:border-purple-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25"
                     onClick={() => setGameMode('multiplayer')}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10">
-                      <div className="text-6xl mb-6 animate-bounce">🎮</div>
-                      <h3 className="text-2xl font-bold text-purple-300 mb-4 group-hover:text-purple-200 transition-colors">
+                      <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-bounce">🎮</div>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-300 mb-2 sm:mb-4 group-hover:text-purple-200 transition-colors">
                         MULTIPLAYER
                       </h3>
-                      <p className="text-purple-200 text-lg mb-6">
+                      <p className="text-purple-200 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
                         Compete against real players in intense real-time battles
                       </p>
-                      <div className="space-y-2 text-purple-300/80">
+                      <div className="space-y-1 sm:space-y-2 text-purple-300/80 text-xs sm:text-sm">
                         <div className="flex items-center">
                           <span className="text-purple-400 mr-2">🔥</span>
                           <span>Join game rooms</span>
@@ -217,8 +217,8 @@ export default function BusinessGame() {
                           <span>Live competition</span>
                         </div>
                       </div>
-                      <div className="mt-6 text-center">
-                        <div className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl group-hover:from-purple-500 group-hover:to-pink-500 transition-all duration-300 transform group-hover:scale-105">
+                      <div className="mt-4 sm:mt-6 text-center">
+                        <div className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl group-hover:from-purple-500 group-hover:to-pink-500 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
                           JOIN BATTLE
                         </div>
                       </div>
@@ -233,45 +233,45 @@ export default function BusinessGame() {
           {gameMode === 'single' && (
             <>
               {/* Progress Indicator */}
-              <div className="mb-8">
-                <div className="flex justify-center items-center space-x-6">
+              <div className="mb-6 sm:mb-8">
+                <div className="flex justify-center items-center space-x-2 sm:space-x-4 md:space-x-6">
                   <div className={`flex items-center ${gameState.currentPhase === 'setup' ? 'text-cyan-400' : 'text-gray-500'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${gameState.currentPhase === 'setup' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50' : 'bg-gray-700 text-gray-400'}`}>
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'setup' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       1
                     </div>
-                    <span className="ml-3 font-bold text-lg">SETUP</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">SETUP</span>
                   </div>
-                  <div className={`w-20 h-1 rounded-full ${gameState.currentPhase === 'setup' ? 'bg-gray-600' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}></div>
+                  <div className={`w-8 sm:w-12 md:w-20 h-1 rounded-full ${gameState.currentPhase === 'setup' ? 'bg-gray-600' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}></div>
                   <div className={`flex items-center ${gameState.currentPhase === 'investment' ? 'text-purple-400' : gameState.currentPhase === 'results' ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${gameState.currentPhase === 'investment' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'investment' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       2
                     </div>
-                    <span className="ml-3 font-bold text-lg">INVESTMENT</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">INVESTMENT</span>
                   </div>
-                  <div className={`w-20 h-1 rounded-full ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gray-600'}`}></div>
+                  <div className={`w-8 sm:w-12 md:w-20 h-1 rounded-full ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gray-600'}`}></div>
                   <div className={`flex items-center ${gameState.currentPhase === 'results' ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       3
                     </div>
-                    <span className="ml-3 font-bold text-lg">RESULTS</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">RESULTS</span>
                   </div>
                 </div>
               </div>
 
               {/* Game Content */}
-              <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl p-8">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-3xl font-bold text-white">🎯 SINGLE PLAYER MODE</h2>
+              <div className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-purple-500/30 shadow-2xl p-4 sm:p-6 md:p-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">🎯 SINGLE PLAYER MODE</h2>
                   <button
                     onClick={() => setGameMode('menu')}
-                    className="px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold border border-gray-600 hover:border-gray-500"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg sm:rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold border border-gray-600 hover:border-gray-500 text-sm sm:text-base"
                   >
                     ← BACK TO MENU
                   </button>
                 </div>
 
                 {gameState.currentPhase === 'setup' && (
-                  <div className="space-y-8">
+                  <div className="space-y-6 sm:space-y-8">
                     <PlayerSetup 
                       onComplete={handlePlayerSetup}
                       startingMoney={STARTING_MONEY}
@@ -282,14 +282,14 @@ export default function BusinessGame() {
                     
                     {/* Start Investment Button */}
                     {isSetupComplete && (
-                      <div className="text-center pt-8">
+                      <div className="text-center pt-6 sm:pt-8">
                         <button
                           onClick={() => setGameState(prev => ({ ...prev, currentPhase: 'investment' }))}
-                          className="px-12 py-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold text-2xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-purple-500/50"
+                          className="px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl sm:rounded-2xl font-bold text-lg sm:text-xl md:text-2xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-purple-500/50"
                         >
                           🚀 LAUNCH INVESTMENT PHASE
                         </button>
-                        <p className="text-purple-300 text-lg mt-4 font-semibold">
+                        <p className="text-purple-300 text-sm sm:text-base md:text-lg mt-3 sm:mt-4 font-semibold">
                           {gameState.players.length} PLAYERS • {gameState.companies.length} COMPANIES READY
                         </p>
                       </div>
@@ -318,7 +318,7 @@ export default function BusinessGame() {
 
           {/* Multiplayer Mode */}
           {gameMode === 'multiplayer' && (
-            <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-purple-500/30 shadow-2xl p-8">
+            <div className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-purple-500/30 shadow-2xl p-4 sm:p-6 md:p-8">
               {!socket ? (
                 <MultiplayerLobby onJoinGame={handleJoinMultiplayerGame} />
               ) : (
@@ -333,8 +333,6 @@ export default function BusinessGame() {
           )}
         </div>
       </div>
-
-
     </div>
   );
 }

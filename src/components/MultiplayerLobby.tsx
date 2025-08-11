@@ -62,18 +62,18 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
 
   return (
     <div className="text-center">
-      <div className="text-6xl mb-6 animate-bounce">🎮</div>
-      <h2 className="text-3xl font-bold text-white mb-4 neon-text">
+      <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-bounce">🎮</div>
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4 neon-text">
         🚀 JOIN BATTLE ARENA
       </h2>
-      <p className="text-purple-300 text-lg mb-8">
+      <p className="text-purple-300 text-sm sm:text-base md:text-lg mb-6 sm:mb-8">
         Connect with warriors and dominate the financial battlefield!
       </p>
 
-      <div className="space-y-6 max-w-md mx-auto">
+      <div className="space-y-4 sm:space-y-6 max-w-md mx-auto">
         {/* Player Name */}
         <div>
-          <label className="block text-sm font-bold text-cyan-300 mb-3 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-bold text-cyan-300 mb-2 sm:mb-3 uppercase tracking-wide">
             ⚔️ WARRIOR NAME *
           </label>
           <input
@@ -81,28 +81,28 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             placeholder="Enter your warrior name"
-            className="w-full px-6 py-4 bg-black/50 border border-purple-500/50 rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold"
+            className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-black/50 border border-purple-500/50 rounded-lg sm:rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold text-sm sm:text-base"
             maxLength={20}
           />
         </div>
 
         {/* Game ID */}
         <div>
-          <label className="block text-sm font-bold text-cyan-300 mb-3 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-bold text-cyan-300 mb-2 sm:mb-3 uppercase tracking-wide">
             🏰 BATTLE ARENA ID
           </label>
-          <div className="flex space-x-3">
+          <div className="flex space-x-2 sm:space-x-3">
             <input
               type="text"
               value={gameId}
               onChange={(e) => setGameId(e.target.value.toUpperCase())}
               placeholder="Enter arena ID or leave empty for default"
-              className="flex-1 px-6 py-4 bg-black/50 border border-purple-500/50 rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold"
+              className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-black/50 border border-purple-500/50 rounded-lg sm:rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold text-sm sm:text-base"
               maxLength={6}
             />
             <button
               onClick={generateGameId}
-              className="px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 font-bold border border-purple-400/50 hover:border-purple-300"
+              className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg sm:rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 font-bold border border-purple-400/50 hover:border-purple-300 text-sm sm:text-base"
               title="Generate random arena ID"
             >
               🎲
@@ -115,8 +115,8 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-900/50 border border-red-500/50 rounded-xl p-4 animate-pulse">
-            <p className="text-red-300 text-sm font-semibold">⚠️ {error}</p>
+          <div className="bg-red-900/50 border border-red-500/50 rounded-lg sm:rounded-xl p-3 sm:p-4 animate-pulse">
+            <p className="text-red-300 text-xs sm:text-sm font-semibold">⚠️ {error}</p>
           </div>
         )}
 
@@ -124,16 +124,16 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
         <button
           onClick={handleJoinGame}
           disabled={isConnecting || !playerName.trim()}
-          className={`w-full py-6 rounded-2xl font-bold text-xl transition-all duration-300 transform hover:scale-105 ${
+          className={`w-full py-4 sm:py-5 md:py-6 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg md:text-xl transition-all duration-300 transform hover:scale-105 ${
             isConnecting || !playerName.trim()
               ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-2xl shadow-purple-500/50 glow'
           }`}
         >
           {isConnecting ? (
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>ESTABLISHING CONNECTION...</span>
+            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+              <div className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 border-2 sm:border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm sm:text-base">ESTABLISHING CONNECTION...</span>
             </div>
           ) : (
             '⚡ ENTER BATTLE ARENA ⚡'
@@ -141,9 +141,9 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
         </button>
 
         {/* Instructions */}
-        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-6 border border-blue-500/30">
-          <h4 className="font-bold text-blue-300 mb-3 text-lg">🎯 BATTLE INSTRUCTIONS:</h4>
-          <ul className="text-sm text-blue-200 space-y-2">
+        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg sm:rounded-2xl p-4 sm:p-6 border border-blue-500/30">
+          <h4 className="font-bold text-blue-300 mb-2 sm:mb-3 text-sm sm:text-base md:text-lg">🎯 BATTLE INSTRUCTIONS:</h4>
+          <ul className="text-xs sm:text-sm text-blue-200 space-y-1 sm:space-y-2">
             <li className="flex items-center">
               <span className="text-blue-400 mr-2">⚔️</span>
               <span>Enter your warrior name and join a battle arena</span>
