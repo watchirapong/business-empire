@@ -202,7 +202,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       localStorage.removeItem(`game_${gameId}_investments`);
     });
 
-    socket.on('playerKicked', ({ playerId, playerName, totalPlayers }) => {
+    socket.on('playerKicked', ({ playerName, totalPlayers }) => {
       console.log('Player kicked:', playerName, 'Total:', totalPlayers);
       addMessage(`${playerName} was kicked from the game (${totalPlayers} players remaining)`);
     });
@@ -243,7 +243,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       socket.off('gameDeleted');
       socket.off('error');
     };
-  }, [socket, gameId, playerName]);
+  }, [socket, gameId, playerName, onBackToLobby]);
 
   const addMessage = (message: string) => {
     setMessages(prev => [...prev, message]);
@@ -335,12 +335,23 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                    gameState.phase === 'investment' ? '💰 Investment Phase' : '🏆 Results'}
                 </h2>
               </div>
-              <button
-                onClick={onBackToLobby}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
-              >
-                ← Back to Lobby
-              </button>
+              <div className="flex items-center space-x-3">
+                {gameState.hostId === socket.id && gameState.phase === 'waiting' && (
+                  <button
+                    onClick={handleResetCurrentGame}
+                    className="px-3 py-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-lg transition-all duration-200 hover:scale-105 text-sm font-semibold"
+                    title="Reset current game"
+                  >
+                    🔄 Reset
+                  </button>
+                )}
+                <button
+                  onClick={onBackToLobby}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
+                >
+                  ← Back to Lobby
+                </button>
+              </div>
             </div>
           </div>
 
