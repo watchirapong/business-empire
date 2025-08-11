@@ -206,7 +206,7 @@ export default function InvestmentPhase({ players, companies, onComplete }: Inve
                 className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
                   currentInvestment && parseFloat(currentInvestment) >= 0 && parseFloat(currentInvestment) <= remainingMoney
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                 }`}
               >
                 Invest
