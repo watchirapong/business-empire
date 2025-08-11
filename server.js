@@ -81,12 +81,12 @@ app.prepare().then(() => {
       io.to(roomId).emit('playerJoined', { player, totalPlayers: game.players.length });
     });
 
-    // Add company to game
+    // Add company to game (now works in both waiting and investment phases)
     socket.on('addCompany', ({ companyName, gameId }) => {
       const roomId = gameId || 'default';
       const game = games.get(roomId);
       
-      if (game) {
+      if (game && game.hostId === socket.id && (game.phase === 'waiting' || game.phase === 'investment')) {
         const company = {
           name: companyName,
           totalInvestment: 0,
@@ -104,6 +104,12 @@ app.prepare().then(() => {
         };
         io.to(roomId).emit('gameState', serializedGame);
         io.to(roomId).emit('companyAdded', { company, totalCompanies: game.companies.length });
+      } else if (game && game.hostId !== socket.id) {
+        // Notify non-host players that only host can add companies
+        socket.emit('error', { message: 'Only the host can add companies!' });
+      } else if (game && game.phase === 'results') {
+        // Notify that companies can't be added during results phase
+        socket.emit('error', { message: 'Companies cannot be added during the results phase!' });
       }
     });
 
@@ -150,7 +156,8 @@ app.prepare().then(() => {
       const roomId = gameId || 'default';
       const game = games.get(roomId);
       
-      if (game && game.hostId === socket.id && game.players.length > 0 && game.companies.length > 0) {
+      if (game && game.hostId === socket.id && game.players.length > 0) {
+        // Remove the requirement for companies to start
         game.phase = 'investment';
         game.currentPlayerIndex = 0;
         game.currentCompanyIndex = 0;
@@ -319,6 +326,15 @@ app.prepare().then(() => {
 });
 
 function calculateResults(game) {
+  // Handle case where there are no companies
+  if (game.companies.length === 0) {
+    // If no companies, all players keep their original money
+    game.players.forEach(player => {
+      player.finalValue = 100000; // Original starting money
+    });
+    return;
+  }
+
   // Calculate total investment in each company
   game.companies.forEach(company => {
     company.totalInvestment = game.players.reduce((sum, player) => {
@@ -345,6 +361,10 @@ function calculateResults(game) {
         totalValue += newValue;
       }
     });
+    
+    // Add uninvested money to total value
+    const totalInvested = Object.values(playerInvestments).reduce((sum, amount) => sum + amount, 0);
+    totalValue += (100000 - totalInvested);
     
     player.finalValue = totalValue;
   });

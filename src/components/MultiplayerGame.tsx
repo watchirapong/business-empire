@@ -407,7 +407,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             </div>
 
             {/* Add Company Section */}
-            {gameState.phase === 'waiting' && (
+            {(gameState.phase === 'waiting' || gameState.phase === 'investment') && gameState.hostId === socket.id && (
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center">
                   <span className="mr-2">➕</span> Add Company
@@ -432,7 +432,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             )}
 
             {/* Start Game Button */}
-            {gameState.phase === 'waiting' && gameState.players.length > 0 && gameState.companies.length > 0 && (
+            {gameState.phase === 'waiting' && gameState.players.length > 0 && (
               <div className="text-center">
                 {gameState.hostId === socket.id ? (
                   <button
@@ -446,7 +446,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     <div className="text-4xl mb-4">⏳</div>
                     <div className="text-white text-xl font-semibold">Waiting for host to start the game...</div>
                     <div className="text-gray-400 mt-2">
-                      Ready with {gameState.players.length} players and {gameState.companies.length} companies
+                      Ready with {gameState.players.length} players
+                      {gameState.companies.length > 0 && ` and ${gameState.companies.length} companies`}
                     </div>
                   </div>
                 )}
@@ -460,7 +461,20 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                   <span className="mr-3">💰</span> Investment Phase
                 </h3>
                 
-                {!hasSubmitted ? (
+                {gameState.companies.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🏢</div>
+                    <div className="text-white text-xl font-semibold mb-2">No Companies Available</div>
+                    <div className="text-gray-400 mb-4">
+                      The host needs to add companies before you can invest.
+                    </div>
+                    {gameState.hostId === socket.id && (
+                      <div className="text-yellow-400 text-sm">
+                        💡 Use the &quot;Add Company&quot; section above to add companies for players to invest in.
+                      </div>
+                    )}
+                  </div>
+                ) : !hasSubmitted ? (
                   <div className="space-y-6">
                     {/* Budget Display */}
                     <div className="bg-white/10 rounded-xl p-6 border border-white/20">
