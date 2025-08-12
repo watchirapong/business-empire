@@ -33,7 +33,7 @@ app.prepare().then(() => {
       games.clear();
       gameHosts.clear();
       console.log('All games have been reset');
-      socket.emit('gamesReset', { message: 'All games have been reset successfully' });
+      socket.emit('gamesReset', { message: 'เกมทั้งหมดถูกรีเซ็ตเรียบร้อยแล้ว' });
     });
 
     // Join or create a game room
@@ -115,10 +115,10 @@ app.prepare().then(() => {
         io.to(roomId).emit('companyAdded', { company, totalCompanies: game.companies.length });
       } else if (game && game.hostId !== socket.id) {
         // Notify non-host players that only host can add companies
-        socket.emit('error', { message: 'Only the host can add companies!' });
+        socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถเพิ่มบริษัทได้!' });
       } else if (game && game.phase === 'results') {
         // Notify that companies can't be added during results phase
-        socket.emit('error', { message: 'Companies cannot be added during the results phase!' });
+        socket.emit('error', { message: 'บริษัทไม่สามารถเพิ่มได้ในช่วงผลลัพธ์!' });
       }
     });
 
@@ -150,11 +150,11 @@ app.prepare().then(() => {
       } else if (game && game.hostId !== socket.id) {
         console.log('Non-host player attempted to delete company');
         // Notify non-host players that only host can delete
-        socket.emit('error', { message: 'Only the host can delete companies!' });
+        socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถลบบริษัทได้!' });
       } else if (game && game.phase !== 'waiting') {
         console.log('Attempted to delete company during non-waiting phase');
         // Notify that companies can only be deleted during waiting phase
-        socket.emit('error', { message: 'Companies can only be deleted during the waiting phase!' });
+        socket.emit('error', { message: 'บริษัทสามารถลบได้เฉพาะในช่วงรอเท่านั้น!' });
       } else {
         console.log('Game not found or other error');
       }
@@ -181,7 +181,7 @@ app.prepare().then(() => {
         io.to(roomId).emit('investmentStarted', serializedGame);
       } else if (game && game.hostId !== socket.id) {
         // Notify non-host players that only host can start
-        socket.emit('error', { message: 'Only the host can start the game!' });
+        socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถเริ่มเกมได้!' });
       }
     });
 
@@ -301,7 +301,7 @@ app.prepare().then(() => {
           if (game.players.length === 0) {
             games.delete(roomId);
             gameHosts.delete(roomId);
-            io.to(roomId).emit('gameDeleted', { message: 'Game deleted - no players remaining' });
+            io.to(roomId).emit('gameDeleted', { message: 'เกมถูกลบ - ไม่มีผู้เล่นที่เหลือ' });
           } else {
             // Send updated game state to remaining players
             const serializedGame = {
@@ -319,16 +319,16 @@ app.prepare().then(() => {
             
             // Notify the kicked player
             io.to(playerId).emit('kickedFromGame', { 
-              message: `You have been kicked from the game by the host.` 
+              message: `คุณถูกเตะออกจากเกมโดยโฮสต์` 
             });
           }
         } else if (playerToKick && playerToKick.id === socket.id) {
-          socket.emit('error', { message: 'You cannot kick yourself!' });
+          socket.emit('error', { message: 'คุณไม่สามารถเตะตัวเองได้!' });
         } else {
-          socket.emit('error', { message: 'Player not found!' });
+          socket.emit('error', { message: 'ไม่พบผู้เล่น!' });
         }
       } else if (game && game.hostId !== socket.id) {
-        socket.emit('error', { message: 'Only the host can kick players!' });
+        socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถเตะผู้เล่นได้!' });
       }
     });
 

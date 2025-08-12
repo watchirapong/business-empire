@@ -120,22 +120,22 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
 
     socket.on('playerJoined', ({ player, totalPlayers }) => {
       console.log('Player joined:', player, 'Total:', totalPlayers);
-      addMessage(`${player.name} joined the game! (${totalPlayers} players)`);
+      addMessage(`${player.name} เข้าร่วมเกม! (${totalPlayers} ผู้เล่น)`);
     });
 
     socket.on('playerLeft', ({ playerId, totalPlayers }) => {
       console.log('Player left:', playerId, 'Total:', totalPlayers);
-      addMessage(`A player left the game (${totalPlayers} players remaining)`);
+      addMessage(`ผู้เล่นออกจากเกม (เหลือ ${totalPlayers} ผู้เล่น)`);
     });
 
     socket.on('companyAdded', ({ company, totalCompanies }) => {
       console.log('Company added:', company, 'Total:', totalCompanies);
-      addMessage(`${company.name} was added! (${totalCompanies} companies)`);
+      addMessage(`${company.name} ถูกเพิ่มแล้ว! (${totalCompanies} บริษัท)`);
     });
 
     socket.on('companyDeleted', ({ company, totalCompanies }) => {
       console.log('Company deleted:', company, 'Total:', totalCompanies);
-      addMessage(`${company.name} was deleted! (${totalCompanies} companies remaining)`);
+      addMessage(`${company.name} ถูกลบแล้ว! (เหลือ ${totalCompanies} บริษัท)`);
     });
 
     socket.on('investmentStarted', (state: GameState) => {
@@ -149,7 +149,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       };
       
       setGameState(processedState);
-      addMessage('🎉 Investment phase started! All players can invest simultaneously!');
+      addMessage('🎉 เฟสการลงทุนเริ่มแล้ว! ผู้เล่นทุกคนสามารถลงทุนพร้อมกันได้!');
     });
 
     socket.on('playerSubmitted', ({ playerId, game }) => {
@@ -165,7 +165,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       setGameState(processedState);
       const player = game.players.find((p: Player) => p.id === playerId);
       if (player) {
-        addMessage(`${player.name} submitted their investments!`);
+        addMessage(`${player.name} ส่งการลงทุนแล้ว!`);
       }
     });
 
@@ -180,7 +180,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       };
       
       setGameState(processedState);
-      addMessage('🎯 All players have submitted! Calculating results...');
+      addMessage('🎯 ผู้เล่นทุกคนส่งแล้ว! กำลังคำนวณผลลัพธ์...');
     });
 
     socket.on('gameReset', (state: GameState) => {
@@ -194,7 +194,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       };
       
       setGameState(processedState);
-      addMessage('Game has been reset');
+      addMessage('เกมถูกรีเซ็ตแล้ว');
       setPlayerInvestments({});
       setHasSubmitted(false);
       
@@ -204,18 +204,18 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
 
     socket.on('playerKicked', ({ playerName, totalPlayers }) => {
       console.log('Player kicked:', playerName, 'Total:', totalPlayers);
-      addMessage(`${playerName} was kicked from the game (${totalPlayers} players remaining)`);
+      addMessage(`${playerName} ถูกเตะออกจากเกม (เหลือ ${totalPlayers} ผู้เล่น)`);
     });
 
     socket.on('kickedFromGame', ({ message }) => {
       console.log('Kicked from game:', message);
-      alert(message);
+      alert('คุณถูกเตะออกจากเกมโดยโฮสต์');
       onBackToLobby();
     });
 
     socket.on('gameDeleted', ({ message }) => {
       console.log('Game deleted:', message);
-      addMessage(message);
+      addMessage('เกมถูกลบแล้ว - ไม่มีผู้เล่นเหลืออยู่');
       setTimeout(() => {
         onBackToLobby();
       }, 2000);
@@ -291,13 +291,13 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
   };
 
   const handleResetCurrentGame = () => {
-    if (window.confirm('Are you sure you want to reset this game? This will clear all players, companies, and investments.')) {
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะรีเซ็ตเกมนี้? การดำเนินการนี้จะล้างผู้เล่น บริษัท และการลงทุนทั้งหมด')) {
       socket.emit('resetGame', { gameId });
     }
   };
 
   const handleKickPlayer = (playerId: string, playerName: string) => {
-    if (window.confirm(`Are you sure you want to kick ${playerName} from the game?`)) {
+    if (window.confirm(`คุณแน่ใจหรือไม่ที่จะเตะ ${playerName} ออกจากเกม?`)) {
       socket.emit('kickPlayer', { playerId, gameId });
     }
   };
@@ -317,9 +317,9 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             <h1 className="text-4xl md:text-5xl font-bold mb-2">🏢 Business Empire</h1>
           </div>
           <p className="text-purple-200 text-lg">
-            Room: <span className="font-mono bg-purple-800 px-2 py-1 rounded">{gameId}</span> • 
-            Players: <span className="text-yellow-400 font-bold">{gameState.players.length}</span> • 
-            Companies: <span className="text-green-400 font-bold">{gameState.companies.length}</span>
+            ห้อง: <span className="font-mono bg-purple-800 px-2 py-1 rounded">{gameId}</span> • 
+            ผู้เล่น: <span className="text-yellow-400 font-bold">{gameState.players.length}</span> • 
+            บริษัท: <span className="text-green-400 font-bold">{gameState.companies.length}</span>
           </p>
         </div>
 
@@ -331,8 +331,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                 <h2 className="text-white font-bold text-lg">
-                  {gameState.phase === 'waiting' ? '🔄 Waiting Room' : 
-                   gameState.phase === 'investment' ? '💰 Investment Phase' : '🏆 Results'}
+                  {gameState.phase === 'waiting' ? '🔄 ห้องรอ' : 
+                   gameState.phase === 'investment' ? '💰 เฟสการลงทุน' : '🏆 ผลลัพธ์'}
                 </h2>
               </div>
               <div className="flex items-center space-x-3">
@@ -340,17 +340,17 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                   <button
                     onClick={handleResetCurrentGame}
                     className="px-3 py-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-lg transition-all duration-200 hover:scale-105 text-sm font-semibold"
-                    title="Reset current game"
+                    title="รีเซ็ตเกมปัจจุบัน"
                   >
-                    🔄 Reset
+                    🔄 รีเซ็ต
                   </button>
                 )}
-              <button
-                onClick={onBackToLobby}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
-              >
-                ← Back to Lobby
-              </button>
+                <button
+                  onClick={onBackToLobby}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
+                >
+                  ← กลับไปล็อบบี้
+                </button>
               </div>
             </div>
           </div>
@@ -369,7 +369,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             {/* Players Section */}
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <span className="mr-2">👥</span> Players
+                <span className="mr-2">👥</span> ผู้เล่น
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {gameState.players.map((player, index) => (
@@ -387,13 +387,13 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                           <div className="text-white font-semibold">{player.name}</div>
                           <div className="flex items-center space-x-2 text-xs">
                             {player.id === socket.id && (
-                              <span className="bg-blue-500 text-white px-2 py-1 rounded-full">You</span>
+                              <span className="bg-blue-500 text-white px-2 py-1 rounded-full">คุณ</span>
                             )}
                             {gameState.hostId === player.id && (
-                              <span className="bg-yellow-500 text-black px-2 py-1 rounded-full">👑 Host</span>
+                              <span className="bg-yellow-500 text-black px-2 py-1 rounded-full">👑 โฮสต์</span>
                             )}
                             {gameState.submittedPlayers?.has(player.id) && (
-                              <span className="bg-green-500 text-white px-2 py-1 rounded-full">✓ Ready</span>
+                              <span className="bg-green-500 text-white px-2 py-1 rounded-full">✓ พร้อม</span>
                             )}
                           </div>
                         </div>
@@ -402,7 +402,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                         <div className="text-green-400 font-bold text-lg">
                           {player.remainingMoney.toLocaleString()}฿
                         </div>
-                        <div className="text-gray-400 text-xs">Capital</div>
+                        <div className="text-gray-400 text-xs">เงินทุน</div>
                       </div>
                     </div>
                     
@@ -411,7 +411,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                       <button
                         onClick={() => handleKickPlayer(player.id, player.name)}
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105"
-                        title={`Kick ${player.name}`}
+                        title={`เตะ ${player.name}`}
                       >
                         🚫
                       </button>
@@ -424,7 +424,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             {/* Companies Section */}
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <span className="mr-2">🏢</span> Companies
+                <span className="mr-2">🏢</span> บริษัท
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gameState.companies.map((company, index) => (
@@ -436,7 +436,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                         </div>
                         <div>
                           <div className="text-white font-semibold">{company.name}</div>
-                          <div className="text-gray-400 text-xs">Company</div>
+                          <div className="text-gray-400 text-xs">บริษัท</div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -444,13 +444,13 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                           <div className="text-green-400 font-bold">
                             {company.totalInvestment.toLocaleString()}฿
                           </div>
-                          <div className="text-gray-400 text-xs">Investment</div>
+                          <div className="text-gray-400 text-xs">การลงทุน</div>
                         </div>
                         {gameState.hostId === socket.id && gameState.phase === 'waiting' && (
                           <button
                             onClick={() => handleDeleteCompany(company.name)}
                             className="opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
-                            title="Delete company"
+                            title="ลบบริษัท"
                           >
                             🗑️
                           </button>
@@ -466,14 +466,14 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             {(gameState.phase === 'waiting' || gameState.phase === 'investment') && gameState.hostId === socket.id && (
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                  <span className="mr-2">➕</span> Add Company
+                  <span className="mr-2">➕</span> เพิ่มบริษัท
                 </h3>
                 <div className="flex space-x-3">
                   <input
                     type="text"
                     value={newCompanyName}
                     onChange={(e) => setNewCompanyName(e.target.value)}
-                    placeholder="Enter company name..."
+                    placeholder="ใส่ชื่อบริษัท..."
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                   <button
@@ -481,7 +481,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     disabled={!newCompanyName.trim()}
                     className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
                   >
-                    Add
+                    เพิ่ม
                   </button>
                 </div>
               </div>
@@ -495,15 +495,15 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     onClick={handleStartInvestment}
                     className="px-12 py-6 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold text-xl rounded-2xl transition-all duration-300 hover:scale-105 shadow-2xl animate-pulse"
                   >
-                    🚀 Launch Investment Phase
+                    🚀 เริ่มเฟสการลงทุน
                   </button>
                 ) : (
                   <div className="bg-white/10 rounded-2xl p-8 border border-white/20">
                     <div className="text-4xl mb-4">⏳</div>
-                    <div className="text-white text-xl font-semibold">Waiting for host to start the game...</div>
+                    <div className="text-white text-xl font-semibold">รอให้โฮสต์เริ่มเกม...</div>
                     <div className="text-gray-400 mt-2">
-                      Ready with {gameState.players.length} players
-                      {gameState.companies.length > 0 && ` and ${gameState.companies.length} companies`}
+                      พร้อมแล้ว {gameState.players.length} ผู้เล่น
+                      {gameState.companies.length > 0 && ` และ ${gameState.companies.length} บริษัท`}
                     </div>
                   </div>
                 )}
@@ -514,19 +514,19 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             {gameState.phase === 'investment' && currentPlayer && (
               <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-6 border border-white/10">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                  <span className="mr-3">💰</span> Investment Phase
+                  <span className="mr-3">💰</span> เฟสการลงทุน
                 </h3>
                 
                 {gameState.companies.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-6xl mb-4">🏢</div>
-                    <div className="text-white text-xl font-semibold mb-2">No Companies Available</div>
+                    <div className="text-white text-xl font-semibold mb-2">ไม่มีบริษัทให้ลงทุน</div>
                     <div className="text-gray-400 mb-4">
-                      The host needs to add companies before you can invest.
+                      โฮสต์ต้องเพิ่มบริษัทก่อนที่คุณจะสามารถลงทุนได้
                     </div>
                     {gameState.hostId === socket.id && (
                       <div className="text-yellow-400 text-sm">
-                        💡 Use the &quot;Add Company&quot; section above to add companies for players to invest in.
+                        💡 ใช้ส่วน "เพิ่มบริษัท" ด้านบนเพื่อเพิ่มบริษัทให้ผู้เล่นลงทุน
                       </div>
                     )}
                   </div>
@@ -536,11 +536,11 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     <div className="bg-white/10 rounded-xl p-6 border border-white/20">
                       <div className="flex justify-between items-center">
                         <div>
-                          <div className="text-white font-semibold">Your Budget</div>
+                          <div className="text-white font-semibold">งบประมาณของคุณ</div>
                           <div className="text-green-400 font-bold text-2xl">{remainingMoney.toLocaleString()}฿</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-white font-semibold">Total Investment</div>
+                          <div className="text-white font-semibold">การลงทุนรวม</div>
                           <div className={`font-bold text-2xl ${totalInvestmentAmount > remainingMoney ? 'text-red-400' : 'text-green-400'}`}>
                             {totalInvestmentAmount.toLocaleString()}฿
                           </div>
@@ -549,7 +549,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                       
                       {totalInvestmentAmount > remainingMoney && (
                         <div className="mt-4 bg-red-500/20 border border-red-400/50 rounded-lg p-3">
-                          <div className="text-red-200 text-sm">⚠️ You&apos;re investing more than you have! Please adjust your investments.</div>
+                          <div className="text-red-200 text-sm">⚠️ คุณกำลังลงทุนมากกว่าเงินที่มี! กรุณาปรับการลงทุนของคุณ</div>
                         </div>
                       )}
                     </div>
@@ -561,7 +561,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                           <div className="flex items-center justify-between mb-4">
                             <div>
                               <div className="text-white font-semibold text-lg">{company.name}</div>
-                              <div className="text-gray-400 text-sm">Current: {playerInvestments[company.name]?.toLocaleString() || '0'}฿</div>
+                              <div className="text-gray-400 text-sm">ปัจจุบัน: {playerInvestments[company.name]?.toLocaleString() || '0'}฿</div>
                             </div>
                           </div>
                           <div className="flex space-x-3">
@@ -582,7 +582,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                               onClick={() => handleInvestmentChange(company.name, '0')}
                               className="px-4 py-3 bg-gray-500/50 hover:bg-gray-500/70 text-white rounded-lg transition-all duration-200"
                             >
-                              Clear
+                              ล้าง
                             </button>
                           </div>
                         </div>
@@ -596,16 +596,16 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                         disabled={!canSubmit}
                         className="px-12 py-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-2xl font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 shadow-2xl"
                       >
-                        🎯 Submit All Investments
+                        🎯 ส่งการลงทุนทั้งหมด
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center">
                     <div className="text-6xl mb-4">⏳</div>
-                    <div className="text-white text-xl font-semibold">Waiting for other players...</div>
+                    <div className="text-white text-xl font-semibold">รอผู้เล่นคนอื่น...</div>
                     <div className="text-gray-400 mt-2">
-                      {gameState.submittedPlayers?.size || 0} of {gameState.players.length} players have submitted
+                      {gameState.submittedPlayers?.size || 0} จาก {gameState.players.length} ผู้เล่นได้ส่งแล้ว
                     </div>
                   </div>
                 )}
@@ -616,12 +616,12 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
             {gameState.phase === 'results' && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h3 className="text-3xl font-bold text-white mb-4">🏆 Game Results</h3>
+                  <h3 className="text-3xl font-bold text-white mb-4">🏆 ผลลัพธ์เกม</h3>
                   <button
                     onClick={handleResetGame}
                     className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105"
                   >
-                    🎮 Play Again
+                    🎮 เล่นอีกครั้ง
                   </button>
                 </div>
                 
@@ -631,7 +631,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     <div className="text-center">
                       <div className="text-6xl mb-4">👑</div>
                       <h4 className="text-2xl font-bold text-yellow-400">
-                        Winner: {gameState.players.reduce((prev, current) => 
+                        ผู้ชนะ: {gameState.players.reduce((prev, current) => 
                           (current.finalValue || 0) > (prev.finalValue || 0) ? current : prev
                         ).name}
                       </h4>
@@ -642,7 +642,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                 {/* Company Analysis */}
                 <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                   <h4 className="text-2xl font-bold text-white mb-6 flex items-center">
-                    <span className="mr-3">📊</span> Company Analysis
+                    <span className="mr-3">📊</span> การวิเคราะห์บริษัท
                   </h4>
                   
                   <div className="space-y-4">
@@ -665,7 +665,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                           <div className="flex items-center justify-between mb-4">
                             <h5 className="text-xl font-bold text-white">{company.name}</h5>
                             <div className="text-right">
-                              <div className="text-sm text-gray-400">Total Investment</div>
+                              <div className="text-sm text-gray-400">การลงทุนรวม</div>
                               <div className="text-green-400 font-bold text-xl">
                                 {totalInvestment.toLocaleString()}฿
                               </div>
@@ -674,13 +674,13 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                           
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div className="text-center">
-                              <div className="text-gray-400 text-sm">Growth Rate</div>
+                              <div className="text-gray-400 text-sm">อัตราการเติบโต</div>
                               <div className={`font-bold text-xl ${growthPercentage > 0 ? 'text-green-400' : 'text-gray-400'}`}>
                                 {growthPercentage.toFixed(1)}%
                               </div>
                             </div>
                             <div className="text-center">
-                              <div className="text-gray-400 text-sm">Market Share</div>
+                              <div className="text-gray-400 text-sm">ส่วนแบ่งตลาด</div>
                               <div className="text-blue-400 font-bold text-xl">
                                 {gameState.companies.reduce((sum, c) => sum + c.totalInvestment, 0) > 0 
                                   ? ((totalInvestment / gameState.companies.reduce((sum, c) => sum + c.totalInvestment, 0)) * 100).toFixed(1)
@@ -691,29 +691,29 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
 
                           {/* Player Investments */}
                           <div className="bg-white/5 rounded-lg p-4">
-                            <h6 className="font-semibold text-white mb-3">Player Investments:</h6>
+                            <h6 className="font-semibold text-white mb-3">การลงทุนของผู้เล่น:</h6>
                             <div className="space-y-2">
                               {playerInvestments.map(({ player, invested, finalValue, percentage }) => (
                                 <div key={player.id} className="flex items-center justify-between text-sm">
                                   <div className="flex items-center space-x-2">
                                     <span className="text-white font-medium">{player.name}</span>
                                     {player.id === socket.id && (
-                                      <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">You</span>
+                                      <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">คุณ</span>
                                     )}
                                   </div>
                                   <div className="flex items-center space-x-4">
                                     <div>
-                                      <div className="text-gray-400 text-xs">Invested</div>
+                                      <div className="text-gray-400 text-xs">ลงทุน</div>
                                       <div className="text-white font-medium">{invested.toLocaleString()}฿</div>
                                     </div>
                                     <div>
-                                      <div className="text-gray-400 text-xs">Final Value</div>
+                                      <div className="text-gray-400 text-xs">มูลค่าสุดท้าย</div>
                                       <div className={`font-medium ${finalValue > invested ? 'text-green-400' : 'text-gray-400'}`}>
                                         {finalValue.toLocaleString()}฿
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="text-gray-400 text-xs">Share</div>
+                                      <div className="text-gray-400 text-xs">ส่วนแบ่ง</div>
                                       <div className="text-white font-medium">{percentage.toFixed(1)}%</div>
                                     </div>
                                   </div>
@@ -730,7 +730,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                 {/* Player Rankings */}
                 <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                   <h4 className="text-2xl font-bold text-white mb-6 flex items-center">
-                    <span className="mr-3">🏅</span> Player Rankings
+                    <span className="mr-3">🏅</span> อันดับผู้เล่น
                   </h4>
                   
                   <div className="space-y-3">
@@ -755,7 +755,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                                 <div>
                                   <div className="text-white font-semibold text-lg">{player.name}</div>
                                   {player.id === socket.id && (
-                                    <div className="text-blue-400 text-sm">(You)</div>
+                                    <div className="text-blue-400 text-sm">(คุณ)</div>
                                   )}
                                 </div>
                               </div>
@@ -781,7 +781,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
         {/* Game Activity Log */}
         <div className="mt-6 bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-4">
           <h4 className="text-white font-semibold mb-3 flex items-center">
-            <span className="mr-2">📝</span> Game Activity
+            <span className="mr-2">📝</span> กิจกรรมเกม
           </h4>
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {messages.map((message, index) => (

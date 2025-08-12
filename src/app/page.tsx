@@ -131,11 +131,11 @@ export default function BusinessGame() {
             </div>
             <div className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
               <p className="text-sm sm:text-xl md:text-2xl font-semibold mb-1 sm:mb-2">
-                Strategic Investment Simulation
+                เกมจำลองการลงทุนเชิงกลยุทธ์
               </p>
             </div>
             <div className="text-cyan-300 text-xs sm:text-lg font-mono">
-              Starting Capital: {STARTING_MONEY.toLocaleString()}฿
+              เงินทุนเริ่มต้น: {STARTING_MONEY.toLocaleString()}฿
             </div>
           </div>
 
@@ -145,10 +145,10 @@ export default function BusinessGame() {
               <div className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-purple-500/30 shadow-2xl p-6 sm:p-8 md:p-12">
                 <div className="text-center mb-8 sm:mb-12">
                   <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-4">
-                    🎮 SELECT GAME MODE
+                    🎮 เลือกโหมดเกม
                   </h2>
                   <p className="text-purple-300 text-sm sm:text-lg md:text-xl">
-                    Choose your path to financial domination!
+                    เลือกเส้นทางสู่การครองโลกการเงิน!
                   </p>
                 </div>
 
@@ -162,28 +162,28 @@ export default function BusinessGame() {
                     <div className="relative z-10">
                       <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-pulse">🎯</div>
                       <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-300 mb-2 sm:mb-4 group-hover:text-blue-200 transition-colors">
-                        SINGLE PLAYER
+                        เล่นคนเดียว
                       </h3>
                       <p className="text-blue-200 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
-                        Master the art of investment in a controlled environment
+                        ฝึกฝนศิลปะการลงทุนในสภาพแวดล้อมที่ควบคุมได้
                       </p>
                       <div className="space-y-1 sm:space-y-2 text-blue-300/80 text-xs sm:text-sm">
                         <div className="flex items-center">
                           <span className="text-blue-400 mr-2">⚡</span>
-                          <span>Set up your own players</span>
+                          <span>ตั้งค่าผู้เล่นของคุณเอง</span>
                         </div>
                         <div className="flex items-center">
                           <span className="text-blue-400 mr-2">🏢</span>
-                          <span>Add companies</span>
+                          <span>เพิ่มบริษัท</span>
                         </div>
                         <div className="flex items-center">
                           <span className="text-blue-400 mr-2">📈</span>
-                          <span>Practice strategies</span>
+                          <span>ฝึกกลยุทธ์</span>
                         </div>
                       </div>
                       <div className="mt-4 sm:mt-6 text-center">
                         <div className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-lg sm:rounded-xl group-hover:from-blue-500 group-hover:to-cyan-500 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
-                          START SOLO
+                          เริ่มเล่นคนเดียว
                         </div>
                       </div>
                     </div>
@@ -198,28 +198,28 @@ export default function BusinessGame() {
                     <div className="relative z-10">
                       <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-bounce">🎮</div>
                       <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-300 mb-2 sm:mb-4 group-hover:text-purple-200 transition-colors">
-                        MULTIPLAYER
+                        เล่นหลายคน
                       </h3>
                       <p className="text-purple-200 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
-                        Compete against real players in intense real-time battles
+                        แข่งขันกับผู้เล่นจริงในการต่อสู้แบบเรียลไทม์
                       </p>
                       <div className="space-y-1 sm:space-y-2 text-purple-300/80 text-xs sm:text-sm">
                         <div className="flex items-center">
                           <span className="text-purple-400 mr-2">🔥</span>
-                          <span>Join game rooms</span>
+                          <span>เข้าร่วมห้องเกม</span>
                         </div>
                         <div className="flex items-center">
                           <span className="text-purple-400 mr-2">⚡</span>
-                          <span>Real-time updates</span>
+                          <span>อัปเดตแบบเรียลไทม์</span>
                         </div>
                         <div className="flex items-center">
                           <span className="text-purple-400 mr-2">🏆</span>
-                          <span>Live competition</span>
+                          <span>การแข่งขันสด</span>
                         </div>
                       </div>
                       <div className="mt-4 sm:mt-6 text-center">
                         <div className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl group-hover:from-purple-500 group-hover:to-pink-500 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
-                          JOIN BATTLE
+                          เข้าร่วมการต่อสู้
                         </div>
                       </div>
                     </div>
@@ -239,21 +239,21 @@ export default function BusinessGame() {
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'setup' ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       1
                     </div>
-                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">SETUP</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">ตั้งค่า</span>
                   </div>
                   <div className={`w-8 sm:w-12 md:w-20 h-1 rounded-full ${gameState.currentPhase === 'setup' ? 'bg-gray-600' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}></div>
                   <div className={`flex items-center ${gameState.currentPhase === 'investment' ? 'text-purple-400' : gameState.currentPhase === 'results' ? 'text-green-400' : 'text-gray-500'}`}>
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'investment' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' : gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       2
                     </div>
-                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">INVESTMENT</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">การลงทุน</span>
                   </div>
                   <div className={`w-8 sm:w-12 md:w-20 h-1 rounded-full ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gray-600'}`}></div>
                   <div className={`flex items-center ${gameState.currentPhase === 'results' ? 'text-green-400' : 'text-gray-500'}`}>
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm sm:text-base md:text-lg font-bold ${gameState.currentPhase === 'results' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50' : 'bg-gray-700 text-gray-400'}`}>
                       3
                     </div>
-                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">RESULTS</span>
+                    <span className="ml-2 sm:ml-3 font-bold text-sm sm:text-base md:text-lg">ผลลัพธ์</span>
                   </div>
                 </div>
               </div>
@@ -261,12 +261,12 @@ export default function BusinessGame() {
               {/* Game Content */}
               <div className="bg-black/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-purple-500/30 shadow-2xl p-4 sm:p-6 md:p-8">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">🎯 SINGLE PLAYER MODE</h2>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">🎯 โหมดเล่นคนเดียว</h2>
                   <button
                     onClick={() => setGameMode('menu')}
                     className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg sm:rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold border border-gray-600 hover:border-gray-500 text-sm sm:text-base"
                   >
-                    ← BACK TO MENU
+                    ← กลับไปเมนู
                   </button>
                 </div>
 
@@ -287,10 +287,10 @@ export default function BusinessGame() {
                           onClick={() => setGameState(prev => ({ ...prev, currentPhase: 'investment' }))}
                           className="px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl sm:rounded-2xl font-bold text-lg sm:text-xl md:text-2xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-purple-500/50"
                         >
-                          🚀 LAUNCH INVESTMENT PHASE
+                          🚀 เริ่มเฟสการลงทุน
                         </button>
                         <p className="text-purple-300 text-sm sm:text-base md:text-lg mt-3 sm:mt-4 font-semibold">
-                          {gameState.players.length} PLAYERS • {gameState.companies.length} COMPANIES READY
+                          พร้อมแล้ว {gameState.players.length} ผู้เล่น • {gameState.companies.length} บริษัท
                         </p>
                       </div>
                     )}

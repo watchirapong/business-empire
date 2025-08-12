@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Player, Company } from '@/app/page';
+import { Player, Company } from '../app/page';
 
 interface InvestmentPhaseProps {
   players: Player[];
@@ -15,88 +15,40 @@ export default function InvestmentPhase({ players, companies, onComplete }: Inve
   const [investments, setInvestments] = useState<Record<string, Record<string, number>>>({});
   const [currentInvestment, setCurrentInvestment] = useState<string>('');
 
-  // Add null checks to prevent errors
-  if (!players || players.length === 0 || !companies || companies.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-2xl mb-4">⏳</div>
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Loading...</h3>
-        <p className="text-gray-600">Setting up the investment phase</p>
-      </div>
-    );
-  }
-
   const currentPlayer = players[currentPlayerIndex];
   const currentCompany = companies[currentCompanyIndex];
-
-  // Additional safety check
-  if (!currentPlayer || !currentCompany) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-2xl mb-4">⚠️</div>
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Setup Error</h3>
-        <p className="text-gray-600">Please ensure players and companies are properly configured</p>
-      </div>
-    );
-  }
-
-  const currentPlayerInvestments = investments[currentPlayer.name] || {};
-  const totalInvested = Object.values(currentPlayerInvestments).reduce((sum, amount) => sum + amount, 0);
-  const remainingMoney = 100000 - totalInvested;
+  const remainingMoney = currentPlayer.remainingMoney;
 
   const handleInvestmentChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
-    if (numValue >= 0 && numValue <= remainingMoney) {
+    if (numValue <= remainingMoney) {
       setCurrentInvestment(value);
     }
   };
 
-  const handleInvest = () => {
+  const handleSubmitInvestment = () => {
     const amount = parseFloat(currentInvestment) || 0;
-    if (amount >= 0 && amount <= remainingMoney) {
-      const newInvestments = {
-        ...investments,
-        [currentPlayer.name]: {
-          ...currentPlayerInvestments,
-          [currentCompany.name]: amount
-        }
-      };
-      setInvestments(newInvestments);
-      setCurrentInvestment('');
-
-      // Move to next company or player
-      if (currentCompanyIndex < companies.length - 1) {
-        setCurrentCompanyIndex(currentCompanyIndex + 1);
-      } else if (currentPlayerIndex < players.length - 1) {
-        setCurrentPlayerIndex(currentPlayerIndex + 1);
-        setCurrentCompanyIndex(0);
-      } else {
-        // All investments complete
-        const updatedPlayers = players.map(player => ({
-          ...player,
-          investments: newInvestments[player.name] || {},
-          remainingMoney: 100000 - Object.values(newInvestments[player.name] || {}).reduce((sum, amount) => sum + amount, 0)
-        }));
-
-        const updatedCompanies = companies.map(company => ({
-          ...company,
-          totalInvestment: players.reduce((sum, player) => sum + (newInvestments[player.name]?.[company.name] || 0), 0)
-        }));
-
-        onComplete(updatedPlayers, updatedCompanies);
-      }
+    
+    // Update investments
+    if (!investments[currentPlayer.id!]) {
+      investments[currentPlayer.id!] = {};
     }
-  };
+    investments[currentPlayer.id!][currentCompany.name] = amount;
+    setInvestments({ ...investments });
 
-  const handleSkip = () => {
-    const newInvestments = {
-      ...investments,
-      [currentPlayer.name]: {
-        ...currentPlayerInvestments,
-        [currentCompany.name]: 0
-      }
+    // Update player's remaining money
+    const updatedPlayers = [...players];
+    updatedPlayers[currentPlayerIndex] = {
+      ...updatedPlayers[currentPlayerIndex],
+      remainingMoney: remainingMoney - amount
     };
-    setInvestments(newInvestments);
+
+    // Update company's total investment
+    const updatedCompanies = [...companies];
+    updatedCompanies[currentCompanyIndex] = {
+      ...updatedCompanies[currentCompanyIndex],
+      totalInvestment: updatedCompanies[currentCompanyIndex].totalInvestment + amount
+    };
 
     // Move to next company or player
     if (currentCompanyIndex < companies.length - 1) {
@@ -106,127 +58,86 @@ export default function InvestmentPhase({ players, companies, onComplete }: Inve
       setCurrentCompanyIndex(0);
     } else {
       // All investments complete
-      const updatedPlayers = players.map(player => ({
-        ...player,
-        investments: newInvestments[player.name] || {},
-        remainingMoney: 100000 - Object.values(newInvestments[player.name] || {}).reduce((sum, amount) => sum + amount, 0)
-      }));
-
-      const updatedCompanies = companies.map(company => ({
-        ...company,
-        totalInvestment: players.reduce((sum, player) => sum + (newInvestments[player.name]?.[company.name] || 0), 0)
-      }));
-
       onComplete(updatedPlayers, updatedCompanies);
+      return;
     }
+
+    setCurrentInvestment('');
   };
 
-  const progress = ((currentPlayerIndex * companies.length + currentCompanyIndex + 1) / (players.length * companies.length)) * 100;
+  const canSubmit = parseFloat(currentInvestment) >= 0 && parseFloat(currentInvestment) <= remainingMoney;
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          💸 Investment Phase
-        </h2>
-        <p className="text-gray-600">
-          Players invest their capital in companies
-        </p>
-      </div>
+    <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+      <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+        <span className="mr-2">💰</span> เฟสการลงทุน
+      </h3>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-200 rounded-full h-3">
-        <div 
-          className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        ></div>
-      </div>
-      <div className="text-center text-sm text-gray-600">
-        {currentPlayerIndex + 1} of {players.length} players • {currentCompanyIndex + 1} of {companies.length} companies
-      </div>
-
-      {/* Current Investment */}
-      <div className="bg-white border-2 border-blue-200 rounded-xl p-6">
-        <div className="text-center mb-6">
-          <div className="text-3xl mb-2">💰</div>
-          <h3 className="text-xl font-bold text-gray-800">
-            {currentPlayer.name} invests in {currentCompany.name}
-          </h3>
+      <div className="bg-white/10 rounded-lg p-6 border border-white/20 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h4 className="text-lg font-semibold text-white">ผู้เล่นปัจจุบัน</h4>
+            <p className="text-blue-300">{currentPlayer.name}</p>
+          </div>
+          <div className="text-right">
+            <h4 className="text-lg font-semibold text-white">เงินคงเหลือ</h4>
+            <p className="text-green-400 font-bold text-xl">{remainingMoney.toLocaleString()}฿</p>
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {remainingMoney.toLocaleString()}฿
-              </div>
-              <div className="text-sm text-blue-600">Available</div>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-600">
-                {totalInvested.toLocaleString()}฿
-              </div>
-              <div className="text-sm text-green-600">Invested</div>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-purple-600">
-                {companies.length - currentCompanyIndex - 1}
-              </div>
-              <div className="text-sm text-purple-600">Companies Left</div>
-            </div>
+        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+          <h5 className="text-md font-semibold text-white mb-2">บริษัท: {currentCompany.name}</h5>
+          <div className="flex items-center space-x-4">
+            <input
+              type="number"
+              value={currentInvestment}
+              onChange={(e) => handleInvestmentChange(e.target.value)}
+              placeholder="0"
+              min="0"
+              max={remainingMoney}
+              className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleSubmitInvestment}
+              disabled={!canSubmit}
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
+            >
+              ลงทุน
+            </button>
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Investment Amount (฿)
-              </label>
-              <input
-                type="number"
-                value={currentInvestment}
-                onChange={(e) => handleInvestmentChange(e.target.value)}
-                placeholder="0"
-                min="0"
-                max={remainingMoney}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg"
-              />
-            </div>
-
-            <div className="flex space-x-4">
-              <button
-                onClick={handleSkip}
-                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Skip (Invest 0฿)
-              </button>
-              <button
-                onClick={handleInvest}
-                disabled={!currentInvestment || parseFloat(currentInvestment) < 0 || parseFloat(currentInvestment) > remainingMoney}
-                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
-                  currentInvestment && parseFloat(currentInvestment) >= 0 && parseFloat(currentInvestment) <= remainingMoney
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                }`}
-              >
-                Invest
-              </button>
-            </div>
-          </div>
+          {parseFloat(currentInvestment) > remainingMoney && (
+            <p className="text-red-400 text-sm mt-2">⚠️ คุณกำลังลงทุนมากกว่าเงินที่มี!</p>
+          )}
         </div>
       </div>
 
-      {/* Investment Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="font-semibold text-gray-800 mb-3">Current Investments by {currentPlayer.name}:</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {companies.map(company => (
-            <div key={company.name} className="text-sm">
-              <span className="font-medium">{company.name}:</span>
-              <span className="ml-1">
-                {(currentPlayerInvestments[company.name] || 0).toLocaleString()}฿
-              </span>
-            </div>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+          <h4 className="font-semibold text-white mb-3">ความคืบหน้าผู้เล่น</h4>
+          <div className="space-y-2">
+            {players.map((player, index) => (
+              <div key={player.id} className="flex items-center justify-between">
+                <span className={`text-sm ${index === currentPlayerIndex ? 'text-blue-400 font-semibold' : 'text-gray-300'}`}>
+                  {player.name}
+                </span>
+                <span className="text-sm text-green-400">{player.remainingMoney.toLocaleString()}฿</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+          <h4 className="font-semibold text-white mb-3">การลงทุนในบริษัท</h4>
+          <div className="space-y-2">
+            {companies.map((company, index) => (
+              <div key={company.name} className="flex items-center justify-between">
+                <span className={`text-sm ${index === currentCompanyIndex ? 'text-green-400 font-semibold' : 'text-gray-300'}`}>
+                  {company.name}
+                </span>
+                <span className="text-sm text-blue-400">{company.totalInvestment.toLocaleString()}฿</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

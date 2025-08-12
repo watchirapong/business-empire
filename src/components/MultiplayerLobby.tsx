@@ -61,7 +61,7 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
   };
 
   const handleResetAllGames = () => {
-    if (window.confirm('Are you sure you want to reset all games? This will clear all active games and rooms.')) {
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะรีเซ็ตเกมทั้งหมด? การดำเนินการนี้จะล้างเกมและห้องที่กำลังเล่นทั้งหมด')) {
       // Use the current domain for Socket.IO connection
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const host = window.location.hostname;
@@ -81,7 +81,7 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
 
       tempSocket.on('connect_error', (err) => {
         console.error('Connection error:', err);
-        alert('Failed to reset games. Please try again.');
+        alert('ไม่สามารถรีเซ็ตเกมได้ กรุณาลองใหม่อีกครั้ง');
         tempSocket.disconnect();
       });
     }
@@ -91,23 +91,23 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
     <div className="text-center">
       <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 animate-bounce">🎮</div>
       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4 neon-text">
-        🚀 JOIN BATTLE ARENA
+        🚀 เข้าร่วมสนามต่อสู้
       </h2>
       <p className="text-purple-300 text-sm sm:text-base md:text-lg mb-6 sm:mb-8">
-        Connect with warriors and dominate the financial battlefield!
+        เชื่อมต่อกับนักรบและครองโลกการเงิน!
       </p>
 
       <div className="space-y-4 sm:space-y-6 max-w-md mx-auto">
         {/* Player Name */}
         <div>
           <label className="block text-xs sm:text-sm font-bold text-cyan-300 mb-2 sm:mb-3 uppercase tracking-wide">
-            ⚔️ WARRIOR NAME *
+            ⚔️ ชื่อนักรบ *
           </label>
           <input
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Enter your warrior name"
+            placeholder="ใส่ชื่อนักรบของคุณ"
             className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-black/50 border border-purple-500/50 rounded-lg sm:rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold text-sm sm:text-base"
             maxLength={20}
           />
@@ -116,27 +116,27 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
         {/* Game ID */}
         <div>
           <label className="block text-xs sm:text-sm font-bold text-cyan-300 mb-2 sm:mb-3 uppercase tracking-wide">
-            🏰 BATTLE ARENA ID
+            🏰 รหัสสนามต่อสู้
           </label>
           <div className="flex space-x-2 sm:space-x-3">
             <input
               type="text"
               value={gameId}
               onChange={(e) => setGameId(e.target.value.toUpperCase())}
-              placeholder="Enter arena ID or leave empty for default"
+              placeholder="ใส่รหัสสนามหรือปล่อยว่างสำหรับค่าเริ่มต้น"
               className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-black/50 border border-purple-500/50 rounded-lg sm:rounded-xl text-white placeholder-purple-300/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all duration-300 font-semibold text-sm sm:text-base"
               maxLength={6}
             />
             <button
               onClick={generateGameId}
               className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg sm:rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all duration-300 font-bold border border-purple-400/50 hover:border-purple-300 text-sm sm:text-base"
-              title="Generate random arena ID"
+              title="สร้างรหัสสนามแบบสุ่ม"
             >
               🎲
             </button>
           </div>
           <p className="text-xs text-purple-300/70 mt-2">
-            Share this ID with your allies to join the same battle arena
+            แชร์รหัสนี้กับพันธมิตรเพื่อเข้าร่วมสนามต่อสู้เดียวกัน
           </p>
         </div>
 
@@ -160,32 +160,32 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
           {isConnecting ? (
             <div className="flex items-center justify-center space-x-2 sm:space-x-3">
               <div className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 border-2 sm:border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm sm:text-base">ESTABLISHING CONNECTION...</span>
+              <span className="text-sm sm:text-base">กำลังเชื่อมต่อ...</span>
             </div>
           ) : (
-            '⚡ ENTER BATTLE ARENA ⚡'
+            '⚡ เข้าสนามต่อสู้ ⚡'
           )}
         </button>
 
         {/* Instructions */}
         <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-lg sm:rounded-2xl p-4 sm:p-6 border border-blue-500/30">
-          <h4 className="font-bold text-blue-300 mb-2 sm:mb-3 text-sm sm:text-base md:text-lg">🎯 BATTLE INSTRUCTIONS:</h4>
+          <h4 className="font-bold text-blue-300 mb-2 sm:mb-3 text-sm sm:text-base md:text-lg">🎯 คำแนะนำการต่อสู้:</h4>
           <ul className="text-xs sm:text-sm text-blue-200 space-y-1 sm:space-y-2">
             <li className="flex items-center">
               <span className="text-blue-400 mr-2">⚔️</span>
-              <span>Enter your warrior name and join a battle arena</span>
+              <span>ใส่ชื่อนักรบและเข้าร่วมสนามต่อสู้</span>
             </li>
             <li className="flex items-center">
               <span className="text-blue-400 mr-2">🏢</span>
-              <span>Host can add companies to invest in</span>
+              <span>โฮสต์สามารถเพิ่มบริษัทให้ลงทุน</span>
             </li>
             <li className="flex items-center">
               <span className="text-blue-400 mr-2">💰</span>
-              <span>All players invest simultaneously</span>
+              <span>ผู้เล่นทุกคนลงทุนพร้อมกัน</span>
             </li>
             <li className="flex items-center">
               <span className="text-blue-400 mr-2">🏆</span>
-              <span>Highest final value wins the battle!</span>
+              <span>มูลค่าสุดท้ายสูงสุดชนะการต่อสู้!</span>
             </li>
           </ul>
         </div>
@@ -196,10 +196,10 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
             onClick={handleResetAllGames}
             className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-lg sm:rounded-xl font-bold border border-red-500/50 hover:border-red-400 transition-all duration-300 text-sm sm:text-base"
           >
-            🔄 Reset All Games
+            🔄 รีเซ็ตเกมทั้งหมด
           </button>
           <p className="text-red-300 text-xs mt-2">
-            Use this to clear all active games and start fresh
+            ใช้เพื่อล้างเกมที่กำลังเล่นทั้งหมดและเริ่มใหม่
           </p>
         </div>
       </div>
