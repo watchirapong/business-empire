@@ -345,12 +345,12 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                     🔄 Reset
                   </button>
                 )}
-                <button
-                  onClick={onBackToLobby}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
-                >
-                  ← Back to Lobby
-                </button>
+              <button
+                onClick={onBackToLobby}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105"
+              >
+                ← Back to Lobby
+              </button>
               </div>
             </div>
           </div>
