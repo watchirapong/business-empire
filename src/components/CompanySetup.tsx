@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Company } from '../app/page';
+import { Company } from '../types';
 
 interface CompanySetupProps {
   onComplete: (companies: Company[]) => void;

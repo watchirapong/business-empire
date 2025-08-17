@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Player, Company } from '../app/page';
+import { Player, Company } from '../types';
 
 interface InvestmentPhaseProps {
   players: Player[];

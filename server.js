@@ -18,7 +18,7 @@ app.prepare().then(() => {
 
   const io = new Server(server, {
     cors: {
-      origin: ["http://localhost:3000", "http://localhost:3002", "https://*.ngrok.app", "https://*.ngrok.io"],
+      origin: ["http://localhost:3000", "http://localhost:3002", "https://hamsterhub.fun", "https://*.ngrok.app", "https://*.ngrok.io"],
       methods: ["GET", "POST"],
       credentials: true
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Player } from '../app/page';
+import { Player } from '../types';
 
 interface PlayerSetupProps {
   onComplete: (players: Player[]) => void;

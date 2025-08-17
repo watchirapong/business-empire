@@ -1,6 +1,6 @@
 'use client';
 
-import { Player, Company } from '../app/page';
+import { Player, Company } from '../types';
 
 interface ResultsProps {
   players: Player[];
