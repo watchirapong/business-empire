@@ -38,10 +38,12 @@ app.prepare().then(() => {
 
     // Join or create a game room
     socket.on('joinGame', ({ playerName, gameId }) => {
+      console.log('Player joining game:', { playerName, gameId, socketId: socket.id });
       const roomId = gameId || 'default';
       socket.join(roomId);
       
       if (!games.has(roomId)) {
+        console.log('Creating new game room:', roomId);
         games.set(roomId, {
           players: [],
           companies: [],
@@ -57,6 +59,11 @@ app.prepare().then(() => {
       }
 
       const game = games.get(roomId);
+      console.log('Current game state before adding player:', {
+        players: game.players.length,
+        companies: game.companies.length,
+        hostId: game.hostId
+      });
       
       const player = {
         id: socket.id,
@@ -69,16 +76,26 @@ app.prepare().then(() => {
       const existingPlayerIndex = game.players.findIndex(p => p.name === playerName);
       if (existingPlayerIndex === -1) {
         game.players.push(player);
+        console.log('Added new player:', playerName);
       } else {
         // Update existing player with new socket ID
         game.players[existingPlayerIndex] = player;
+        console.log('Updated existing player:', playerName);
       }
 
       // Check if this player should be the host (either first player or reconnecting host)
       const isHost = gameHosts.get(roomId) === playerName;
       if (isHost) {
         game.hostId = socket.id;
+        console.log('Set host to:', playerName);
       }
+
+      console.log('Game state after adding player:', {
+        players: game.players.length,
+        companies: game.companies.length,
+        hostId: game.hostId,
+        playerNames: game.players.map(p => p.name)
+      });
 
       // Send updated game state to all players in the room
       const serializedGame = {
@@ -89,12 +106,28 @@ app.prepare().then(() => {
       };
       io.to(roomId).emit('gameState', serializedGame);
       io.to(roomId).emit('playerJoined', { player, totalPlayers: game.players.length });
+      console.log('Sent game state to room:', roomId);
     });
 
     // Add company to game (now works in both waiting and investment phases)
     socket.on('addCompany', ({ companyName, gameId }) => {
+      console.log('Add company request:', { companyName, gameId, socketId: socket.id });
       const roomId = gameId || 'default';
       const game = games.get(roomId);
+      
+      if (!game) {
+        console.log('Game not found for room:', roomId);
+        socket.emit('error', { message: 'ไม่พบเกม!' });
+        return;
+      }
+      
+      console.log('Current game state:', {
+        hostId: game.hostId,
+        socketId: socket.id,
+        isHost: game.hostId === socket.id,
+        phase: game.phase,
+        companies: game.companies.length
+      });
       
       if (game && game.hostId === socket.id && (game.phase === 'waiting' || game.phase === 'investment')) {
         const company = {
@@ -104,6 +137,7 @@ app.prepare().then(() => {
         };
         
         game.companies.push(company);
+        console.log('Added company:', companyName, 'Total companies:', game.companies.length);
         
         // Send updated game state to all players in the room
         const serializedGame = {
@@ -114,10 +148,13 @@ app.prepare().then(() => {
         };
         io.to(roomId).emit('gameState', serializedGame);
         io.to(roomId).emit('companyAdded', { company, totalCompanies: game.companies.length });
+        console.log('Sent updated game state after adding company');
       } else if (game && game.hostId !== socket.id) {
+        console.log('Non-host player attempted to add company');
         // Notify non-host players that only host can add companies
         socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถเพิ่มบริษัทได้!' });
       } else if (game && game.phase === 'results') {
+        console.log('Attempted to add company during results phase');
         // Notify that companies can't be added during results phase
         socket.emit('error', { message: 'บริษัทไม่สามารถเพิ่มได้ในช่วงผลลัพธ์!' });
       }

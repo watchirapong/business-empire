@@ -23,12 +23,8 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
     setError('');
 
     try {
-      // Connect to the Socket.IO server on port 3002
-      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-      const host = window.location.hostname;
-      const socketUrl = `${protocol}//${host}:3002`;
-      
-      const socket = io(socketUrl);
+      // Connect to the Socket.IO server through the same domain (proxied by Nginx)
+      const socket = io();
       
       socket.on('connect', () => {
         console.log('Connected to server');
@@ -61,12 +57,8 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
 
   const handleResetAllGames = () => {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะรีเซ็ตเกมทั้งหมด? การดำเนินการนี้จะล้างเกมและห้องที่กำลังเล่นทั้งหมด')) {
-      // Connect to the Socket.IO server on port 3002
-      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-      const host = window.location.hostname;
-      const socketUrl = `${protocol}//${host}:3002`;
-      
-      const tempSocket = io(socketUrl);
+      // Connect to the Socket.IO server through the same domain (proxied by Nginx)
+      const tempSocket = io();
       
       tempSocket.on('connect', () => {
         tempSocket.emit('resetAllGames');

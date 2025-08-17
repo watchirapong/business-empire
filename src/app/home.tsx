@@ -164,10 +164,9 @@ export default function HomePage() {
     return <StockTradingGame onBackToHome={handleBackToHome} />;
   }
 
-  // Business Empire Game - Redirect to main page
+  // Business Empire Game - Redirect to the original game page
   if (selectedGame === 'business-empire') {
-    // Redirect to the main game page
-    window.location.href = '/';
+    window.location.href = '/games';
     return null;
   }
 

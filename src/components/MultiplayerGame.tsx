@@ -56,25 +56,24 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
-    // Reconnect to game if page was reloaded
-    const savedGameId = localStorage.getItem('currentGameId');
-    const savedPlayerName = localStorage.getItem('currentPlayerName');
+    // Always join the game when component mounts
+    console.log('MultiplayerGame: Joining game with:', { playerName, gameId, socketId: socket.id });
     
-    if (savedGameId && savedPlayerName && savedGameId === gameId) {
-      // Rejoin the game automatically
-      socket.emit('joinGame', { playerName: savedPlayerName, gameId: savedGameId });
-    } else {
-      // Save current game info for potential reconnection
-      localStorage.setItem('currentGameId', gameId);
-      localStorage.setItem('currentPlayerName', playerName);
-    }
+    // Save current game info for potential reconnection
+    localStorage.setItem('currentGameId', gameId);
+    localStorage.setItem('currentPlayerName', playerName);
+    
+    // Join the game
+    socket.emit('joinGame', { playerName, gameId });
     
     // Listen for game state updates
     socket.on('gameState', (state: GameState) => {
-      console.log('Received game state:', state);
-      console.log('Host ID from server:', state.hostId);
-      console.log('Current socket ID:', socket.id);
-      console.log('Is current player host?', state.hostId === socket.id);
+      console.log('MultiplayerGame: Received game state:', state);
+      console.log('MultiplayerGame: Host ID from server:', state.hostId);
+      console.log('MultiplayerGame: Current socket ID:', socket.id);
+      console.log('MultiplayerGame: Is current player host?', state.hostId === socket.id);
+      console.log('MultiplayerGame: Players count:', state.players?.length || 0);
+      console.log('MultiplayerGame: Companies count:', state.companies?.length || 0);
       
       // Convert arrays back to Sets for proper functionality
       const processedState = {
