@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import StockTradingGame from '../components/StockTradingGame';
+import UserProfile from '../components/UserProfile';
 
 export default function HomePage() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -26,6 +27,14 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16">
+          {/* Header with User Profile */}
+          <div className="flex justify-between items-center mb-8">
+            <div className="text-white text-lg font-semibold">
+              🎮 Game Hub
+            </div>
+            <UserProfile />
+          </div>
+
           {/* Game Title */}
           <div className="text-center mb-8 sm:mb-12">
             <div className="inline-block bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">

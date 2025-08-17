@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProfessionalChart from './ProfessionalChart';
+import UserProfile from './UserProfile';
 
 interface Stock {
   symbol: string;
@@ -294,12 +295,15 @@ export default function StockTradingGame({ onBackToHome }: StockTradingGameProps
             </h1>
             <p className="text-gray-300 mt-2">Trade real NASDAQ stocks with $100,000 virtual capital</p>
           </div>
-          <button
-            onClick={onBackToHome}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
-          >
-            ← Back to Home
-          </button>
+          <div className="flex items-center space-x-4">
+            <UserProfile />
+            <button
+              onClick={onBackToHome}
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
         </div>
 
         {/* Portfolio Summary */}
