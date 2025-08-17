@@ -1,17 +1,29 @@
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const next = require('next');
+const { connectDB } = require('./config/database');
+const gameService = require('./services/gameService');
+require('dotenv').config();
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-// Game state management
+// Game state management (in-memory cache for active games)
 const games = new Map();
 // Track host names for each game to allow reconnection
 const gameHosts = new Map();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // Connect to MongoDB
+  try {
+    await connectDB();
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error);
+    process.exit(1);
+  }
+
   const server = createServer((req, res) => {
     handle(req, res);
   });
@@ -28,85 +40,121 @@ app.prepare().then(() => {
     console.log('Player connected:', socket.id);
 
     // Reset all games (admin function)
-    socket.on('resetAllGames', () => {
+    socket.on('resetAllGames', async () => {
       console.log('Resetting all games...');
-      games.clear();
-      gameHosts.clear();
-      console.log('All games have been reset');
-      socket.emit('gamesReset', { message: 'เกมทั้งหมดถูกรีเซ็ตเรียบร้อยแล้ว' });
+      try {
+        await gameService.resetAllGames();
+        games.clear();
+        gameHosts.clear();
+        console.log('All games have been reset');
+        socket.emit('gamesReset', { message: 'เกมทั้งหมดถูกรีเซ็ตเรียบร้อยแล้ว' });
+      } catch (error) {
+        console.error('Error resetting games:', error);
+        socket.emit('gamesReset', { error: 'เกิดข้อผิดพลาดในการรีเซ็ตเกม' });
+      }
     });
 
     // Join or create a game room
-    socket.on('joinGame', ({ playerName, gameId }) => {
+    socket.on('joinGame', async ({ playerName, gameId }) => {
       console.log('Player joining game:', { playerName, gameId, socketId: socket.id });
       const roomId = gameId || 'default';
       socket.join(roomId);
       
-      if (!games.has(roomId)) {
-        console.log('Creating new game room:', roomId);
-        games.set(roomId, {
-          players: [],
-          companies: [],
-          phase: 'waiting',
-          currentPlayerIndex: 0,
-          currentCompanyIndex: 0,
-          investments: {},
-          readyPlayers: new Set(),
-          submittedPlayers: new Set(),
-          hostId: socket.id // First player becomes the host
+      try {
+        // Check if game exists in memory cache first
+        if (!games.has(roomId)) {
+          // Try to load from database
+          let gameData = await gameService.getGame(roomId);
+          
+          if (!gameData) {
+            // Create new game in database
+            console.log('Creating new game room:', roomId);
+            gameData = await gameService.createGame(roomId, playerName, socket.id);
+            gameHosts.set(roomId, playerName);
+          }
+          
+          // Load into memory cache
+          const game = {
+            players: gameData.players || [],
+            companies: gameData.companies || [],
+            phase: gameData.phase || 'waiting',
+            currentPlayerIndex: gameData.currentPlayerIndex || 0,
+            currentCompanyIndex: gameData.currentCompanyIndex || 0,
+            investments: gameData.investments || {},
+            readyPlayers: new Set(gameData.readyPlayers || []),
+            submittedPlayers: new Set(gameData.submittedPlayers || []),
+            hostId: gameData.hostId || socket.id
+          };
+          games.set(roomId, game);
+        }
+
+        const game = games.get(roomId);
+        console.log('Current game state before adding player:', {
+          players: game.players.length,
+          companies: game.companies.length,
+          hostId: game.hostId
         });
-        gameHosts.set(roomId, playerName); // Store host name
+        
+        const player = {
+          id: socket.id,
+          name: playerName,
+          remainingMoney: 100000,
+          investments: {}
+        };
+
+        // Check if player already exists (by name, not socket ID)
+        const existingPlayerIndex = game.players.findIndex(p => p.name === playerName);
+        if (existingPlayerIndex === -1) {
+          game.players.push(player);
+          console.log('Added new player:', playerName);
+        } else {
+          // Update existing player with new socket ID
+          game.players[existingPlayerIndex] = player;
+          console.log('Updated existing player:', playerName);
+        }
+
+        // Check if this player should be the host (either first player or reconnecting host)
+        const isHost = gameHosts.get(roomId) === playerName;
+        if (isHost) {
+          game.hostId = socket.id;
+          console.log('Set host to:', playerName);
+        }
+
+        // Save to database
+        await gameService.updateGame(roomId, {
+          players: game.players,
+          companies: game.companies,
+          phase: game.phase,
+          currentPlayerIndex: game.currentPlayerIndex,
+          currentCompanyIndex: game.currentCompanyIndex,
+          investments: game.investments,
+          readyPlayers: Array.from(game.readyPlayers),
+          submittedPlayers: Array.from(game.submittedPlayers),
+          hostId: game.hostId,
+          hostName: gameHosts.get(roomId)
+        });
+
+        console.log('Game state after adding player:', {
+          players: game.players.length,
+          companies: game.companies.length,
+          hostId: game.hostId,
+          playerNames: game.players.map(p => p.name)
+        });
+
+        // Send updated game state to all players in the room
+        const serializedGame = {
+          ...game,
+          submittedPlayers: Array.from(game.submittedPlayers),
+          readyPlayers: Array.from(game.readyPlayers),
+          hostId: game.hostId
+        };
+        io.to(roomId).emit('gameState', serializedGame);
+        io.to(roomId).emit('playerJoined', { player, totalPlayers: game.players.length });
+        console.log('Sent game state to room:', roomId);
+      } catch (error) {
+        console.error('Error joining game:', error);
+        socket.emit('error', { message: 'เกิดข้อผิดพลาดในการเข้าร่วมเกม' });
       }
-
-      const game = games.get(roomId);
-      console.log('Current game state before adding player:', {
-        players: game.players.length,
-        companies: game.companies.length,
-        hostId: game.hostId
-      });
-      
-      const player = {
-        id: socket.id,
-        name: playerName,
-        remainingMoney: 100000,
-        investments: {}
-      };
-
-      // Check if player already exists (by name, not socket ID)
-      const existingPlayerIndex = game.players.findIndex(p => p.name === playerName);
-      if (existingPlayerIndex === -1) {
-        game.players.push(player);
-        console.log('Added new player:', playerName);
-      } else {
-        // Update existing player with new socket ID
-        game.players[existingPlayerIndex] = player;
-        console.log('Updated existing player:', playerName);
-      }
-
-      // Check if this player should be the host (either first player or reconnecting host)
-      const isHost = gameHosts.get(roomId) === playerName;
-      if (isHost) {
-        game.hostId = socket.id;
-        console.log('Set host to:', playerName);
-      }
-
-      console.log('Game state after adding player:', {
-        players: game.players.length,
-        companies: game.companies.length,
-        hostId: game.hostId,
-        playerNames: game.players.map(p => p.name)
-      });
-
-      // Send updated game state to all players in the room
-      const serializedGame = {
-        ...game,
-        submittedPlayers: Array.from(game.submittedPlayers),
-        readyPlayers: Array.from(game.readyPlayers),
-        hostId: game.hostId
-      };
-      io.to(roomId).emit('gameState', serializedGame);
-      io.to(roomId).emit('playerJoined', { player, totalPlayers: game.players.length });
-      console.log('Sent game state to room:', roomId);
     });
 
     // Add company to game (now works in both waiting and investment phases)

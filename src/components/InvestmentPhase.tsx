@@ -134,7 +134,7 @@ export default function InvestmentPhase({ players, companies, onComplete }: Inve
                 <span className={`text-sm ${index === currentCompanyIndex ? 'text-green-400 font-semibold' : 'text-gray-300'}`}>
                   {company.name}
                 </span>
-                <span className="text-sm text-blue-400">{company.totalInvestment.toLocaleString()}฿</span>
+                <span className="text-sm text-blue-400">{(company.totalInvestment || 0).toLocaleString()}฿</span>
               </div>
             ))}
           </div>

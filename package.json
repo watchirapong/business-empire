@@ -10,11 +10,13 @@
     "multiplayer": "node server.js"
   },
   "dependencies": {
-    "@auth/core": "^0.40.0",
-    "@auth/nextjs": "^0.0.0-380f8d56",
+    "@auth/core": "0.34.2",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1",
+    "mongoose": "^8.17.1",
     "next": "15.4.6",
     "next-auth": "^4.24.11",
     "react": "^19",

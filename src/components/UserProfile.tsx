@@ -43,26 +43,26 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <button
         onClick={() => setIsProfileOpen(!isProfileOpen)}
-        className="flex items-center space-x-3 bg-black/20 backdrop-blur-sm rounded-lg p-2 border border-white/20 hover:bg-white/10 transition-colors duration-200"
+        className="flex items-center space-x-3 bg-black/20 backdrop-blur-sm rounded-lg p-2 border border-white/20 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
       >
         <img
           src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
           alt="Profile"
-          className="w-8 h-8 rounded-full"
+          className="w-8 h-8 rounded-full ring-2 ring-purple-500/50 group-hover:ring-purple-400 transition-all duration-300"
         />
         <div className="text-left">
-          <div className="text-white font-medium text-sm">
+          <div className="text-white font-medium text-sm group-hover:text-purple-200 transition-colors duration-300">
             {(session.user as any).username}
           </div>
-          <div className="text-gray-300 text-xs">
+          <div className="text-gray-300 text-xs group-hover:text-purple-300 transition-colors duration-300">
             #{session.user?.name}
           </div>
         </div>
         <svg
-          className={`w-4 h-4 text-white transition-transform duration-200 ${
+          className={`w-4 h-4 text-white transition-transform duration-300 group-hover:text-purple-300 ${
             isProfileOpen ? 'rotate-180' : ''
           }`}
           fill="none"
@@ -73,43 +73,65 @@ export default function UserProfile() {
         </svg>
       </button>
 
+      {/* Hover Logout Button */}
+      <div className="absolute right-0 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 pointer-events-none group-hover:pointer-events-auto">
+        <button
+          onClick={handleLogout}
+          className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg font-medium text-sm flex items-center space-x-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+
+      {/* Detailed Profile Dropdown */}
       {isProfileOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-sm rounded-lg border border-white/20 shadow-xl z-50">
-          <div className="p-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <img
-                src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
-                alt="Profile"
-                className="w-12 h-12 rounded-full"
-              />
+        <div className="absolute right-0 mt-2 w-72 bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-sm rounded-xl border border-orange-500/20 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="p-6">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="relative">
+                <img
+                  src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full ring-4 ring-orange-500/30"
+                />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-orange-500 rounded-full border-2 border-gray-900"></div>
+              </div>
               <div>
-                <div className="text-white font-semibold">
+                <div className="text-white font-bold text-lg">
                   {(session.user as any).username}
                 </div>
-                <div className="text-gray-300 text-sm">
+                <div className="text-orange-300 text-sm">
                   #{session.user?.name}
                 </div>
-                <div className="text-gray-400 text-xs">
+                <div className="text-gray-400 text-xs mt-1">
                   Discord User
                 </div>
               </div>
             </div>
             
-            <div className="border-t border-white/10 pt-4 space-y-2">
-              <div className="text-gray-300 text-sm">
-                <span className="text-gray-400">Email:</span> {session.user?.email}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <span className="text-gray-400 text-sm">Email</span>
+                <span className="text-white text-sm font-medium">{session.user?.email}</span>
               </div>
-              <div className="text-gray-300 text-sm">
-                <span className="text-gray-400">User ID:</span> {(session.user as any).id}
+              <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <span className="text-gray-400 text-sm">User ID</span>
+                <span className="text-white text-sm font-mono">{(session.user as any).id}</span>
               </div>
             </div>
 
-            <div className="border-t border-white/10 pt-4 mt-4">
+            <div className="border-t border-white/10 pt-4">
               <button
                 onClick={handleLogout}
-                className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 text-sm font-medium"
+                className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg font-medium flex items-center justify-center space-x-2"
               >
-                Sign Out
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>ออกจากระบบ</span>
               </button>
             </div>
           </div>

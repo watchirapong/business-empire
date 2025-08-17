@@ -78,8 +78,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       // Convert arrays back to Sets for proper functionality
       const processedState = {
         ...state,
-        submittedPlayers: new Set(state.submittedPlayers || []),
-        readyPlayers: new Set(state.readyPlayers || []),
+        submittedPlayers: new Set(Array.isArray(state.submittedPlayers) ? state.submittedPlayers : []),
+        readyPlayers: new Set(Array.isArray(state.readyPlayers) ? state.readyPlayers : []),
         hostId: state.hostId
       };
       
@@ -142,8 +142,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       
       const processedState = {
         ...state,
-        submittedPlayers: new Set(state.submittedPlayers || []),
-        readyPlayers: new Set(state.readyPlayers || []),
+        submittedPlayers: new Set(Array.isArray(state.submittedPlayers) ? state.submittedPlayers : []),
+        readyPlayers: new Set(Array.isArray(state.readyPlayers) ? state.readyPlayers : []),
         hostId: state.hostId
       };
       
@@ -173,8 +173,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       
       const processedState = {
         ...state,
-        submittedPlayers: new Set(state.submittedPlayers || []),
-        readyPlayers: new Set(state.readyPlayers || []),
+        submittedPlayers: new Set(Array.isArray(state.submittedPlayers) ? state.submittedPlayers : []),
+        readyPlayers: new Set(Array.isArray(state.readyPlayers) ? state.readyPlayers : []),
         hostId: state.hostId
       };
       
@@ -187,8 +187,8 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       
       const processedState = {
         ...state,
-        submittedPlayers: new Set(state.submittedPlayers || []),
-        readyPlayers: new Set(state.readyPlayers || []),
+        submittedPlayers: new Set(Array.isArray(state.submittedPlayers) ? state.submittedPlayers : []),
+        readyPlayers: new Set(Array.isArray(state.readyPlayers) ? state.readyPlayers : []),
         hostId: state.hostId
       };
       
@@ -459,7 +459,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                       <div className="flex items-center space-x-2">
                         <div className="text-right">
                           <div className="text-green-400 font-bold">
-                            {company.totalInvestment.toLocaleString()}฿
+                            {(company.totalInvestment || 0).toLocaleString()}฿
                           </div>
                           <div className="text-gray-400 text-xs">การลงทุน</div>
                         </div>
@@ -684,7 +684,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                             <div className="text-right">
                               <div className="text-sm text-gray-400">การลงทุนรวม</div>
                               <div className="text-green-400 font-bold text-xl">
-                                {totalInvestment.toLocaleString()}฿
+                                {(totalInvestment || 0).toLocaleString()}฿
                               </div>
                             </div>
                           </div>
@@ -693,7 +693,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                             <div className="text-center">
                               <div className="text-gray-400 text-sm">อัตราการเติบโต</div>
                               <div className={`font-bold text-xl ${growthPercentage > 0 ? 'text-green-400' : 'text-gray-400'}`}>
-                                {growthPercentage.toFixed(1)}%
+                                {(growthPercentage || 0).toFixed(1)}%
                               </div>
                             </div>
                             <div className="text-center">
@@ -731,7 +731,7 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                                     </div>
                                     <div>
                                       <div className="text-gray-400 text-xs">ส่วนแบ่ง</div>
-                                      <div className="text-white font-medium">{percentage.toFixed(1)}%</div>
+                                      <div className="text-white font-medium">{(percentage || 0).toFixed(1)}%</div>
                                     </div>
                                     {gameState.hostId === socket.id && (
                                       <button

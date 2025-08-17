@@ -76,7 +76,7 @@ export default function Results({ players, companies, onReset }: ResultsProps) {
                         {(player.finalValue || 0).toLocaleString()}฿
                       </div>
                       <div className={`text-sm ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {profit >= 0 ? '+' : ''}{profit.toLocaleString()}฿ ({profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%)
+                        {profit >= 0 ? '+' : ''}{profit.toLocaleString()}฿ ({profitPercentage >= 0 ? '+' : ''}{(profitPercentage || 0).toFixed(1)}%)
                       </div>
                     </div>
                   </div>
@@ -104,7 +104,7 @@ export default function Results({ players, companies, onReset }: ResultsProps) {
                   <div className="text-right">
                     <div className="text-sm text-gray-400">การลงทุนรวม</div>
                     <div className="text-green-400 font-bold text-xl">
-                      {totalInvestment.toLocaleString()}฿
+                      {(totalInvestment || 0).toLocaleString()}฿
                     </div>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export default function Results({ players, companies, onReset }: ResultsProps) {
                   <div className="text-center">
                     <div className="text-gray-400 text-sm">อัตราการเติบโต</div>
                     <div className={`font-bold text-xl ${growthPercentage > 0 ? 'text-green-400' : 'text-gray-400'}`}>
-                      {growthPercentage.toFixed(1)}%
+                      {(growthPercentage || 0).toFixed(1)}%
                     </div>
                   </div>
                   <div className="text-center">
