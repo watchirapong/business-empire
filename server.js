@@ -57,6 +57,7 @@ app.prepare().then(() => {
       }
 
       const game = games.get(roomId);
+      
       const player = {
         id: socket.id,
         name: playerName,
@@ -290,14 +291,19 @@ app.prepare().then(() => {
       if (game && game.hostId === socket.id) {
         const playerToKick = game.players.find(p => p.id === playerId);
         
-        if (playerToKick && playerToKick.id !== socket.id) { // Host cannot kick themselves
+        if (playerToKick && playerToKick.id !== socket.id) {
           // Remove player from game
           game.players = game.players.filter(p => p.id !== playerId);
-          game.readyPlayers.delete(playerId);
-          game.submittedPlayers.delete(playerId);
-          delete game.investments[playerId];
           
-          // If no players left, delete the game
+          // Remove player's investments
+          if (game.investments[playerId]) {
+            delete game.investments[playerId];
+          }
+          
+          // Remove from submitted players
+          game.submittedPlayers.delete(playerId);
+          
+          // If no players left, clean up the game
           if (game.players.length === 0) {
             games.delete(roomId);
             gameHosts.delete(roomId);
@@ -311,11 +317,7 @@ app.prepare().then(() => {
               hostId: game.hostId
             };
             io.to(roomId).emit('gameState', serializedGame);
-            io.to(roomId).emit('playerKicked', { 
-              playerId, 
-              playerName: playerToKick.name,
-              totalPlayers: game.players.length 
-            });
+            io.to(roomId).emit('playerKicked', { playerName: playerToKick.name, totalPlayers: game.players.length });
             
             // Notify the kicked player
             io.to(playerId).emit('kickedFromGame', { 
@@ -329,6 +331,57 @@ app.prepare().then(() => {
         }
       } else if (game && game.hostId !== socket.id) {
         socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถเตะผู้เล่นได้!' });
+      }
+    });
+
+    // Modify player investment (only host can modify)
+    socket.on('modifyPlayerInvestment', ({ playerId, companyName, newAmount, gameId }) => {
+      const roomId = gameId || 'default';
+      const game = games.get(roomId);
+      
+      if (game && game.hostId === socket.id) {
+        const player = game.players.find(p => p.id === playerId);
+        
+        if (player) {
+          // Initialize player investments if not exists
+          if (!game.investments[playerId]) {
+            game.investments[playerId] = {};
+          }
+          
+          // Update the investment amount
+          game.investments[playerId][companyName] = newAmount;
+          
+          // Update company total investment
+          const company = game.companies.find(c => c.name === companyName);
+          if (company) {
+            // Recalculate total investment for this company
+            let totalInvestment = 0;
+            Object.keys(game.investments).forEach(playerId => {
+              if (game.investments[playerId][companyName]) {
+                totalInvestment += game.investments[playerId][companyName];
+              }
+            });
+            company.totalInvestment = totalInvestment;
+          }
+          
+          // Send updated game state to all players
+          const serializedGame = {
+            ...game,
+            submittedPlayers: Array.from(game.submittedPlayers),
+            readyPlayers: Array.from(game.readyPlayers),
+            hostId: game.hostId
+          };
+          io.to(roomId).emit('gameState', serializedGame);
+          io.to(roomId).emit('playerInvestmentModified', { 
+            playerName: player.name, 
+            companyName, 
+            newAmount 
+          });
+        } else {
+          socket.emit('error', { message: 'ไม่พบผู้เล่น!' });
+        }
+      } else if (game && game.hostId !== socket.id) {
+        socket.emit('error', { message: 'เฉพาะโฮสต์เท่านั้นที่สามารถแก้ไขการลงทุนได้!' });
       }
     });
 

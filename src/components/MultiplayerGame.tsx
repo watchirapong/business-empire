@@ -207,6 +207,11 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
       addMessage(`${playerName} ถูกเตะออกจากเกม (เหลือ ${totalPlayers} ผู้เล่น)`);
     });
 
+    socket.on('playerInvestmentModified', ({ playerName, companyName, newAmount }) => {
+      console.log('Player investment modified:', playerName, companyName, newAmount);
+      addMessage(`โฮสต์แก้ไขการลงทุนของ ${playerName} ใน ${companyName} เป็น ${newAmount.toLocaleString()}฿`);
+    });
+
     socket.on('kickedFromGame', ({ message }) => {
       console.log('Kicked from game:', message);
       alert('คุณถูกเตะออกจากเกมโดยโฮสต์');
@@ -299,6 +304,19 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
   const handleKickPlayer = (playerId: string, playerName: string) => {
     if (window.confirm(`คุณแน่ใจหรือไม่ที่จะเตะ ${playerName} ออกจากเกม?`)) {
       socket.emit('kickPlayer', { playerId, gameId });
+    }
+  };
+
+  const handleModifyInvestment = (playerId: string, playerName: string, companyName: string, currentAmount: number) => {
+    const newAmount = prompt(`แก้ไขการลงทุนของ ${playerName} ใน ${companyName} (ปัจจุบัน: ${currentAmount.toLocaleString()}฿):`, currentAmount.toString());
+    
+    if (newAmount !== null) {
+      const amount = parseFloat(newAmount);
+      if (!isNaN(amount) && amount >= 0) {
+        socket.emit('modifyPlayerInvestment', { playerId, companyName, newAmount: amount, gameId });
+      } else {
+        alert('กรุณาใส่จำนวนเงินที่ถูกต้อง');
+      }
     }
   };
 
@@ -716,6 +734,15 @@ export default function MultiplayerGame({ socket, playerName, gameId, onBackToLo
                                       <div className="text-gray-400 text-xs">ส่วนแบ่ง</div>
                                       <div className="text-white font-medium">{percentage.toFixed(1)}%</div>
                                     </div>
+                                    {gameState.hostId === socket.id && (
+                                      <button
+                                        onClick={() => handleModifyInvestment(player.id, player.name, company.name, invested)}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium transition-all duration-200 hover:scale-105"
+                                        title="แก้ไขการลงทุน"
+                                      >
+                                        ✏️
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}

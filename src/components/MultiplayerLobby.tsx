@@ -23,11 +23,10 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
     setError('');
 
     try {
-      // Use the current domain for Socket.IO connection (works with ngrok)
+      // Connect to the Socket.IO server on port 3002
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const host = window.location.hostname;
-      const port = window.location.port || (protocol === 'https:' ? '443' : '80');
-      const socketUrl = `${protocol}//${host}${port !== '80' && port !== '443' ? ':' + port : ''}`;
+      const socketUrl = `${protocol}//${host}:3002`;
       
       const socket = io(socketUrl);
       
@@ -62,11 +61,10 @@ export default function MultiplayerLobby({ onJoinGame }: MultiplayerLobbyProps) 
 
   const handleResetAllGames = () => {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะรีเซ็ตเกมทั้งหมด? การดำเนินการนี้จะล้างเกมและห้องที่กำลังเล่นทั้งหมด')) {
-      // Use the current domain for Socket.IO connection
+      // Connect to the Socket.IO server on port 3002
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const host = window.location.hostname;
-      const port = window.location.port || (protocol === 'https:' ? '443' : '80');
-      const socketUrl = `${protocol}//${host}${port !== '80' && port !== '443' ? ':' + port : ''}`;
+      const socketUrl = `${protocol}//${host}:3002`;
       
       const tempSocket = io(socketUrl);
       
