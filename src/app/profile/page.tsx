@@ -96,13 +96,7 @@ export default function ProfilePage() {
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={() => router.push('/gamehub')}
-                    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    <span className="text-xl">🎮</span>
-                    <span>Play Games</span>
-                  </button>
+                  
                   <button
                     onClick={() => router.push('/shop')}
                     className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"

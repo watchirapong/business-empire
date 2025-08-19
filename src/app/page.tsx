@@ -144,21 +144,6 @@ export default function HomePage() {
                 </div>
               </button>
 
-              {/* HamsterGame */}
-              <button
-                onClick={() => handleMenuClick('/gamehub')}
-                className="group bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 hover:border-orange-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
-              >
-                <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🎮</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300">
-                    HamsterGame
-                  </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300">
-                    เกมแฮมสเตอร์
-                  </p>
-                </div>
-              </button>
 
               {/* HamsterProfile */}
               <button
