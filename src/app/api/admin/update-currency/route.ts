@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -46,8 +47,8 @@ const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_ID = '898059066537029692';
+    const session = await getServerSession(authOptions);
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (userId !== ADMIN_USER_ID) {
+    if (!ADMIN_USER_IDS.includes(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 

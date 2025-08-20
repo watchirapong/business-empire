@@ -1,7 +1,8 @@
 module.exports = {
   apps: [{
     name: 'business-empire',
-    script: 'server.js',
+    script: 'node_modules/next/dist/bin/next',
+    args: 'start',
     env: {
       NODE_ENV: 'production',
       NEXTAUTH_URL: 'https://hamsterhub.fun',

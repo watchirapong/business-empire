@@ -87,8 +87,8 @@ export default function AdminPage() {
   const [voiceStats, setVoiceStats] = useState<VoiceStats | null>(null);
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
 
-  // Check if user is authorized (only your Discord ID)
-  const ADMIN_USER_ID = '898059066537029692';
+  // Check if user is authorized (admin Discord IDs)
+  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -98,7 +98,7 @@ export default function AdminPage() {
       return;
     }
 
-    if ((session.user as any)?.id !== ADMIN_USER_ID) {
+    if (!ADMIN_USER_IDS.includes((session.user as any)?.id)) {
       router.push('/');
       return;
     }
@@ -288,6 +288,45 @@ export default function AdminPage() {
     loadVoiceActivity();
   };
 
+  const deleteUser = async (userId: string, username: string) => {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone and will delete all user data including currency and voice activity.`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage('');
+    
+    try {
+      const response = await fetch(`/api/admin/delete-user?userId=${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+      
+      await response.json();
+      setMessage(`User "${username}" deleted successfully!`);
+      
+      // Clear selected user if it was the deleted user
+      if (selectedUser && selectedUser.discordId === userId) {
+        setSelectedUser(null);
+        setUserCurrency(null);
+        setUserVoiceActivity(null);
+        setUserVoiceSessions([]);
+      }
+      
+      // Refresh the user list
+      await loadAllUsers();
+      
+    } catch (error) {
+      setMessage('Error deleting user. Please try again.');
+      console.error('Delete user error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Show loading or unauthorized
   if (status === 'loading') {
     return (
@@ -297,7 +336,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!session || (session.user as any)?.id !== ADMIN_USER_ID) {
+  if (!session || !ADMIN_USER_IDS.includes((session.user as any)?.id)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-xl">Unauthorized Access</div>
@@ -527,6 +566,12 @@ export default function AdminPage() {
                                   >
                                     Copy Email
                                   </button>
+                                  <button
+                                    onClick={() => deleteUser(user.discordId, user.username)}
+                                    className="w-full bg-red-600 hover:bg-red-500 text-white py-2 px-4 rounded-lg transition-all duration-300"
+                                  >
+                                    🗑️ Delete User
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -700,6 +745,38 @@ export default function AdminPage() {
                     )}
                   </div>
                 )}
+
+                {/* Delete User Section */}
+                <div className="bg-gradient-to-br from-red-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-red-500/20 p-6 mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-xl font-bold text-white">⚠️ Danger Zone</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-800/20 rounded-lg p-4 border border-red-500/30">
+                    <h4 className="text-lg font-semibold text-red-300 mb-3">Delete User Account</h4>
+                    <div className="space-y-3">
+                      <div className="text-red-200 text-sm">
+                        <p><strong>Warning:</strong> This action will permanently delete:</p>
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>User account data</li>
+                          <li>All currency and balance information</li>
+                          <li>Voice activity records</li>
+                          <li>Voice session history</li>
+                        </ul>
+                        <p className="mt-2"><strong>This action cannot be undone!</strong></p>
+                      </div>
+                      <button
+                        onClick={() => deleteUser(selectedUser.discordId, selectedUser.username)}
+                        disabled={isLoading}
+                        className="w-full bg-red-600 hover:bg-red-500 text-white py-3 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 font-semibold"
+                      >
+                        {isLoading ? 'Deleting...' : '🗑️ Delete User Permanently'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </>

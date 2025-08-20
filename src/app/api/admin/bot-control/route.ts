@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { startDiscordBot, stopDiscordBot, getBot } from '@/lib/start-bot';
 import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_ID = '898059066537029692';
+    const session = await getServerSession(authOptions);
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
@@ -47,12 +48,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (userId !== ADMIN_USER_ID) {
+    if (!ADMIN_USER_IDS.includes(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { action } = body; // 'start' or 'stop'
+    const { action } = body; // 'start', 'stop', 'status', 'active-sessions'
 
     if (action === 'start') {
       const bot = await startDiscordBot();
@@ -72,8 +73,26 @@ export async function POST(request: NextRequest) {
       const bot = getBot();
       return NextResponse.json({
         success: true,
-        isRunning: bot?.isBotConnected() || false
+        isRunning: bot?.isBotConnected() || false,
+        botInfo: bot ? {
+          isConnected: bot.isBotConnected(),
+          activeSessions: bot.getActiveVoiceSessions?.() || []
+        } : null
       });
+    } else if (action === 'active-sessions') {
+      const bot = getBot();
+      if (bot && bot.getActiveVoiceSessions) {
+        const activeSessions = bot.getActiveVoiceSessions();
+        return NextResponse.json({
+          success: true,
+          activeSessions
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          activeSessions: []
+        });
+      }
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

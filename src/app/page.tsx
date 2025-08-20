@@ -105,7 +105,7 @@ export default function HomePage() {
               </div>
             ) : (
               <button 
-                onClick={() => router.push('/api/auth/signin?callbackUrl=https://hamsterhub.fun')}
+                onClick={() => router.push('/api/auth/signin?callbackUrl=/')}
                 className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white px-8 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-orange-500/25 flex items-center space-x-2"
               >
                 <span className="text-xl">🔐</span>

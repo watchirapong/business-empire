@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
     
     await connectDB();
     
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log('Session:', session ? 'Found' : 'Not found');
     console.log('Full session object:', JSON.stringify(session, null, 2));
     
