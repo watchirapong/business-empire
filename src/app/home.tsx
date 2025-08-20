@@ -1,22 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import StockTradingGame from '../components/StockTradingGame';
 import UserProfile from '../components/UserProfile';
 
 export default function HomePage() {
   const router = useRouter();
 
-  const handleGameSelect = (gameType: string) => {
-    if (gameType === 'business-empire') {
-      router.push('/business-empire');
-    } else if (gameType === 'stock-trading') {
-      // For now, just show the stock trading game component
-      // You can create a separate route for this later
-      console.log('Stock trading selected');
-    } else if (gameType === 'shop') {
-      router.push('/shop');
-    }
+  const handleNavigateShop = () => {
+    router.push('/shop');
   };
 
   return (
@@ -50,11 +41,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Game Title */}
+          {/* Title */}
           <div className="text-center mb-12 sm:mb-16">
             <div className="inline-block bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 text-transparent bg-clip-text">
               <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 tracking-tight leading-tight animate-pulse">
-                🎮 GAME HUB
+                🐹 HamsterHub
               </h1>
             </div>
             <div className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
@@ -69,86 +60,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Game Selection */}
+          {/* Shop Entry */}
           <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              
-              {/* Business Empire Game */}
-              <div 
-                className="group relative bg-gradient-to-br from-gray-900/50 to-black/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-orange-500/30 hover:border-orange-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/25"
-                onClick={() => handleGameSelect('business-empire')}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl md:text-7xl mb-6 animate-pulse">🏢</div>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-300 mb-4 group-hover:text-orange-200 transition-colors">
-                    Business Empire
-                  </h3>
-                  <p className="text-orange-200 text-sm sm:text-base md:text-lg mb-6">
-                    เกมจำลองการลงทุนเชิงกลยุทธ์ - ลงทุนในบริษัทและแข่งขันกับผู้เล่นอื่น
-                  </p>
-                  <div className="space-y-2 text-orange-300/80 text-sm">
-                    <div className="flex items-center">
-                      <span className="text-orange-400 mr-2">💰</span>
-                      <span>เงินทุนเริ่มต้น: 100,000฿</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-orange-400 mr-2">🏢</span>
-                      <span>ลงทุนในบริษัทต่างๆ</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-orange-400 mr-2">📈</span>
-                      <span>แข่งขันแบบเรียลไทม์</span>
-                    </div>
-                  </div>
-                  <div className="mt-6 text-center">
-                    <div className="inline-block px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold rounded-xl group-hover:from-orange-500 group-hover:to-orange-400 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
-                      เลือกเกมนี้
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stock Trading Game */}
-              <div 
-                className="group relative bg-gradient-to-br from-gray-900/50 to-black/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/30 hover:border-white/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-white/25"
-                onClick={() => handleGameSelect('stock-trading')}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-gray-300/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative z-10">
-                  <div className="text-5xl sm:text-6xl md:text-7xl mb-6 animate-pulse">📈</div>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 group-hover:text-gray-200 transition-colors">
-                    Stock Trading Simulator
-                  </h3>
-                  <p className="text-gray-200 text-sm sm:text-base md:text-lg mb-6">
-                    เกมจำลองการซื้อขายหุ้น NASDAQ - ซื้อขายหุ้นจริงด้วยเงิน 100,000 USD
-                  </p>
-                  <div className="space-y-2 text-gray-300/80 text-sm">
-                    <div className="flex items-center">
-                      <span className="text-white mr-2">💰</span>
-                      <span>เงินทุนเริ่มต้น: $100,000</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-white mr-2">📊</span>
-                      <span>ราคาหุ้นจริงจาก NASDAQ</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-white mr-2">📈</span>
-                      <span>กราฟราคาแบบเรียลไทม์</span>
-                    </div>
-                  </div>
-                  <div className="mt-6 text-center">
-                    <div className="inline-block px-6 py-3 bg-gradient-to-r from-gray-600 to-white text-black font-bold rounded-xl group-hover:from-gray-500 group-hover:to-gray-300 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
-                      เลือกเกมนี้
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 gap-6 sm:gap-8">
               {/* Hamster Shop */}
               <div 
                 className="group relative bg-gradient-to-br from-gray-900/50 to-black/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-orange-500/30 hover:border-orange-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/25"
-                onClick={() => handleGameSelect('shop')}
+                onClick={handleNavigateShop}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">

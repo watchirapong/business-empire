@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "multiplayer": "node server.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@auth/core": "0.34.2",
@@ -22,9 +21,7 @@
     "next-auth": "^4.24.11",
     "react": "^19",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^19",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@types/node": "^22",
