@@ -1,12 +1,14 @@
 'use client';
 
 import { signIn, getSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function SignIn() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already signed in
@@ -15,14 +17,29 @@ export default function SignIn() {
         router.push('/');
       }
     });
-  }, [router]);
+
+    // Check for error in URL parameters
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      if (errorParam === 'discord') {
+        setError('Discord authentication failed. Please try again.');
+      } else {
+        setError(`Authentication error: ${errorParam}`);
+      }
+    }
+  }, [router, searchParams]);
 
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await signIn('discord', { callbackUrl: 'https://hamsterhub.fun' });
+      // Use the proper NextAuth redirect flow
+      await signIn('discord', { 
+        callbackUrl: '/',
+      });
     } catch (error) {
       console.error('Sign in error:', error);
+      setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };
@@ -41,6 +58,12 @@ export default function SignIn() {
           <div className="text-6xl mb-6">🎮</div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">Welcome to Game Hub</h1>
           <p className="text-gray-300 mb-8">Sign in to access all games and features</p>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+              {error}
+            </div>
+          )}
           
           <button
             onClick={handleDiscordSignIn}
