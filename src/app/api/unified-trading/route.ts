@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authConfig } from "@/lib/auth-config";
 import mongoose from 'mongoose';
 
 // Connect to MongoDB if not already connected
@@ -26,8 +26,18 @@ import UnifiedPortfolio from '../../../../models/UnifiedPortfolio';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    console.log('Unified trading API called');
+    
+    const session = await getServerSession(authConfig);
+
+    console.log('Session debug:', { 
+      session: !!session, 
+      userId: session?.user?.id, 
+      username: session?.user?.username 
+    });
+
     if (!session?.user?.id) {
+      console.log('No session or user ID found');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -42,14 +52,15 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(portfolio);
   } catch (error) {
-    console.error("Error fetching unified portfolio:", error);
+    console.error("Error in unified trading API:", error);
     return NextResponse.json({ error: "Failed to fetch portfolio" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -110,7 +121,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
