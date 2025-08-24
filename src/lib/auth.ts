@@ -50,7 +50,7 @@ export const authOptions = {
               // Use the bot token directly for server member lookup
               if (process.env.DISCORD_BOT_TOKEN) {
                 const discordResponse = await fetch(
-                  `https://discord.com/api/v10/guilds/874924600306335794/members/${(profile as any).id}`,
+                  `https://discord.com/api/v10/guilds/699984143542517801/members/${(profile as any).id}`,
                   {
                     headers: {
                       'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -64,7 +64,7 @@ export const authOptions = {
                   
                   // Also fetch guild information
                   const guildResponse = await fetch(
-                    `https://discord.com/api/v10/guilds/874924600306335794`,
+                    `https://discord.com/api/v10/guilds/699984143542517801`,
                     {
                       headers: {
                         'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -83,7 +83,7 @@ export const authOptions = {
                     member: memberData,
                     guild: guildData,
                     serverInfo: {
-                      guildId: '874924600306335794',
+                      guildId: '699984143542517801',
                       userId: (profile as any).id,
                       joinedAt: memberData.joined_at,
                       roles: memberData.roles || [],
@@ -102,7 +102,7 @@ export const authOptions = {
                     },
                     body: JSON.stringify({
                       userId: (profile as any).id,
-                      serverId: '874924600306335794',
+                      serverId: '699984143542517801',
                       serverData: serverMemberData
                     }),
                   });

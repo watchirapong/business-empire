@@ -54,7 +54,7 @@ export default function HamsterCoinBalance() {
         <div className="text-center">
           <div className="text-2xl mb-4">🔐</div>
           <h3 className="text-xl font-bold text-white mb-2">Authentication Required</h3>
-          <p className="text-gray-400">Please log in to view your Hamster Coins.</p>
+          <p className="text-gray-400">Please log in to view your Hamster Shop balance.</p>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function HamsterCoinBalance() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-white flex items-center space-x-2">
           <span className="text-2xl">🪙</span>
-          <span>Hamster Coins</span>
+                      <span>Hamster Shop Balance</span>
         </h3>
         <button
           onClick={fetchBalance}

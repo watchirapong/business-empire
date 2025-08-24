@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -21,7 +20,7 @@ const connectDB = async () => {
 // Currency schema (re-defined here for API route context)
 const currencySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  hamsterCoins: { type: Number, default: 1000 },
+  hamsterCoins: { type: Number, default: 0 },
   totalEarned: { type: Number, default: 0 },
   totalSpent: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
@@ -40,8 +39,8 @@ const getUserCurrency = async (userId: string) => {
       console.log('Creating new currency account for user:', userId);
       currency = new Currency({
         userId,
-        hamsterCoins: 1000,
-        totalEarned: 1000
+        hamsterCoins: 0, // Start with 0 coins
+        totalEarned: 0
       });
       
       await currency.save();
@@ -63,7 +62,7 @@ export async function GET(request: Request) {
     
     await connectDB();
     
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     console.log('Session:', session ? 'Found' : 'Not found');
     console.log('Full session object:', JSON.stringify(session, null, 2));
     
@@ -134,6 +133,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
+      balance: currency.hamsterCoins,
       data: balance
     });
 

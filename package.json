@@ -6,22 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "start:prod": "next start",
+    "lint": "next lint",
+    "multiplayer": "node socket-server.js",
+    "discord-bot": "tsx scripts/start-discord-bot.ts",
+    "start:full": "npm run start & sleep 3 && curl -X POST http://localhost:3000/api/start-bot"
   },
   "dependencies": {
     "@auth/core": "0.34.2",
-    "@discordjs/opus": "^0.10.0",
-    "@discordjs/voice": "^0.18.0",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
+    "discord.js": "^14.21.0",
     "dotenv": "^17.2.1",
     "mongoose": "^8.17.1",
     "next": "15.4.6",
     "next-auth": "^4.24.11",
     "react": "^19",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/node": "^22",
@@ -32,6 +37,7 @@
     "eslint-config-next": "15.4.6",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
+    "tsx": "^4.20.4",
     "typescript": "^5"
   }
 }

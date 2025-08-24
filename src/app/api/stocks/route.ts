@@ -1,5 +1,86 @@
 import { NextResponse } from 'next/server';
 
+// Alpha Vantage API (free tier: 25 requests per day)
+const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
+const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
+
+// Yahoo Finance API alternative (no key required but less reliable)
+const YAHOO_FINANCE_BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
+
+// Fetch real stock data from Yahoo Finance (free, no API key required)
+const fetchRealStockData = async (symbol: string) => {
+  try {
+    const response = await fetch(`${YAHOO_FINANCE_BASE_URL}/${symbol}?interval=1d&range=1d`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const result = data.chart?.result?.[0];
+    
+    if (!result) {
+      throw new Error('No data found');
+    }
+    
+    const meta = result.meta;
+    const currentPrice = meta.regularMarketPrice || meta.previousClose || 0;
+    const previousClose = meta.previousClose || meta.chartPreviousClose || currentPrice;
+    const change = currentPrice - previousClose;
+    const changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0;
+    
+    return {
+      symbol: symbol,
+      name: meta.longName || symbol,
+      price: Math.round(currentPrice * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round(changePercent * 100) / 100,
+      volume: meta.regularMarketVolume || 0,
+      marketCap: meta.marketCap || 0,
+    };
+  } catch (error) {
+    console.error(`Error fetching real data for ${symbol}:`, error);
+    throw error;
+  }
+};
+
+// Fetch real stock data from Alpha Vantage (requires API key)
+const fetchAlphaVantageData = async (symbol: string) => {
+  try {
+    const response = await fetch(
+      `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
+    );
+    
+    const data = await response.json();
+    const quote = data['Global Quote'];
+    
+    if (!quote) {
+      throw new Error('No quote data found');
+    }
+    
+    const currentPrice = parseFloat(quote['05. price']);
+    const change = parseFloat(quote['09. change']);
+    const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
+    
+    return {
+      symbol: symbol,
+      name: symbol,
+      price: Math.round(currentPrice * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round(changePercent * 100) / 100,
+      volume: parseInt(quote['06. volume']) || 0,
+      marketCap: 0, // Not available in this endpoint
+    };
+  } catch (error) {
+    console.error(`Error fetching Alpha Vantage data for ${symbol}:`, error);
+    throw error;
+  }
+};
+
 // Generate realistic fallback stock data
 const generateFallbackStockData = (symbol: string) => {
   const basePrices: Record<string, number> = {
@@ -124,13 +205,32 @@ export async function GET(request: Request) {
 
   try {
     if (type === 'chart') {
-      // Return chart data
+      // For now, return fallback chart data (real-time charts would require more complex integration)
       const chartData = generateFallbackChartData(symbol);
       return NextResponse.json(chartData);
     } else {
-      // Return quote data
-      const quoteData = generateFallbackStockData(symbol);
-      return NextResponse.json(quoteData);
+      // Try to get real stock data, fallback to simulated data if it fails
+      try {
+        console.log(`Fetching real stock data for ${symbol}`);
+        const realData = await fetchRealStockData(symbol);
+        console.log(`Successfully fetched real data for ${symbol}:`, realData);
+        return NextResponse.json(realData);
+      } catch (realDataError) {
+        console.log(`Real data failed for ${symbol}, trying Alpha Vantage...`);
+        try {
+          const alphaData = await fetchAlphaVantageData(symbol);
+          console.log(`Successfully fetched Alpha Vantage data for ${symbol}:`, alphaData);
+          return NextResponse.json(alphaData);
+        } catch (alphaError) {
+          console.log(`All real data sources failed for ${symbol}, using fallback`);
+          const fallbackData = generateFallbackStockData(symbol);
+          return NextResponse.json({
+            ...fallbackData,
+            isSimulated: true,
+            note: 'Real-time data unavailable, showing simulated prices'
+          });
+        }
+      }
     }
   } catch (error) {
     console.error('Error fetching stock data:', error);

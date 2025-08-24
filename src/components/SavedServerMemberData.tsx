@@ -37,7 +37,7 @@ export default function SavedServerMemberData() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/users/save-server-data?userId=${(session.user as any).id}&serverId=874924600306335794`);
+      const response = await fetch(`/api/users/save-server-data?userId=${(session.user as any).id}&serverId=699984143542517801`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -103,7 +103,7 @@ export default function SavedServerMemberData() {
         
         <div className="flex items-center justify-between">
           <div className="text-gray-400 text-sm">
-            Server ID: 874924600306335794
+            Server ID: 699984143542517801
           </div>
           <button
             onClick={fetchSavedServerData}

@@ -9,7 +9,10 @@ const playerSchema = new mongoose.Schema({
 
 const companySchema = new mongoose.Schema({
   name: { type: String, required: true },
-  currentPrice: { type: Number, required: true },
+  totalInvestment: { type: Number, default: 0 },
+  growth: { type: Number, default: 0 },
+  // Keep stock trading properties for backward compatibility
+  currentPrice: { type: Number },
   priceHistory: [{ type: Number }],
   volatility: { type: Number, default: 0.1 }
 }, { _id: false });

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -16,7 +15,7 @@ const connectDB = async () => {
 // Currency Schema
 const CurrencySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  hamsterCoins: { type: Number, default: 1000 },
+  hamsterCoins: { type: Number, default: 0 },
   totalEarned: { type: Number, default: 0 },
   totalSpent: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
@@ -47,8 +46,8 @@ const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession(authOptions);
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
+    const session = await getServerSession();
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
@@ -89,8 +88,8 @@ export async function GET(request: NextRequest) {
     if (!currency) {
       currency = new Currency({
         userId: userIdParam,
-        hamsterCoins: 1000,
-        totalEarned: 1000
+        hamsterCoins: 0,
+        totalEarned: 0
       });
       await currency.save();
     }

@@ -12,6 +12,11 @@ interface UserData {
   globalName?: string;
   avatar: string;
   createdAt: string;
+  source?: 'users' | 'voice_activity';
+  hasVoiceActivity?: boolean;
+  voiceJoinCount?: number;
+  totalVoiceTime?: number;
+  currentNickname?: string;
 }
 
 interface CurrencyData {
@@ -82,13 +87,50 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity'>('users');
-  const [voiceActivities, setVoiceActivities] = useState<VoiceActivityData[]>([]);
-  const [voiceStats, setVoiceStats] = useState<VoiceStats | null>(null);
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha'>('users');
+  // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [purchaseFilter, setPurchaseFilter] = useState<string>('');
+  const [gachaItems, setGachaItems] = useState<any[]>([]);
+  const [showGachaForm, setShowGachaForm] = useState(false);
+  const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
+  const [newGachaItem, setNewGachaItem] = useState({
+    name: '',
+    description: '',
+    image: '',
+    rarity: 'common',
+    dropRate: 10,
+    isActive: true
+  });
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkUpdateMessage, setBulkUpdateMessage] = useState<string | null>(null);
+  const [bulkUpdateDetails, setBulkUpdateDetails] = useState<any>(null);
+  const [userNicknames, setUserNicknames] = useState<{[key: string]: string}>({});
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Check if user is authorized (admin Discord IDs)
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
+  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+
+  // Helper function to get display name (nickname > globalName > username)
+  const getDisplayName = (user: UserData) => {
+    if (userNicknames[user.discordId]) {
+      return userNicknames[user.discordId];
+    }
+    if (user.globalName) {
+      return user.globalName;
+    }
+    return user.username;
+  };
+
+  // Helper function to get display name for any user ID
+  const getDisplayNameById = (userId: string) => {
+    const user = allUsers.find(u => u.discordId === userId);
+    if (user) {
+      return getDisplayName(user);
+    }
+    return userId; // Fallback to user ID if user not found
+  };
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -105,7 +147,8 @@ export default function AdminPage() {
 
     // Load all users when component mounts
     loadAllUsers();
-    loadVoiceActivity();
+    loadPurchaseHistory();
+    loadGachaItems();
   }, [session, status, router]);
 
   const loadAllUsers = async () => {
@@ -125,6 +168,9 @@ export default function AdminPage() {
       
       if (data.users.length === 0) {
         setMessage('No users found in the system.');
+      } else {
+        // Load nicknames for all users
+        await loadUserNicknames(data.users);
       }
     } catch (error) {
       setMessage('Error loading users. Please try again.');
@@ -134,19 +180,69 @@ export default function AdminPage() {
     }
   };
 
-  const loadVoiceActivity = async () => {
+  // Removed loadVoiceActivity function since we moved to dedicated dashboard
+
+  const loadPurchaseHistory = async () => {
     try {
-      const response = await fetch(`/api/admin/voice-activity?filter=${voiceFilter}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to load voice activity');
+      const response = await fetch('/api/shop/purchase-history');
+      if (response.ok) {
+        const data = await response.json();
+        setPurchases(data.purchases);
       }
-      
-      const data = await response.json();
-      setVoiceActivities(data.data.voiceActivities || []);
-      setVoiceStats(data.data.statistics);
     } catch (error) {
-      console.error('Load voice activity error:', error);
+      console.error('Error loading purchase history:', error);
+    }
+  };
+
+  const loadGachaItems = async () => {
+    try {
+      const response = await fetch('/api/gacha/items?admin=true');
+      if (response.ok) {
+        const data = await response.json();
+        setGachaItems(data.items);
+      }
+    } catch (error) {
+      console.error('Error loading gacha items:', error);
+    }
+  };
+
+  const loadUserNicknames = async (users: UserData[]) => {
+    try {
+      const nicknameMap: {[key: string]: string} = {};
+      
+      // Process users sequentially with delay to avoid rate limiting
+      for (const user of users) {
+        try {
+          // Add delay between requests to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // First try to get from username history
+          const historyResponse = await fetch(`/api/users/username-history?userId=${user.discordId}`);
+          if (historyResponse.ok) {
+            const historyData = await historyResponse.json();
+            if (historyData.currentNickname) {
+              nicknameMap[user.discordId] = historyData.currentNickname;
+              continue; // Skip server request if we have history
+            }
+          }
+          
+          // If no history or no nickname, try to get directly from server
+          const serverResponse = await fetch(`/api/users/get-server-nickname?userId=${user.discordId}`);
+          if (serverResponse.ok) {
+            const serverData = await serverResponse.json();
+            if (serverData.nickname) {
+              nicknameMap[user.discordId] = serverData.nickname;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching nickname for user ${user.discordId}:`, error);
+          // Continue with next user even if one fails
+        }
+      }
+
+      setUserNicknames(nicknameMap);
+    } catch (error) {
+      console.error('Error loading user nicknames:', error);
     }
   };
 
@@ -283,10 +379,7 @@ export default function AdminPage() {
     setExpandedUsers(new Set());
   };
 
-  const handleVoiceFilterChange = (filter: 'all' | 'real_user' | 'suspicious_user') => {
-    setVoiceFilter(filter);
-    loadVoiceActivity();
-  };
+  // Removed unused voice filter handler since we moved to dedicated dashboard
 
   const deleteUser = async (userId: string, username: string) => {
     if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone and will delete all user data including currency and voice activity.`)) {
@@ -327,6 +420,137 @@ export default function AdminPage() {
     }
   };
 
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle');
+
+  const bulkUpdateNicknames = async () => {
+    if (!confirm('This will update nicknames for all users in the database. This may take a while. Continue?')) {
+      return;
+    }
+
+    setBulkUpdating(true);
+    setBulkUpdateMessage('Starting bulk nickname update in background...');
+    setJobStatus('running');
+    
+    try {
+      const response = await fetch('/api/users/bulk-update-nicknames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 409) {
+          // Job already running
+          setBulkUpdateMessage(`⏳ ${errorData.error}`);
+          setCurrentJobId(errorData.jobId);
+          // Start polling for status
+          pollJobStatus(errorData.jobId);
+        } else {
+          throw new Error(errorData.error || 'Failed to start bulk update');
+        }
+        return;
+      }
+      
+      const data = await response.json();
+      setCurrentJobId(data.jobId);
+      setBulkUpdateMessage(`🔄 Bulk update started! Job ID: ${data.jobId}`);
+      
+      // Start polling for status
+      pollJobStatus(data.jobId);
+      
+    } catch (error) {
+      setBulkUpdateMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Bulk update error:', error);
+      setJobStatus('failed');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const pollJobStatus = async (jobId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/users/bulk-update-nicknames?jobId=${jobId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to check job status');
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'running') {
+          setBulkUpdateMessage(`🔄 Processing... ${data.progress}% complete`);
+        } else if (data.status === 'completed') {
+          clearInterval(pollInterval);
+          setJobStatus('completed');
+          const summary = data.summary;
+          setBulkUpdateMessage(
+            `✅ Bulk update completed! ` +
+            `${summary.updated} users updated, ` +
+            `${summary.failed} failed, ` +
+            `${summary.notInServer} not in server, ` +
+            `${summary.noNickname} have no nickname. ` +
+            `Success rate: ${summary.successRate}`
+          );
+          setBulkUpdateDetails(data.results);
+          setCurrentJobId(null);
+        } else if (data.status === 'failed') {
+          clearInterval(pollInterval);
+          setJobStatus('failed');
+          setBulkUpdateMessage(`❌ Job failed: ${data.error}`);
+          setCurrentJobId(null);
+        }
+      } catch (error) {
+        console.error('Error polling job status:', error);
+        clearInterval(pollInterval);
+        setJobStatus('failed');
+        setBulkUpdateMessage(`❌ Error checking job status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setCurrentJobId(null);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Cleanup interval after 10 minutes (in case job gets stuck)
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      if (jobStatus === 'running') {
+        setJobStatus('failed');
+        setBulkUpdateMessage('❌ Job polling timeout - please check manually');
+        setCurrentJobId(null);
+      }
+    }, 600000);
+  };
+
+  const uploadGachaImage = async (file: File) => {
+    setUploadingImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/shop/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const data = await response.json();
+      setNewGachaItem({...newGachaItem, image: data.imageUrl});
+      setMessage('Image uploaded successfully!');
+      
+    } catch (error) {
+      setMessage(`Error uploading image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Image upload error:', error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Show loading or unauthorized
   if (status === 'loading') {
     return (
@@ -354,6 +578,16 @@ export default function AdminPage() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ← Back
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
@@ -383,14 +617,30 @@ export default function AdminPage() {
             👥 User Management
           </button>
           <button
-            onClick={() => setActiveTab('voice-activity')}
+            onClick={() => router.push('/admin/voice-dashboard')}
+            className="px-6 py-3 rounded-lg font-medium transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700"
+          >
+            🎤 Voice Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('purchases')}
             className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-              activeTab === 'voice-activity'
+              activeTab === 'purchases'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            🎤 Voice Activity
+            🛒 Purchase History
+          </button>
+          <button
+            onClick={() => setActiveTab('gacha')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'gacha'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🎰 Gacha Management
           </button>
         </div>
 
@@ -403,6 +653,106 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Bulk Update Nicknames */}
+        <div className="bg-gradient-to-br from-blue-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-blue-500/20 p-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">🔄 Bulk Update Nicknames</h2>
+          <p className="text-gray-300 mb-4">
+            Update nicknames for all users in the database by fetching their current server data from Discord.
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={bulkUpdateNicknames}
+              disabled={bulkUpdating || jobStatus === 'running'}
+              className={`${
+                jobStatus === 'running' 
+                  ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 cursor-not-allowed' 
+                  : jobStatus === 'completed'
+                  ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400'
+                  : jobStatus === 'failed'
+                  ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400'
+              } disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-all duration-300 flex items-center space-x-2`}
+            >
+              <span className="text-lg">
+                {jobStatus === 'running' ? '⏳' : 
+                 jobStatus === 'completed' ? '✅' : 
+                 jobStatus === 'failed' ? '❌' : '🔄'}
+              </span>
+              <span>
+                {jobStatus === 'running' ? 'Processing...' : 
+                 jobStatus === 'completed' ? 'Completed' : 
+                 jobStatus === 'failed' ? 'Failed - Retry' : 
+                 bulkUpdating ? 'Starting...' : 'Update All Nicknames'}
+              </span>
+            </button>
+            {bulkUpdateMessage && (
+              <div className={`flex-1 p-3 rounded-lg ${
+                bulkUpdateMessage.includes('✅') ? 'bg-green-500/20 border border-green-500/30' : 
+                bulkUpdateMessage.includes('❌') ? 'bg-red-500/20 border border-red-500/30' :
+                bulkUpdateMessage.includes('⏳') ? 'bg-yellow-500/20 border border-yellow-500/30' :
+                'bg-blue-500/20 border border-blue-500/30'
+              }`}>
+                <p className="text-white text-sm">{bulkUpdateMessage}</p>
+                {currentJobId && (
+                  <p className="text-gray-400 text-xs mt-1">Job ID: {currentJobId}</p>
+                )}
+                {jobStatus === 'running' && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${bulkUpdateMessage.includes('%') ? 
+                          parseInt(bulkUpdateMessage.match(/(\d+)%/)?.[1] || '0') : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Detailed Results */}
+          {bulkUpdateDetails && (
+            <div className="mt-4 bg-gray-800/30 rounded-lg p-4 border border-gray-600">
+              <h4 className="text-lg font-semibold text-white mb-3">📊 Detailed Results</h4>
+              
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="bg-green-500/20 rounded-lg p-3 border border-green-500/30">
+                  <div className="text-green-400 font-bold text-xl">{bulkUpdateDetails.updated}</div>
+                  <div className="text-green-300 text-sm">Updated</div>
+                </div>
+                <div className="bg-red-500/20 rounded-lg p-3 border border-red-500/30">
+                  <div className="text-red-400 font-bold text-xl">{bulkUpdateDetails.failed}</div>
+                  <div className="text-red-300 text-sm">Failed</div>
+                </div>
+                <div className="bg-yellow-500/20 rounded-lg p-3 border border-yellow-500/30">
+                  <div className="text-yellow-400 font-bold text-xl">{bulkUpdateDetails.notInServer}</div>
+                  <div className="text-yellow-300 text-sm">Not in Server</div>
+                </div>
+                <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
+                  <div className="text-blue-400 font-bold text-xl">{bulkUpdateDetails.noNickname}</div>
+                  <div className="text-blue-300 text-sm">No Nickname</div>
+                </div>
+              </div>
+              
+              {/* Error Details */}
+              {bulkUpdateDetails.errors && bulkUpdateDetails.errors.length > 0 && (
+                <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/30">
+                  <h5 className="text-red-400 font-semibold mb-2">❌ Error Details:</h5>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {bulkUpdateDetails.errors.map((error: string, index: number) => (
+                      <div key={index} className="text-red-300 text-sm font-mono">
+                        {error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* User Management Tab */}
         {activeTab === 'users' && (
           <>
@@ -412,7 +762,7 @@ export default function AdminPage() {
               <div className="flex gap-4">
                 <input
                   type="text"
-                  placeholder="Search by username or global name... (leave empty to show all)"
+                                      placeholder="Search by username, global name, or nickname... (leave empty to show all)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
@@ -459,7 +809,7 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-                <div className="grid gap-4 max-h-96 overflow-y-auto">
+                <div className="grid gap-4 max-h-[800px] overflow-y-auto">
                   {searchResults.map((user) => {
                     const isExpanded = expandedUsers.has(user._id);
                     const isSelected = selectedUser?._id === user._id;
@@ -489,12 +839,39 @@ export default function AdminPage() {
                                 }}
                               />
                               <div className="flex-1">
-                                <div className="text-white font-semibold">{user.username}</div>
+                                <div className="text-white font-semibold">{getDisplayName(user)}</div>
                                 <div className="text-gray-300 text-sm">
-                                  {user.globalName && `(${user.globalName})`} • {user.email}
+                                  @{user.username} • {user.email || 'No email'}
                                 </div>
-                                <div className="text-gray-400 text-xs">
-                                  ID: {user.discordId} • Joined: {new Date(user.createdAt).toLocaleDateString()}
+                                
+                                {/* Show current nickname if available */}
+                                {(user.currentNickname || userNicknames[user.discordId]) && (
+                                  <div className="text-orange-400 text-sm font-semibold">
+                                    🏷️ Server Nickname: {user.currentNickname || userNicknames[user.discordId]}
+                                  </div>
+                                )}
+                                
+                                {/* Show source and voice activity status */}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className="text-gray-400 text-xs">
+                                    Joined: {new Date(user.createdAt).toLocaleDateString()}
+                                  </div>
+                                  
+                                  {/* Source indicator */}
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    user.source === 'voice_activity' 
+                                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                                      : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                  }`}>
+                                    {user.source === 'voice_activity' ? '🎤 Voice Only' : '👤 Full User'}
+                                  </span>
+                                  
+                                  {/* Voice activity indicator */}
+                                  {user.hasVoiceActivity && (
+                                    <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs font-medium">
+                                      🔊 {user.voiceJoinCount || 0} joins • {Math.round((user.totalVoiceTime || 0) / 60)}h voice
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -524,10 +901,16 @@ export default function AdminPage() {
                               <div className="bg-gray-800/30 rounded-lg p-4">
                                 <h4 className="text-lg font-semibold text-white mb-3"> User Details</h4>
                                 <div className="space-y-2 text-gray-300">
-                                  <div><span className="font-medium">Username:</span> {user.username}</div>
-                                  <div><span className="font-medium">Global Name:</span> {user.globalName || 'N/A'}</div>
+                                  <div><span className="font-medium">Display Name:</span> <span className="text-white font-semibold">{getDisplayName(user)}</span></div>
+                                  <div><span className="font-medium">Username:</span> @{user.username}</div>
+                                  {user.globalName && (
+                                    <div><span className="font-medium">Global Name:</span> {user.globalName}</div>
+                                  )}
+                                  {userNicknames[user.discordId] && (
+                                    <div><span className="font-medium text-orange-400">Server Nickname:</span> <span className="text-orange-400 font-semibold">{userNicknames[user.discordId]}</span></div>
+                                  )}
                                   <div><span className="font-medium">Email:</span> {user.email}</div>
-                                  <div><span className="font-medium">Discord ID:</span> {user.discordId}</div>
+                                  <div><span className="font-medium">Discord ID:</span> <span className="text-gray-400 text-xs">{user.discordId}</span></div>
                                   <div><span className="font-medium">Joined:</span> {new Date(user.createdAt).toLocaleString()}</div>
                                 </div>
                               </div>
@@ -621,10 +1004,16 @@ export default function AdminPage() {
                           <div className="bg-gray-800/30 rounded-lg p-4">
                             <h4 className="text-lg font-semibold text-white mb-3">User Information</h4>
                             <div className="space-y-2 text-gray-300">
-                              <div><span className="font-medium">Username:</span> {selectedUser.username}</div>
-                              <div><span className="font-medium">Global Name:</span> {selectedUser.globalName || 'N/A'}</div>
+                              <div><span className="font-medium">Display Name:</span> <span className="text-white font-semibold">{getDisplayName(selectedUser)}</span></div>
+                              <div><span className="font-medium">Username:</span> @{selectedUser.username}</div>
+                              {selectedUser.globalName && (
+                                <div><span className="font-medium">Global Name:</span> {selectedUser.globalName}</div>
+                              )}
+                              {userNicknames[selectedUser.discordId] && (
+                                <div><span className="font-medium text-orange-400">Server Nickname:</span> <span className="text-orange-400 font-semibold">{userNicknames[selectedUser.discordId]}</span></div>
+                              )}
                               <div><span className="font-medium">Email:</span> {selectedUser.email}</div>
-                              <div><span className="font-medium">Discord ID:</span> {selectedUser.discordId}</div>
+                              <div><span className="font-medium">Discord ID:</span> <span className="text-gray-400 text-xs">{selectedUser.discordId}</span></div>
                             </div>
                           </div>
 
@@ -646,7 +1035,7 @@ export default function AdminPage() {
                           <h4 className="text-lg font-semibold text-white mb-3">Update Currency Balance</h4>
                           <div className="flex gap-4 items-end">
                             <div className="flex-1">
-                              <label className="block text-gray-300 text-sm mb-2">New Balance (Hamster Coins)</label>
+                              <label className="block text-gray-300 text-sm mb-2">New Balance (Hamster Shop)</label>
                               <input
                                 type="number"
                                 min="0"
@@ -782,129 +1171,438 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* Voice Activity Tab */}
-        {activeTab === 'voice-activity' && (
-          <>
-            {/* Voice Activity Statistics */}
-            {voiceStats && (
-              <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
-                <h2 className="text-2xl font-bold text-white mb-4">📊 Voice Activity Statistics</h2>
-                <div className="grid md:grid-cols-4 gap-6">
-                  <div className="bg-gray-800/30 rounded-lg p-4 text-center">
-                    <div className="text-3xl font-bold text-white">{voiceStats.totalUsers}</div>
-                    <div className="text-gray-300">Total Users</div>
-                  </div>
-                  <div className="bg-green-600/20 rounded-lg p-4 text-center border border-green-500/30">
-                    <div className="text-3xl font-bold text-green-400">{voiceStats.realUsers}</div>
-                    <div className="text-gray-300">Real Users</div>
-                  </div>
-                  <div className="bg-yellow-600/20 rounded-lg p-4 text-center border border-yellow-500/30">
-                    <div className="text-3xl font-bold text-yellow-400">{voiceStats.suspiciousUsers}</div>
-                    <div className="text-gray-300">Suspicious Users</div>
-                  </div>
-                  <div className="bg-blue-600/20 rounded-lg p-4 text-center border border-blue-500/30">
-                    <div className="text-3xl font-bold text-blue-400">
-                      {voiceStats.totalUsers > 0 ? Math.round((voiceStats.realUsers / voiceStats.totalUsers) * 100) : 0}%
-                    </div>
-                    <div className="text-gray-300">Real User Rate</div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Voice Activity Filter */}
+
+        {/* Purchase History Tab */}
+        {activeTab === 'purchases' && (
+          <>
+            {/* Purchase History Filter */}
             <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
-              <h2 className="text-2xl font-bold text-white mb-4">🎤 Voice Activity Filter</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">🛒 Purchase History Filter</h2>
               <div className="flex gap-4">
+                <input
+                  type="text"
+                  placeholder="Filter by user ID..."
+                  value={purchaseFilter}
+                  onChange={(e) => setPurchaseFilter(e.target.value)}
+                  className="flex-1 bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                />
                 <button
-                  onClick={() => handleVoiceFilterChange('all')}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    voiceFilter === 'all'
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
+                  onClick={() => setPurchaseFilter('')}
+                  className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white px-6 py-2 rounded-lg transition-all duration-300"
                 >
-                  All Users ({voiceStats?.totalUsers || 0})
-                </button>
-                <button
-                  onClick={() => handleVoiceFilterChange('real_user')}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    voiceFilter === 'real_user'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  Real Users ({voiceStats?.realUsers || 0})
-                </button>
-                <button
-                  onClick={() => handleVoiceFilterChange('suspicious_user')}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    voiceFilter === 'suspicious_user'
-                      ? 'bg-yellow-600 text-white'
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  Suspicious Users ({voiceStats?.suspiciousUsers || 0})
+                  Clear Filter
                 </button>
               </div>
             </div>
 
-            {/* Voice Activity List */}
-            {voiceActivities.length > 0 && (
+            {/* Purchase History List */}
+            {purchases.length > 0 && (
               <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
                 <h3 className="text-xl font-bold text-white mb-4">
-                  🎤 Voice Activity ({voiceActivities.length} users)
+                  🛒 Purchase History ({purchases.filter(p => !purchaseFilter || p.userId.includes(purchaseFilter)).length} purchases)
                 </h3>
                 <div className="grid gap-4 max-h-96 overflow-y-auto">
-                  {voiceActivities.map((activity) => (
+                  {purchases
+                    .filter(purchase => !purchaseFilter || purchase.userId.includes(purchaseFilter))
+                    .map((purchase) => (
+                      <div
+                        key={purchase.id}
+                        className="p-4 rounded-lg border bg-blue-600/10 border-blue-500/30 transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <div className="text-white font-semibold">
+                              Purchase #{purchase.id.slice(-8)}
+                            </div>
+                            <div className="text-gray-300 text-sm">
+                              User: {getDisplayNameById(purchase.userId)}
+                            </div>
+                            <div className="text-gray-400 text-xs">
+                              {new Date(purchase.purchaseDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-orange-400">
+                              {purchase.totalAmount} 🪙
+                            </div>
+                            <div className={`text-sm px-2 py-1 rounded-full inline-block ${
+                              purchase.status === 'completed' 
+                                ? 'bg-green-500/20 text-green-400' 
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {purchase.status}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {purchase.items.map((item: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="text-lg">📦</div>
+                                <div>
+                                  <div className="text-white text-sm font-medium">{item.name}</div>
+                                  <div className="text-gray-400 text-xs">Qty: {item.quantity}</div>
+                                </div>
+                              </div>
+                              <div className="text-orange-400 text-sm font-semibold">
+                                {item.price} 🪙
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {purchases.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">📦</div>
+                <h2 className="text-2xl font-bold text-white mb-2">No Purchases Yet</h2>
+                <p className="text-gray-400">No purchases have been made by any users.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Gacha Management Tab */}
+        {activeTab === 'gacha' && (
+          <>
+            {/* Add New Gacha Item */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-white">🎰 Gacha Item Management</h2>
+                <button
+                  onClick={() => {
+                    setShowGachaForm(!showGachaForm);
+                    setEditingGachaItem(null);
+                    setNewGachaItem({
+                      name: '',
+                      description: '',
+                      image: '',
+                      rarity: 'common',
+                      dropRate: 10,
+                      isActive: true
+                    });
+                  }}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+                >
+                  {showGachaForm ? 'Cancel' : 'Add New Item'}
+                </button>
+              </div>
+
+              {showGachaForm && (
+                <div className="bg-white/5 rounded-xl p-6 border border-white/20">
+                  <h3 className="text-xl font-bold text-white mb-4">
+                    {editingGachaItem ? 'Edit Gacha Item' : 'Add New Gacha Item'}
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Name</label>
+                      <input
+                        type="text"
+                        value={newGachaItem.name}
+                        onChange={(e) => setNewGachaItem({...newGachaItem, name: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="Item name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Description</label>
+                      <input
+                        type="text"
+                        value={newGachaItem.description}
+                        onChange={(e) => setNewGachaItem({...newGachaItem, description: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="Item description"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Image</label>
+                      <div className="space-y-2">
+                        {/* Image Preview */}
+                        {newGachaItem.image && (
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="text-2xl">
+                              {newGachaItem.image.startsWith('/') ? (
+                                <img 
+                                  src={newGachaItem.image} 
+                                  alt="Preview"
+                                  className="w-8 h-8 object-cover rounded"
+                                />
+                              ) : (
+                                newGachaItem.image
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setNewGachaItem({...newGachaItem, image: ''})}
+                              className="text-red-400 hover:text-red-300 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Upload Button */}
+                        <div className="flex items-center space-x-2">
+                          <label className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-4 py-2 rounded-lg transition-all duration-300 cursor-pointer text-sm">
+                            {uploadingImage ? '⏳ Uploading...' : '📁 Upload Image'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  uploadGachaImage(file);
+                                }
+                              }}
+                              className="hidden"
+                              disabled={uploadingImage}
+                            />
+                          </label>
+                          
+                          <span className="text-gray-400 text-sm">or</span>
+                          
+                          <input
+                            type="text"
+                            value={newGachaItem.image}
+                            onChange={(e) => setNewGachaItem({...newGachaItem, image: e.target.value})}
+                            className="flex-1 bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400 text-sm"
+                            placeholder="URL or emoji (e.g., 🗡️)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Rarity</label>
+                      <select
+                        value={newGachaItem.rarity}
+                        onChange={(e) => setNewGachaItem({...newGachaItem, rarity: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-400"
+                      >
+                        <option value="common">Common</option>
+                        <option value="rare">Rare</option>
+                        <option value="epic">Epic</option>
+                        <option value="legendary">Legendary</option>
+                        <option value="mythic">Mythic</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Drop Rate (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={newGachaItem.dropRate}
+                        onChange={(e) => setNewGachaItem({...newGachaItem, dropRate: parseFloat(e.target.value) || 0})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="Drop rate percentage"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <label className="flex items-center text-white text-sm font-medium">
+                        <input
+                          type="checkbox"
+                          checked={newGachaItem.isActive}
+                          onChange={(e) => setNewGachaItem({...newGachaItem, isActive: e.target.checked})}
+                          className="mr-2 rounded"
+                        />
+                        Active
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const url = editingGachaItem 
+                            ? `/api/gacha/items` 
+                            : `/api/gacha/items`;
+                          const method = editingGachaItem ? 'PUT' : 'POST';
+                          const body = editingGachaItem 
+                            ? { id: editingGachaItem.id, ...newGachaItem }
+                            : newGachaItem;
+                          
+                          const response = await fetch(url, {
+                            method,
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                          });
+                          
+                          if (response.ok) {
+                            setShowGachaForm(false);
+                            setEditingGachaItem(null);
+                            setNewGachaItem({
+                              name: '',
+                              description: '',
+                              image: '',
+                              rarity: 'common',
+                              dropRate: 10,
+                              isActive: true
+                            });
+                            loadGachaItems();
+                            setMessage(editingGachaItem ? 'Gacha item updated successfully!' : 'Gacha item added successfully!');
+                          } else {
+                            const errorData = await response.json();
+                            setMessage(`Error: ${errorData.error}`);
+                          }
+                        } catch (error) {
+                          setMessage('Error saving gacha item');
+                        }
+                      }}
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white px-6 py-2 rounded-lg transition-all duration-300"
+                    >
+                      {editingGachaItem ? 'Update Item' : 'Add Item'}
+                    </button>
+                    
+                    {editingGachaItem && (
+                      <button
+                        onClick={() => {
+                          setShowGachaForm(false);
+                          setEditingGachaItem(null);
+                          setNewGachaItem({
+                            name: '',
+                            description: '',
+                            image: '',
+                            rarity: 'common',
+                            dropRate: 10,
+                            isActive: true
+                          });
+                        }}
+                        className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white px-6 py-2 rounded-lg transition-all duration-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Gacha Items List */}
+            {gachaItems.length > 0 && (
+              <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
+                <h3 className="text-xl font-bold text-white mb-4">
+                  🎰 Gacha Items ({gachaItems.length} items)
+                </h3>
+                <div className="grid gap-4 max-h-96 overflow-y-auto">
+                  {gachaItems.map((item) => (
                     <div
-                      key={activity._id}
+                      key={item.id}
                       className={`p-4 rounded-lg border transition-all duration-300 ${
-                        activity.userType === 'real_user'
-                          ? 'bg-green-600/10 border-green-500/30'
-                          : 'bg-yellow-600/10 border-yellow-500/30'
+                        item.isActive 
+                          ? 'bg-green-600/10 border-green-500/30' 
+                          : 'bg-red-600/10 border-red-500/30'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <img
-                            src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
-                            alt={activity.username}
-                            className="w-12 h-12 rounded-full"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-                            }}
-                          />
+                          <div className="text-3xl">
+                            {item.image.startsWith('/') ? (
+                              <img 
+                                src={item.image} 
+                                alt={item.name}
+                                className="w-12 h-12 object-cover rounded-lg"
+                              />
+                            ) : (
+                              item.image
+                            )}
+                          </div>
                           <div>
-                            <div className="text-white font-semibold">{activity.username}</div>
-                            <div className="text-gray-300 text-sm">
-                              {activity.globalName && `(${activity.globalName})`}
-                            </div>
-                            <div className="text-gray-400 text-xs">
-                              ID: {activity.userId}
+                            <div className="text-white font-semibold">{item.name}</div>
+                            <div className="text-gray-300 text-sm">{item.description}</div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold text-white ${
+                                item.rarity === 'common' ? 'bg-gray-500' :
+                                item.rarity === 'rare' ? 'bg-blue-500' :
+                                item.rarity === 'epic' ? 'bg-purple-500' :
+                                item.rarity === 'legendary' ? 'bg-orange-500' :
+                                'bg-red-500'
+                              }`}>
+                                {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                              </span>
+                              <span className="text-orange-400 text-sm font-semibold">
+                                {item.dropRate.toFixed(2)}%
+                              </span>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold text-white ${
+                                item.isActive ? 'bg-green-500' : 'bg-red-500'
+                              }`}>
+                                {item.isActive ? 'Active' : 'Inactive'}
+                              </span>
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            activity.userType === 'real_user'
-                              ? 'bg-green-600 text-white'
-                              : 'bg-yellow-600 text-white'
-                          }`}>
-                            {activity.userType === 'real_user' ? 'Real User' : 'Suspicious User'}
-                          </div>
-                          <div className="text-gray-300 text-sm mt-2">
-                            <div>Joins: {activity.voiceJoinCount}</div>
-                            <div>Time: {activity.totalVoiceTime} min</div>
-                            <div className="text-xs text-gray-400">
-                              Last: {activity.lastVoiceJoin ? new Date(activity.lastVoiceJoin).toLocaleDateString() : 'Never'}
-                            </div>
-                          </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingGachaItem(item);
+                              setNewGachaItem({
+                                name: item.name,
+                                description: item.description,
+                                image: item.image,
+                                rarity: item.rarity,
+                                dropRate: item.dropRate,
+                                isActive: item.isActive
+                              });
+                              setShowGachaForm(true);
+                            }}
+                            className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-3 py-1 rounded text-sm transition-all duration-300"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to delete this gacha item?')) {
+                                try {
+                                  const response = await fetch(`/api/gacha/items?id=${item.id}`, {
+                                    method: 'DELETE'
+                                  });
+                                  
+                                  if (response.ok) {
+                                    loadGachaItems();
+                                    setMessage('Gacha item deleted successfully!');
+                                  } else {
+                                    const errorData = await response.json();
+                                    setMessage(`Error: ${errorData.error}`);
+                                  }
+                                } catch (error) {
+                                  setMessage('Error deleting gacha item');
+                                }
+                              }
+                            }}
+                            className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-3 py-1 rounded text-sm transition-all duration-300"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {gachaItems.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎰</div>
+                <h2 className="text-2xl font-bold text-white mb-2">No Gacha Items</h2>
+                <p className="text-gray-400">No gacha items have been created yet.</p>
               </div>
             )}
           </>

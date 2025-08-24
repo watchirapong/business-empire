@@ -20,7 +20,7 @@ export default function SignIn() {
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn('discord', { callbackUrl: '/' });
+      await signIn('discord', { callbackUrl: 'https://hamsterhub.fun' });
     } catch (error) {
       console.error('Sign in error:', error);
       setIsLoading(false);

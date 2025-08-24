@@ -1,33 +1,23 @@
-import DiscordBot from './discord-bot';
+import BotManager from './bot-manager';
 
-let bot: DiscordBot | null = null;
+const botManager = BotManager.getInstance();
 
 export async function startDiscordBot() {
-  try {
-    if (!bot) {
-      bot = new DiscordBot();
-      await bot.start();
-      console.log('🤖 Discord Bot placeholder started (discord.js not installed)');
-    }
-    return bot;
-  } catch (error) {
-    console.error('Failed to start Discord bot:', error);
-    return null;
-  }
+  return await botManager.startBot();
 }
 
 export async function stopDiscordBot() {
-  try {
-    if (bot) {
-      await bot.stop();
-      bot = null;
-      console.log('🤖 Discord Bot stopped');
-    }
-  } catch (error) {
-    console.error('Failed to stop Discord bot:', error);
-  }
+  await botManager.stopBot();
 }
 
 export function getBot() {
-  return bot;
+  return botManager.getBot();
+}
+
+export function isBotConnected() {
+  return botManager.isBotConnected();
+}
+
+export async function autoStartBot() {
+  await botManager.autoStart();
 }

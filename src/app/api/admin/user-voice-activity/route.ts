@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -48,8 +47,8 @@ const VoiceSession = mongoose.models.VoiceSession || mongoose.model('VoiceSessio
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession(authOptions);
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
+    const session = await getServerSession();
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });

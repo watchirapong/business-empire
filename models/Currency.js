@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const currencySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  hamsterCoins: { type: Number, default: 1000 }, // Starting amount
+  hamsterCoins: { type: Number, default: 0 }, // Starting amount
   totalEarned: { type: Number, default: 0 },
   totalSpent: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
@@ -41,8 +41,8 @@ currencySchema.statics.getOrCreateUserCurrency = async function(userId) {
   if (!currency) {
     currency = new this({
       userId,
-      hamsterCoins: 1000,
-      totalEarned: 1000
+      hamsterCoins: 0,
+      totalEarned: 0
     });
     await currency.save();
   }

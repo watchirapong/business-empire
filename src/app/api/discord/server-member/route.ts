@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     // Get the session to verify user is authenticated
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest) {
       guildData = await guildResponse.json();
     }
 
-    // Combine member and user data
+    // Combine member and user data with enhanced information
     const combinedData = {
       member: memberData,
       user: userData,
@@ -106,8 +105,44 @@ export async function GET(request: NextRequest) {
         avatar: memberData.avatar || null,
         guildName: guildData?.name || null,
         guildIcon: guildData?.icon || null,
+        // Enhanced user information
+        username: userData?.username || null,
+        globalName: userData?.global_name || null,
+        discriminator: userData?.discriminator || null,
+        bot: userData?.bot || false,
+        system: userData?.system || false,
+        mfaEnabled: userData?.mfa_enabled || false,
+        banner: userData?.banner || null,
+        accentColor: userData?.accent_color || null,
+        locale: userData?.locale || null,
+        flags: userData?.flags || null,
+        premiumType: userData?.premium_type || null,
+        publicFlags: userData?.public_flags || null,
+        // Note: Discord API doesn't provide username history by default
+        // This would require additional tracking or external services
       }
     };
+
+    // Track username history if user data is available
+    if (userData) {
+      try {
+        await fetch(`${process.env.NEXTAUTH_URL}/api/users/username-history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            globalName: userData.global_name,
+            discriminator: userData.discriminator
+          }),
+        });
+      } catch (error) {
+        console.error('Error tracking username history:', error);
+        // Don't fail the main request if username tracking fails
+      }
+    }
 
     return NextResponse.json(combinedData);
 
@@ -123,7 +158,7 @@ export async function GET(request: NextRequest) {
 // POST method to get member info for the authenticated user
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -218,8 +253,44 @@ export async function POST(request: NextRequest) {
         avatar: memberData.avatar || null,
         guildName: guildData?.name || null,
         guildIcon: guildData?.icon || null,
+        // Enhanced user information
+        username: userData?.username || null,
+        globalName: userData?.global_name || null,
+        discriminator: userData?.discriminator || null,
+        bot: userData?.bot || false,
+        system: userData?.system || false,
+        mfaEnabled: userData?.mfa_enabled || false,
+        banner: userData?.banner || null,
+        accentColor: userData?.accent_color || null,
+        locale: userData?.locale || null,
+        flags: userData?.flags || null,
+        premiumType: userData?.premium_type || null,
+        publicFlags: userData?.public_flags || null,
+        // Note: Discord API doesn't provide username history by default
+        // This would require additional tracking or external services
       }
     };
+
+    // Track username history if user data is available
+    if (userData) {
+      try {
+        await fetch(`${process.env.NEXTAUTH_URL}/api/users/username-history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userData.id,
+            username: userData.username,
+            globalName: userData.global_name,
+            discriminator: userData.discriminator
+          }),
+        });
+      } catch (error) {
+        console.error('Error tracking username history:', error);
+        // Don't fail the main request if username tracking fails
+      }
+    }
 
     return NextResponse.json(combinedData);
 

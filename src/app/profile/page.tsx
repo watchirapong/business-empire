@@ -2,14 +2,23 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import SavedServerMemberData from '@/components/SavedServerMemberData';
+import { useState, useEffect } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
+import UsernameHistory from '@/components/UsernameHistory';
+import ServerNicknameTest from '@/components/ServerNicknameTest';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [currentNickname, setCurrentNickname] = useState<string | null>(null);
+  const [joinDate, setJoinDate] = useState<string>('');
+  const [userRank, setUserRank] = useState<string>('None');
+  const [userHouse, setUserHouse] = useState<string>('None');
+  const [globalRank, setGlobalRank] = useState<number>(0);
+  const [houseRank, setHouseRank] = useState<number>(0);
+  const [totalMembers, setTotalMembers] = useState<number>(0);
+  const [houseMembers, setHouseMembers] = useState<number>(0);
 
   const handleLogout = () => {
     setIsLoading(true);
@@ -19,6 +28,68 @@ export default function ProfilePage() {
   const getDiscordAvatarUrl = (userId: string, avatar: string) => {
     return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
   };
+
+  const getHouseFromRoles = (roles: string[]): string => {
+    if (roles.includes('1407921062808785017')) return 'Selene';
+    if (roles.includes('1407921679757344888')) return 'Pleiades';
+    if (roles.includes('1407921686526824478')) return 'Ophira';
+    return 'None';
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!session?.user) return;
+      
+      try {
+        // Fetch current nickname
+        const nicknameResponse = await fetch(`/api/users/get-server-nickname?userId=${(session.user as any).id}`);
+        if (nicknameResponse.ok) {
+          const nicknameData = await nicknameResponse.json();
+          setCurrentNickname(nicknameData.nickname);
+        }
+        
+        // Fetch join date from username history
+        const historyResponse = await fetch(`/api/users/username-history?userId=${(session.user as any).id}`);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          if (historyData.history?.usernameHistory?.[0]?.changedAt) {
+            const joinDate = new Date(historyData.history.usernameHistory[0].changedAt);
+            setJoinDate(joinDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }));
+          }
+        }
+        // Fetch user rank and house
+        const rankResponse = await fetch(`/api/users/get-rank?userId=${(session.user as any).id}`);
+        if (rankResponse.ok) {
+          const rankData = await rankResponse.json();
+          setUserRank(rankData.rank);
+          
+          // If we have roles data, determine house
+          if (rankData.roles && Array.isArray(rankData.roles)) {
+            const house = getHouseFromRoles(rankData.roles);
+            setUserHouse(house);
+          }
+        }
+
+        // Fetch user rankings
+        const rankingsResponse = await fetch(`/api/users/get-rankings?userId=${(session.user as any).id}`);
+        if (rankingsResponse.ok) {
+          const rankingsData = await rankingsResponse.json();
+          setGlobalRank(rankingsData.globalRank);
+          setHouseRank(rankingsData.houseRank);
+          setTotalMembers(rankingsData.totalMembers);
+          setHouseMembers(rankingsData.houseMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [session]);
 
   if (!session) {
     router.push('/');
@@ -35,6 +106,16 @@ export default function ProfilePage() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ← Back
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
@@ -52,7 +133,31 @@ export default function ProfilePage() {
 
         {/* Profile Content */}
         <div className="max-w-4xl mx-auto space-y-8">
-          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 relative">
+            {/* Hexagonal Rank Display - Positioned next to username */}
+            <div className="absolute right-8 top-6 w-32 h-32">
+              <div 
+                className={`absolute inset-0 shadow-2xl border-2 ${
+                  userRank === 'Ace' ? 'bg-gradient-to-br from-blue-300 via-blue-400 to-blue-500 border-blue-200' :
+                  userRank === 'Hero' ? 'bg-gradient-to-br from-green-700 via-green-800 to-green-900 border-green-600' :
+                  userRank === 'Enigma' ? 'bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 border-purple-300' :
+                  userRank === 'Warrior' ? 'bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 border-orange-300' :
+                  userRank === 'Trainee' ? 'bg-gradient-to-br from-amber-200 via-amber-300 to-amber-400 border-amber-100' :
+                  'bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600 border-gray-300'
+                }`}
+                style={{
+                  clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+                }}
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="font-black text-white text-3xl">
+                    {userRank === 'None' ? 'N/A' : userRank}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               {/* Avatar */}
               <div className="relative">
@@ -68,85 +173,67 @@ export default function ProfilePage() {
 
               {/* User Info */}
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  {(session.user as any).username}
-                </h1>
-                <p className="text-gray-300 text-lg mb-4">
-                  #{session.user?.name}
+                <div className="flex items-center justify-center md:justify-start mb-2">
+                  <h1 className="text-3xl font-bold text-white">
+                    {(session.user as any).username}
+                  </h1>
+                </div>
+                <p className="text-gray-300 text-lg mb-2">
+                  {currentNickname ? `@${currentNickname}` : `#${session.user?.name}`}
+                </p>
+                <p className="text-gray-400 text-sm mb-4">
+                  {joinDate ? `Joined Hamstellar: ${joinDate}` : 'Discord User'}
                 </p>
                 <p className="text-gray-400 mb-6">
-                  Discord User • HamsterHub Member
+                  House: {userHouse}
                 </p>
                 
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-white/5 rounded-lg p-4 border border-orange-500/20">
-                    <div className="text-2xl font-bold text-orange-400">0</div>
-                    <div className="text-gray-400 text-sm">Games Played</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-orange-500/20">
-                    <div className="text-2xl font-bold text-orange-400">0</div>
-                    <div className="text-gray-400 text-sm">Total Score</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-orange-500/20">
-                    <div className="text-2xl font-bold text-orange-400">0</div>
-                    <div className="text-gray-400 text-sm">Achievements</div>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  
-                  <button
-                    onClick={() => router.push('/shop')}
-                    className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    <span className="text-xl">🛒</span>
-                    <span>Visit Shop</span>
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    disabled={isLoading}
-                    className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 disabled:opacity-50"
-                  >
-                    <span className="text-xl">🚪</span>
-                    <span>{isLoading ? 'Logging out...' : 'Logout'}</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Hamster Coin Balance */}
+          {/* Hamster Shop Balance */}
           <HamsterCoinBalance />
 
-          {/* Discord Server Member Data */}
-          <SavedServerMemberData />
-
-          {/* Recent Activity */}
+          {/* Leaderboard Rank Display */}
           <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center space-x-3">
-              <span className="text-2xl">📊</span>
-              <span>Recent Activity</span>
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-lg border border-orange-500/10">
-                <div className="text-2xl">🎉</div>
-                <div className="flex-1">
-                  <div className="text-white font-semibold">Welcome to HamsterHub!</div>
-                  <div className="text-gray-400 text-sm">You joined the HamsterHub community</div>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">Your Rankings</h2>
+              <p className="text-gray-400">Compare your earnings with other members</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* House Ranking */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-pink-500/30 p-6 text-center">
+                <div className="text-white text-lg font-semibold mb-4">House Ranking</div>
+                <div className="text-white text-3xl font-bold mb-2">
+                  {userHouse !== 'None' && houseRank > 0 ? `#${houseRank}` : 'N/A'}
                 </div>
-                <div className="text-gray-500 text-sm">Just now</div>
+                <div className="text-gray-400 text-sm">among {houseMembers} {userHouse} members</div>
+                <div className="w-full h-px bg-pink-500/50 my-4"></div>
               </div>
-              <div className="flex items-center space-x-4 p-4 bg-white/5 rounded-lg border border-orange-500/10">
-                <div className="text-2xl">🔐</div>
-                <div className="flex-1">
-                  <div className="text-white font-semibold">Account Connected</div>
-                  <div className="text-gray-400 text-sm">Discord account successfully linked</div>
+
+              {/* Global Ranking */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-pink-500/30 p-6 text-center">
+                <div className="text-white text-lg font-semibold mb-4">Global Ranking</div>
+                <div className="text-white text-3xl font-bold mb-2">
+                  {globalRank > 0 ? `#${globalRank}` : 'N/A'}
                 </div>
-                <div className="text-gray-500 text-sm">Just now</div>
+                <div className="text-gray-400 text-sm">among {totalMembers} members</div>
+                <div className="w-full h-px bg-pink-500/50 my-4"></div>
               </div>
             </div>
+          </div>
+
+          {/* Server Nickname Test */}
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
+            <ServerNicknameTest />
+          </div>
+
+          {/* Username History */}
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
+            <UsernameHistory />
           </div>
         </div>
       </div>

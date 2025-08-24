@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import DiscordBot from '@/lib/discord-bot';
+import { getBot } from '@/lib/start-bot';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -34,8 +35,8 @@ const VoiceActivity = mongoose.models.VoiceActivity || mongoose.model('VoiceActi
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession(authOptions);
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
+    const session = await getServerSession();
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
@@ -110,6 +111,13 @@ export async function GET(request: NextRequest) {
       }
     ]);
 
+    // Get actual bot instance for real-time info, fallback to static info
+    const bot = getBot();
+    const serverInfo = bot ? bot.getServerInfo() : DiscordBot.getServerInfo();
+    
+    console.log('Bot instance available:', !!bot);
+    console.log('Server info:', serverInfo);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -119,7 +127,8 @@ export async function GET(request: NextRequest) {
           realUsers,
           suspiciousUsers,
           breakdown: stats
-        }
+        },
+        serverInfo
       }
     });
 

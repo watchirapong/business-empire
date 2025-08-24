@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
+import Leaderboard from '@/components/Leaderboard';
+
+import VoiceRewards from '@/components/VoiceRewards';
 // Removed: import HamsterCoinBalance from '@/components/HamsterCoinBalance';
 
 export default function HomePage() {
@@ -23,7 +26,8 @@ export default function HomePage() {
   };
 
   // Check if current user is admin
-  const isAdmin = (session?.user as any)?.id === '898059066537029692';
+  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+  const isAdmin = ADMIN_USER_IDS.includes((session?.user as any)?.id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -39,7 +43,13 @@ export default function HomePage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
-            <div className="text-4xl animate-bounce">🏠</div>
+            <div className="w-12 h-12">
+              <img 
+                src="/hamsterhub-logo.png" 
+                alt="HamsterHub Logo" 
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div className="text-white text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
               HamsterHub
             </div>
@@ -80,6 +90,15 @@ export default function HomePage() {
                 {isProfileOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-sm rounded-xl border border-orange-500/20 shadow-2xl z-50 animate-in slide-in-from-top-2 duration-300">
                     <div className="p-4 space-y-2">
+                      {/* Profile Button */}
+                      <button
+                        onClick={() => router.push('/profile')}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg font-medium flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-lg">👤</span>
+                        <span>Profile</span>
+                      </button>
+                      
                       {/* Admin Panel Button - Only show for admin */}
                       {isAdmin && (
                         <button
@@ -119,16 +138,16 @@ export default function HomePage() {
         <div className="text-center mb-16">
           <div className="inline-block bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 text-transparent bg-clip-text">
             <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black mb-8 tracking-tight leading-tight">
-              HamsterStar
+              {session ? `Welcome! ${session.user?.name || 'user'}` : 'Hamstellar'}
             </h1>
           </div>
         </div>
 
         {/* Menu Section - Only show when logged in */}
         {session && (
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* HamsterShop */}
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              {/* Hamster Shop */}
               <button
                 onClick={() => handleMenuClick('/shop')}
                 className="group bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 hover:border-orange-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
@@ -136,30 +155,39 @@ export default function HomePage() {
                 <div className="text-center">
                   <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🛒</div>
                   <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300">
-                    HamsterShop
+                    Hamster Shop
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300">
-                    ร้านค้าแฮมสเตอร์
+                    ระบบสกุลเงินแฮมสเตอร์
                   </p>
                 </div>
               </button>
 
-
-              {/* HamsterProfile */}
+              {/* Gacha */}
               <button
-                onClick={() => handleMenuClick('/profile')}
-                className="group bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 hover:border-orange-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
+                onClick={() => handleMenuClick('/gacha')}
+                className="group bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm rounded-2xl border border-purple-500/20 p-8 hover:border-purple-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
               >
                 <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">👤</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300">
-                    HamsterProfile
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🎰</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300">
+                    Gacha
                   </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300">
-                    โปรไฟล์แฮมสเตอร์
+                  <p className="text-gray-400 text-sm group-hover:text-purple-200 transition-colors duration-300">
+                    ลุ้นรางวัลสุดพิเศษ
                   </p>
                 </div>
               </button>
+            </div>
+
+            {/* Voice Rewards Section */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <VoiceRewards />
+            </div>
+
+            {/* Leaderboard Section */}
+            <div className="max-w-2xl mx-auto">
+              <Leaderboard />
             </div>
           </div>
         )}
