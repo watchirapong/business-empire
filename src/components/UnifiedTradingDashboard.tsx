@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import UserProfile from './UserProfile';
 
+interface ExternalDiscordData {
+  externalDiscordId: string;
+  externalUsername: string;
+  externalCoins: number;
+  externalBalance: number;
+  externalLevel: number;
+  externalXp: number;
+  lastUpdated: string;
+  rawData: any;
+  status?: string;
+}
+
 interface UnifiedPortfolio {
   discordId: string;
   username: string;
@@ -29,7 +41,9 @@ interface UnifiedTradingDashboardProps {
 export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTradingDashboardProps) {
   const { data: session } = useSession();
   const [portfolio, setPortfolio] = useState<UnifiedPortfolio | null>(null);
+  const [externalData, setExternalData] = useState<ExternalDiscordData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [externalLoading, setExternalLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'portfolio' | 'trading'>('portfolio');
 
@@ -57,8 +71,32 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
     }
   };
 
+  const loadExternalDiscordData = async () => {
+    if (!session?.user) return;
+
+    setExternalLoading(true);
+    try {
+      const response = await fetch('/api/external-discord');
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setExternalData(data.data);
+        console.log('External Discord data loaded:', data.data);
+      } else {
+        console.error('Error loading external Discord data:', data.error);
+        // Don't show error message for external data as it's optional
+      }
+    } catch (error) {
+      console.error('Error loading external Discord data:', error);
+      // Don't show error message for external data as it's optional
+    } finally {
+      setExternalLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadPortfolio();
+    loadExternalDiscordData();
   }, [session]);
 
   const formatCurrency = (amount: number) => {
@@ -72,6 +110,10 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
 
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US').format(num);
   };
 
   // Calculate real-time asset allocation and total value
@@ -141,6 +183,18 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
             <p className="text-blue-200">Trade stocks, forex, and crypto with shared capital</p>
           </div>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                loadPortfolio();
+                loadExternalDiscordData();
+                setMessage('Portfolio and external data refreshed!');
+                setTimeout(() => setMessage(''), 3000);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center space-x-2"
+            >
+              <span>🔄</span>
+              <span>Refresh</span>
+            </button>
             <UserProfile />
             <button
               onClick={onBackToHome}
@@ -172,7 +226,7 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
           const totalGainLossPercent = ((allocation.totalValue - 100000) / 100000) * 100;
           
           return (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
               <div className="bg-gray-800 p-4 rounded-lg">
                 <h3 className="text-gray-400 text-sm">Total Value</h3>
                 <p className="text-2xl font-bold text-white">{formatCurrency(allocation.totalValue)}</p>
@@ -194,6 +248,29 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
                 <p className="text-sm text-white">Stocks: {formatCurrency(allocation.stocks)}</p>
                 <p className="text-sm text-white">Crypto: {formatCurrency(allocation.cryptos)}</p>
                 <p className="text-sm text-white">Forex: {formatCurrency(allocation.forex)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-800/50 to-orange-800/50 border border-yellow-500/30 p-4 rounded-lg">
+                <h3 className="text-yellow-200 text-sm font-semibold">External Discord</h3>
+                {externalLoading ? (
+                  <p className="text-yellow-300 text-sm">Loading...</p>
+                ) : externalData ? (
+                  <div>
+                    {externalData.status === 'user_not_found' ? (
+                      <div>
+                        <p className="text-yellow-400 font-bold text-lg">🪙 0</p>
+                        <p className="text-yellow-300 text-xs">User not in external system</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-yellow-400 font-bold text-lg">🪙 {formatNumber(externalData.externalCoins)}</p>
+                        <p className="text-yellow-300 text-sm">Level {externalData.externalLevel}</p>
+                        <p className="text-yellow-300 text-xs">XP: {formatNumber(externalData.externalXp)}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-yellow-300 text-sm">Not available</p>
+                )}
               </div>
             </div>
           );

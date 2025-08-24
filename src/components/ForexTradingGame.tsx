@@ -42,6 +42,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
   const [leverage, setLeverage] = useState(100);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
+  const [showShortSellInfo, setShowShortSellInfo] = useState(false);
 
   const fetchForexData = async () => {
     setLoading(true);
@@ -127,7 +128,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
           positions: data.portfolio.forexPositions || {},
           totalValue: data.portfolio.totalValue,
         });
-        setMessage(`Successfully opened ${type} position for ${selectedPair.symbol}`);
+        setMessage(`Successfully opened ${type === 'buy' ? 'LONG' : 'SHORT'} position for ${selectedPair.symbol}`);
         
         // Clear message after 3 seconds
         setTimeout(() => setMessage(''), 3000);
@@ -174,7 +175,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
           positions: data.portfolio.forexPositions || {},
           totalValue: data.portfolio.totalValue,
         });
-        setMessage(`Successfully closed ${type} position for ${symbol}`);
+        setMessage(`Successfully closed ${type === 'buy' ? 'LONG' : 'SHORT'} position for ${symbol}`);
         
         // Clear message after 3 seconds
         setTimeout(() => setMessage(''), 3000);
@@ -244,7 +245,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">💱 Forex Trading Simulator</h1>
-            <p className="text-blue-200">Trade major currency pairs with virtual capital</p>
+            <p className="text-blue-200">Trade major currency pairs with virtual capital - <span className="text-yellow-400 font-semibold">LONG & SHORT positions available!</span></p>
             {session && (
               <div className="flex items-center mt-2">
                 <span className="text-sm text-blue-300">📊 Portfolio linked to: {session.user?.name}</span>
@@ -266,6 +267,62 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
               ← Back to Home
             </button>
           </div>
+        </div>
+
+        {/* Short Selling Info Banner */}
+        <div className="bg-gradient-to-r from-yellow-800/50 to-orange-800/50 backdrop-blur-sm rounded-2xl border border-yellow-500/30 p-6 mb-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-yellow-200 flex items-center mb-2">
+                🚀 Short Selling Available!
+              </h2>
+              <p className="text-yellow-100 mb-3">
+                <strong>LONG (Buy):</strong> Profit when currency pair goes UP • <strong>SHORT (Sell):</strong> Profit when currency pair goes DOWN
+              </p>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-3">
+                  <div className="font-semibold text-green-400 mb-1">📈 LONG Position</div>
+                  <div className="text-green-200">Buy low, sell high. Profit when price increases.</div>
+                </div>
+                <div className="bg-red-600/20 border border-red-500/30 rounded-lg p-3">
+                  <div className="font-semibold text-red-400 mb-1">📉 SHORT Position</div>
+                  <div className="text-red-200">Sell high, buy low. Profit when price decreases.</div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowShortSellInfo(!showShortSellInfo)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors ml-4"
+            >
+              {showShortSellInfo ? 'Hide' : 'Learn More'}
+            </button>
+          </div>
+          
+          {showShortSellInfo && (
+            <div className="mt-4 bg-slate-800/50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-white mb-3">How Short Selling Works in Forex:</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h4 className="font-semibold text-green-400 mb-2">Example: EUR/USD SHORT</h4>
+                  <ul className="text-slate-300 space-y-1">
+                    <li>• You sell EUR/USD at 1.1000</li>
+                    <li>• Price drops to 1.0900</li>
+                    <li>• You buy back at 1.0900</li>
+                    <li>• Profit: 100 pips × position size</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-red-400 mb-2">Risk Management</h4>
+                  <ul className="text-slate-300 space-y-1">
+                    <li>• Use stop-loss orders</li>
+                    <li>• Monitor leverage carefully</li>
+                    <li>• Never risk more than 2% per trade</li>
+                    <li>• Keep track of margin requirements</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Market Status - Forex is 24/5 */}
@@ -341,8 +398,10 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {filteredPairs.map((pair) => {
-                    const position = portfolio.positions[`${pair.symbol}_buy`] || portfolio.positions[`${pair.symbol}_sell`];
-                    const pnl = position ? getPositionValue(pair, position) : 0;
+                    const buyPosition = portfolio.positions[`${pair.symbol}_buy`];
+                    const sellPosition = portfolio.positions[`${pair.symbol}_sell`];
+                    const buyPnl = buyPosition ? getPositionValue(pair, buyPosition) : 0;
+                    const sellPnl = sellPosition ? getPositionValue(pair, sellPosition) : 0;
                     
                     return (
                       <div
@@ -367,13 +426,25 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
                               </a>
                             </div>
                             <p className="text-slate-300 text-sm">{pair.name}</p>
-                            {position && (
-                              <p className="text-xs text-blue-300">
-                                Own: {position.size.toLocaleString()} ({position.avgPrice.toFixed(4)})
-                                <span className={`ml-2 ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                  P&L: ${pnl.toFixed(2)}
-                                </span>
-                              </p>
+                            {(buyPosition || sellPosition) && (
+                              <div className="text-xs space-y-1 mt-1">
+                                {buyPosition && (
+                                  <div className="text-green-300">
+                                    LONG: {buyPosition.size.toLocaleString()} @ {buyPosition.avgPrice.toFixed(4)}
+                                    <span className={`ml-2 ${buyPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      P&L: ${buyPnl.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                                {sellPosition && (
+                                  <div className="text-red-300">
+                                    SHORT: {sellPosition.size.toLocaleString()} @ {sellPosition.avgPrice.toFixed(4)}
+                                    <span className={`ml-2 ${sellPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      P&L: ${sellPnl.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="text-right">
@@ -437,7 +508,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
-                    📈 BUY
+                    📈 LONG
                   </button>
                   <button
                     onClick={() => setActiveTab('sell')}
@@ -447,7 +518,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
-                    📉 SELL
+                    📉 SHORT
                   </button>
                 </div>
                 
@@ -505,7 +576,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
                         : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white'
                     }`}
                   >
-                    {activeTab === 'buy' ? '📈 BUY' : '📉 SELL'} {selectedPair?.symbol}
+                    {activeTab === 'buy' ? '📈 GO LONG' : '📉 GO SHORT'} {selectedPair?.symbol}
                   </button>
                 </div>
               </div>
@@ -541,8 +612,8 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
                                 📊
                               </a>
                             </div>
-                            <div className={`text-sm ${type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
-                              {type.toUpperCase()} {position.size.toLocaleString()}
+                            <div className={`text-sm font-semibold ${type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+                              {type === 'buy' ? 'LONG' : 'SHORT'} {position.size.toLocaleString()}
                             </div>
                             <div className="text-xs text-slate-400">
                               Entry: {position.avgPrice.toFixed(4)}

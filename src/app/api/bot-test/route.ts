@@ -10,16 +10,10 @@ export async function GET() {
       await bot.start();
     }
 
-    // Test connection
-    const connectionTest = await bot.testConnection();
-    
     // Get bot status
     const botStatus = {
       isConnected: bot.isBotConnected(),
-      botMode: bot.getBotMode(),
-      connectionTest,
-      activeSessions: bot.getActiveVoiceSessions(),
-      recentVoiceActivity: bot.getRecentVoiceActivity(),
+      serverInfo: bot.getServerInfo(),
       testMessage: 'Voice tracking test completed - check database for test data'
     };
 
@@ -46,28 +40,16 @@ export async function POST() {
       await bot.start();
     }
 
-    // Force check voice activity
-    const forceCheck = await bot.forceCheckVoiceActivity();
+    // Get voice activity stats
+    const voiceStats = await DiscordBot.getVoiceActivityStats();
     
-    // Check specific user (your user ID)
-    const userVoiceStatus = await bot.checkUserVoiceStatus('641285950902632459', 'watchirapongth');
-    
-    // Get all voice users
-    const allVoiceUsers = await bot.getAllVoiceUsers();
-    
-    // Get all voice channels
-    const allVoiceChannels = await bot.getAllVoiceChannels();
-    
-    // Set bot presence to online
-    const botPresence = await bot.setBotPresence('online', 'Monitoring Voice Channels');
+    // Get all voice activity
+    const allVoiceActivity = await DiscordBot.getAllVoiceActivity('all', 20);
 
     return NextResponse.json({
       success: true,
-      forceCheck,
-      userVoiceStatus,
-      allVoiceUsers,
-      allVoiceChannels,
-      botPresence,
+      voiceStats,
+      allVoiceActivity,
       message: 'Voice activity check completed'
     });
 

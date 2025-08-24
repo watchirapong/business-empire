@@ -112,10 +112,10 @@ export async function GET(request: NextRequest) {
       // If no query, return all users from both collections
       
       // Get users from users collection
-      const users = await User.find().limit(200).sort({ createdAt: -1 });
+      const users = await User.find().limit(1000).sort({ createdAt: -1 });
       
       // Get users from voice activity collection who might not be in users collection
-      const voiceActivities = await VoiceActivity.find().limit(200).sort({ updatedAt: -1 });
+      const voiceActivities = await VoiceActivity.find().limit(1000).sort({ updatedAt: -1 });
       
       // Create a map of existing user IDs to avoid duplicates
       const existingUserIds = new Set(users.map(user => user.discordId));
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
           { username: { $regex: query, $options: 'i' } },
           { globalName: { $regex: query, $options: 'i' } }
         ]
-      }).limit(20);
+      }).limit(100);
       
       // Search in voice activity collection
       const voiceActivities = await VoiceActivity.find({
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
           { username: { $regex: query, $options: 'i' } },
           { globalName: { $regex: query, $options: 'i' } }
         ]
-      }).limit(20);
+      }).limit(100);
       
       // Search in username history (nicknames)
       const usernameHistories = await UsernameHistory.find({
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
           { currentUsername: { $regex: query, $options: 'i' } },
           { currentGlobalName: { $regex: query, $options: 'i' } }
         ]
-      }).limit(20);
+      }).limit(100);
       
       // Combine results and remove duplicates
       const userIds = new Set();
@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
     
     // Sort by creation date (newest first) and limit results
     combinedUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    combinedUsers = combinedUsers.slice(0, 200);
+    combinedUsers = combinedUsers.slice(0, 1000);
 
     return NextResponse.json({
       success: true,
