@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
           let userCurrency = await Currency.default.findOne({ userId });
           
           if (!userCurrency) {
-            userCurrency = new Currency({ userId, hamsterCoins: 0 });
+            userCurrency = new Currency.default({ userId, hamsterCoins: 0 });
           }
           
           userCurrency.hamsterCoins += achievement.reward.hamsterCoins;
