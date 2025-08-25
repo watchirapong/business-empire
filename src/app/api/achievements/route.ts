@@ -1,67 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 
-// Import models
-import Achievement from '../../../../models/Achievement';
-import UserAchievement from '../../../../models/UserAchievement';
+// Define schemas locally for API routes
+const achievementSchema = new mongoose.Schema({
+  title: { type: String, required: true, unique: true },
+  description: { type: String, required: true },
+  icon: { type: String, required: true, default: '🏆' },
+  rarity: { type: Number, required: true, min: 0, max: 100, default: 50 },
+  category: { type: String, enum: ['Task', 'Goal', 'Quest'], default: 'Goal' },
+  coinReward: { type: Number, required: true, min: 0, default: 100 },
+  isActive: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
-const connectDB = async () => {
+const Achievement = mongoose.models.Achievement || mongoose.model('Achievement', achievementSchema);
+
+async function connectDB() {
   if (mongoose.connections[0].readyState) return;
-  const mongoUri = process.env.MONGODB_URI;
-  if (!mongoUri) {
-    throw new Error('MONGODB_URI environment variable is not defined');
-  }
-  await mongoose.connect(mongoUri);
-};
+  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
+}
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    // Get all active achievements
-    const achievements = await Achievement.find({ isActive: true }).sort({ rarity: 1, name: 1 });
+    const achievements = await Achievement.find({ isActive: true }).sort({ createdAt: -1 });
     
-    let userAchievements = [];
-    if (userId) {
-      // Get user's achievement progress
-      userAchievements = await UserAchievement.find({ userId }).populate('achievementId');
-    }
-
-    // Combine achievements with user progress
-    const achievementsWithProgress = achievements.map((achievement: any) => {
-      const achievementId = achievement.id || achievement._id;
-      const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievementId);
-      
-      // Normalize achievement data to handle both old and new formats
-      const normalizedAchievement = {
-        ...achievement.toObject(),
-        id: achievementId,
-        name: achievement.name || achievement.title,
-        reward: {
-          hamsterCoins: achievement.reward?.hamsterCoins || achievement.coinReward || 0,
-          experience: achievement.reward?.experience || 0
-        },
-        progress: userAchievement?.progress || 0,
-        isUnlocked: userAchievement?.isUnlocked || false,
-        unlockedAt: userAchievement?.unlockedAt,
-        claimed: userAchievement?.claimed || false,
-        claimedAt: userAchievement?.claimedAt
-      };
-      
-      return normalizedAchievement;
-    });
-
-    return NextResponse.json({
-      achievements: achievementsWithProgress,
-      total: achievementsWithProgress.length,
-      unlocked: achievementsWithProgress.filter((a: any) => a.isUnlocked).length
-    });
+    return NextResponse.json({ achievements });
   } catch (error) {
     console.error('Error fetching achievements:', error);
-    return NextResponse.json({ error: "Failed to fetch achievements" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch achievements' }, { status: 500 });
   }
 }
 
@@ -70,68 +38,87 @@ export async function POST(request: NextRequest) {
     await connectDB();
     
     const body = await request.json();
-    const { userId, achievementId, progress, action } = body;
-
-    if (!userId || !achievementId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    let userAchievement = await UserAchievement.findOne({ userId, achievementId });
+    const { title, description, icon, rarity, category, coinReward } = body;
     
-    if (!userAchievement) {
-      userAchievement = new UserAchievement({ userId, achievementId });
+    // Basic validation
+    if (!title || !description) {
+      return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
     }
-
-    if (action === 'claim') {
-      if (!userAchievement.isUnlocked) {
-        return NextResponse.json({ error: "Achievement not unlocked" }, { status: 400 });
-      }
-      
-      if (userAchievement.claimed) {
-        return NextResponse.json({ error: "Achievement already claimed" }, { status: 400 });
-      }
-
-      userAchievement.claimed = true;
-      userAchievement.claimedAt = new Date();
-      
-      // Get achievement details for rewards
-      const achievement = await Achievement.findOne({ id: achievementId });
-      if (achievement) {
-        // Add rewards to user's currency
-        if (achievement.reward.hamsterCoins > 0) {
-          // Update user's hamster coins
-          const Currency = await import('../../../../models/Currency');
-          let userCurrency = await Currency.default.findOne({ userId });
-          
-          if (!userCurrency) {
-            userCurrency = new Currency.default({ userId, hamsterCoins: 0 });
-          }
-          
-          userCurrency.hamsterCoins += achievement.reward.hamsterCoins;
-          userCurrency.totalEarned += achievement.reward.hamsterCoins;
-          await userCurrency.save();
-        }
-      }
-    } else {
-      // Update progress
-      userAchievement.progress = progress || userAchievement.progress;
-      
-      // Check if achievement should be unlocked
-      const achievement = await Achievement.findOne({ id: achievementId });
-      if (achievement && userAchievement.progress >= achievement.requirement.value && !userAchievement.isUnlocked) {
-        userAchievement.isUnlocked = true;
-        userAchievement.unlockedAt = new Date();
-      }
-    }
-
-    await userAchievement.save();
-
-    return NextResponse.json({
-      success: true,
-      userAchievement: userAchievement.toObject()
+    
+    const achievement = new Achievement({
+      title,
+      description,
+      icon: icon || '🏆',
+      rarity: rarity || 50,
+      category: category || 'Goal',
+      coinReward: coinReward || 100
     });
+    
+    await achievement.save();
+    
+    return NextResponse.json({ achievement }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating achievement:', error);
+    return NextResponse.json({ error: 'Failed to create achievement' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connectDB();
+    
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Achievement ID is required' }, { status: 400 });
+    }
+    
+    const body = await request.json();
+    const { title, description, icon, rarity, category, coinReward } = body;
+    
+    // Basic validation
+    if (!title || !description) {
+      return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
+    }
+    
+    const achievement = await Achievement.findByIdAndUpdate(
+      id,
+      { title, description, icon, rarity, category, coinReward },
+      { new: true, runValidators: true }
+    );
+    
+    if (!achievement) {
+      return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ achievement });
   } catch (error) {
     console.error('Error updating achievement:', error);
-    return NextResponse.json({ error: "Failed to update achievement" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update achievement' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+    
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Achievement ID is required' }, { status: 400 });
+    }
+    
+    const achievement = await Achievement.findByIdAndDelete(id);
+    
+    if (!achievement) {
+      return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ message: 'Achievement deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting achievement:', error);
+    return NextResponse.json({ error: 'Failed to delete achievement' }, { status: 500 });
   }
 }

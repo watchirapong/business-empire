@@ -87,7 +87,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements'>('users');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -103,6 +103,23 @@ export default function AdminPage() {
     dropRate: 10,
     isActive: true
   });
+  
+  // Achievement management states
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [showAchievementForm, setShowAchievementForm] = useState(false);
+  const [editingAchievement, setEditingAchievement] = useState<any>(null);
+  const [newAchievement, setNewAchievement] = useState({
+    title: '',
+    description: '',
+    icon: '🏆',
+    rarity: 50,
+    category: 'Goal',
+    coinReward: 100
+  });
+  const [achievementSearchTerm, setAchievementSearchTerm] = useState('');
+  const [selectedUserForAchievement, setSelectedUserForAchievement] = useState<any>(null);
+  const [achievementSearchResults, setAchievementSearchResults] = useState<any[]>([]);
+  
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkUpdateMessage, setBulkUpdateMessage] = useState<string | null>(null);
   const [bulkUpdateDetails, setBulkUpdateDetails] = useState<any>(null);
@@ -149,6 +166,7 @@ export default function AdminPage() {
     loadAllUsers();
     loadPurchaseHistory();
     loadGachaItems();
+    loadAchievements();
   }, [session, status, router]);
 
   const loadAllUsers = async () => {
@@ -551,6 +569,146 @@ export default function AdminPage() {
     }
   };
 
+  // Achievement management functions
+  const loadAchievements = async () => {
+    try {
+      const response = await fetch('/api/achievements');
+      if (response.ok) {
+        const data = await response.json();
+        setAchievements(data.achievements);
+      }
+    } catch (error) {
+      console.error('Error loading achievements:', error);
+    }
+  };
+
+  const handleSaveAchievement = async () => {
+    try {
+      const url = editingAchievement 
+        ? `/api/achievements?id=${editingAchievement._id}` 
+        : '/api/achievements';
+      
+      const method = editingAchievement ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newAchievement),
+      });
+      
+      if (response.ok) {
+        setMessage(editingAchievement ? 'Achievement updated successfully!' : 'Achievement created successfully!');
+        setShowAchievementForm(false);
+        setEditingAchievement(null);
+        setNewAchievement({
+          title: '',
+          description: '',
+          icon: '🏆',
+          rarity: 50,
+          category: 'Goal',
+          coinReward: 100
+        });
+        loadAchievements();
+      } else {
+        const errorData = await response.json();
+        setMessage(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      setMessage('Error saving achievement');
+      console.error('Save achievement error:', error);
+    }
+  };
+
+  const handleDeleteAchievement = async (achievementId: string) => {
+    if (confirm('Are you sure you want to delete this achievement?')) {
+      try {
+        const response = await fetch(`/api/achievements?id=${achievementId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          setMessage('Achievement deleted successfully!');
+          loadAchievements();
+        } else {
+          const errorData = await response.json();
+          setMessage(`Error: ${errorData.error}`);
+        }
+      } catch (error) {
+        setMessage('Error deleting achievement');
+        console.error('Delete achievement error:', error);
+      }
+    }
+  };
+
+  const handleUpdateUserAchievement = async (achievementId: string, progress: number) => {
+    if (!selectedUserForAchievement) return;
+    
+    try {
+      const response = await fetch('/api/achievements/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUserForAchievement.discordId,
+          achievementId,
+          progress
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMessage(data.message);
+      } else {
+        const errorData = await response.json();
+        setMessage(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      setMessage('Error updating user achievement');
+      console.error('Update user achievement error:', error);
+    }
+  };
+
+  // User search functions for achievements
+  const searchUserForAchievement = async () => {
+    if (!achievementSearchTerm.trim()) {
+      setMessage('Please enter a search term');
+      return;
+    }
+    
+    try {
+      const searchTerm = achievementSearchTerm.trim();
+      const results = allUsers.filter(user => 
+        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.discordId.includes(searchTerm)
+      );
+      
+      setAchievementSearchResults(results);
+      
+      if (results.length === 0) {
+        setMessage('No users found matching your search');
+      } else {
+        setMessage(`Found ${results.length} user(s)`);
+      }
+    } catch (error) {
+      setMessage('Error searching for users');
+      console.error('User search error:', error);
+    }
+  };
+
+  const selectUserForAchievement = (user: any) => {
+    setSelectedUserForAchievement(user);
+    setAchievementSearchResults([]);
+    setAchievementSearchTerm('');
+    setMessage(`Selected user: ${user.username}`);
+  };
+
+  const getDiscordAvatarUrl = (userId: string, avatar: string) => {
+    return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
+  };
+
   // Show loading or unauthorized
   if (status === 'loading') {
     return (
@@ -641,6 +799,16 @@ export default function AdminPage() {
             }`}
           >
             🎰 Gacha Management
+          </button>
+          <button
+            onClick={() => setActiveTab('achievements')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'achievements'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🏆 Achievement Management
           </button>
         </div>
 
@@ -1605,6 +1773,300 @@ export default function AdminPage() {
                 <p className="text-gray-400">No gacha items have been created yet.</p>
               </div>
             )}
+          </>
+        )}
+
+        {/* Achievement Management Tab */}
+        {activeTab === 'achievements' && (
+          <>
+            {/* Add New Achievement */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-white">🏆 Achievement Management</h2>
+                <button
+                  onClick={() => {
+                    setShowAchievementForm(!showAchievementForm);
+                    setEditingAchievement(null);
+                    setNewAchievement({
+                      title: '',
+                      description: '',
+                      icon: '🏆',
+                      rarity: 50,
+                      category: 'Goal',
+                      coinReward: 100
+                    });
+                  }}
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+                >
+                  {showAchievementForm ? 'Cancel' : 'Add New Achievement'}
+                </button>
+              </div>
+
+              {showAchievementForm && (
+                <div className="bg-white/5 rounded-xl p-6 border border-white/20">
+                  <h3 className="text-xl font-bold text-white mb-4">
+                    {editingAchievement ? 'Edit Achievement' : 'Add New Achievement'}
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Title</label>
+                      <input
+                        type="text"
+                        value={newAchievement.title}
+                        onChange={(e) => setNewAchievement({...newAchievement, title: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="Achievement title"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Description</label>
+                      <input
+                        type="text"
+                        value={newAchievement.description}
+                        onChange={(e) => setNewAchievement({...newAchievement, description: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="Achievement description"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Icon (Emoji)</label>
+                      <input
+                        type="text"
+                        value={newAchievement.icon}
+                        onChange={(e) => setNewAchievement({...newAchievement, icon: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="🏆"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Category</label>
+                      <select
+                        value={newAchievement.category}
+                        onChange={(e) => setNewAchievement({...newAchievement, category: e.target.value})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-400"
+                      >
+                        <option value="Task">Task</option>
+                        <option value="Goal">Goal</option>
+                        <option value="Quest">Quest</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Coin Reward</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newAchievement.coinReward}
+                        onChange={(e) => setNewAchievement({...newAchievement, coinReward: parseInt(e.target.value)})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="100"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white text-sm font-medium mb-2">Rarity (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newAchievement.rarity}
+                        onChange={(e) => setNewAchievement({...newAchievement, rarity: parseInt(e.target.value)})}
+                        className="w-full bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                        placeholder="50"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowAchievementForm(false)}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveAchievement}
+                      className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+                    >
+                      {editingAchievement ? 'Update Achievement' : 'Create Achievement'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Manage User Achievements */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">👤 Manage User Achievements</h2>
+              
+              <div className="mb-4">
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    placeholder="Search user by username or Discord ID..."
+                    value={achievementSearchTerm}
+                    onChange={(e) => setAchievementSearchTerm(e.target.value)}
+                    className="flex-1 bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
+                  />
+                  <button
+                    onClick={searchUserForAchievement}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300"
+                  >
+                    Search User
+                  </button>
+                </div>
+                
+                {/* Search Results */}
+                {achievementSearchResults.length > 0 && (
+                  <div className="mt-3 bg-gray-800/50 rounded-lg border border-gray-700 max-h-40 overflow-y-auto">
+                    {achievementSearchResults.map((user) => (
+                      <div
+                        key={user.discordId}
+                        className="flex items-center justify-between p-3 hover:bg-gray-700/50 cursor-pointer border-b border-gray-700 last:border-b-0"
+                        onClick={() => selectUserForAchievement(user)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={getDiscordAvatarUrl(user.discordId, user.avatar)}
+                            alt="Avatar"
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <div>
+                            <div className="text-white font-medium">{user.username}</div>
+                            <div className="text-gray-400 text-sm">ID: {user.discordId}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            selectUserForAchievement(user);
+                          }}
+                          className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm transition-all duration-300"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {selectedUserForAchievement && (
+                <div className="bg-white/5 rounded-xl p-6 border border-white/20 mb-4">
+                  <h3 className="text-xl font-bold text-white mb-4">
+                    Managing achievements for: {selectedUserForAchievement.username}
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {achievements.map((achievement) => (
+                      <div key={achievement._id} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                        <div className="text-3xl mb-2">{achievement.icon}</div>
+                        <h4 className="font-bold text-white mb-2">{achievement.title}</h4>
+                        <p className="text-gray-300 text-sm mb-3">{achievement.description}</p>
+                        
+                        <div className="space-y-2">
+                          <div className="text-xs text-gray-400">
+                            Category: {achievement.category}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            Rarity: {achievement.rarity}%
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              placeholder="Progress %"
+                              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                            <button
+                              onClick={() => handleUpdateUserAchievement(achievement._id, 100)}
+                              className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-xs transition-all duration-300"
+                            >
+                              Complete
+                            </button>
+                            <button
+                              onClick={() => handleUpdateUserAchievement(achievement._id, 0)}
+                              className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-xs transition-all duration-300"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* All Achievements List */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
+              <h2 className="text-2xl font-bold text-white mb-4">📋 All Achievements</h2>
+              
+              {achievements.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {achievements.map((achievement) => (
+                    <div key={achievement._id} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-3xl">{achievement.icon}</div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingAchievement(achievement);
+                              setNewAchievement({
+                                title: achievement.title,
+                                description: achievement.description,
+                                icon: achievement.icon,
+                                rarity: achievement.rarity,
+                                category: achievement.category,
+                                coinReward: achievement.coinReward || 100
+                              });
+                              setShowAchievementForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs transition-all duration-300"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAchievement(achievement._id)}
+                            className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-xs transition-all duration-300"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <h4 className="font-bold text-white mb-2">{achievement.title}</h4>
+                      <p className="text-gray-300 text-sm mb-3">{achievement.description}</p>
+                      
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-400">
+                          Category: {achievement.category}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Rarity: {achievement.rarity}%
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Created: {new Date(achievement.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🏆</div>
+                  <h2 className="text-2xl font-bold text-white mb-2">No Achievements</h2>
+                  <p className="text-gray-400">No achievements have been created yet.</p>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

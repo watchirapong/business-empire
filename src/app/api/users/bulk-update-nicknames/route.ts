@@ -59,34 +59,47 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// Process a single user
+// Process a single user with retry logic
 async function processUser(userId: string, guildId: string, results: any) {
-      try {
-        console.log(`Processing user: ${userId}`);
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`Processing user: ${userId} (attempt ${retryCount + 1})`);
 
-        // Fetch current server member data from Discord
-        const discordResponse = await fetch(
-          `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
-          {
-            headers: {
-              'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (!discordResponse.ok) {
-          if (discordResponse.status === 404) {
-            console.log(`User ${userId} not found in server`);
-            results.errors.push(`User ${userId}: Not found in server`);
-            results.notInServer++;
-          } else {
-            console.log(`Failed to fetch data for user ${userId}: ${discordResponse.status}`);
-            results.errors.push(`User ${userId}: Discord API error ${discordResponse.status}`);
-            results.failed++;
-          }
-      return;
+      // Fetch current server member data from Discord
+      const discordResponse = await fetch(
+        `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
+        {
+          headers: {
+            'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
         }
+      );
+
+      if (!discordResponse.ok) {
+        if (discordResponse.status === 404) {
+          console.log(`User ${userId} not found in server`);
+          results.errors.push(`User ${userId}: Not found in server`);
+          results.notInServer++;
+          return;
+        } else if (discordResponse.status === 429) {
+          // Rate limited - wait and retry
+          const retryAfter = discordResponse.headers.get('Retry-After');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+          console.log(`Rate limited for user ${userId}. Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          retryCount++;
+          continue;
+        } else {
+          console.log(`Failed to fetch data for user ${userId}: ${discordResponse.status}`);
+          results.errors.push(`User ${userId}: Discord API error ${discordResponse.status}`);
+          results.failed++;
+          return;
+        }
+      }
 
         const memberData = await discordResponse.json();
         const currentNickname = memberData.nick || null;
@@ -170,13 +183,27 @@ async function processUser(userId: string, guildId: string, results: any) {
 
         results.updated++;
         console.log(`Successfully updated user ${userId} with nickname: ${currentNickname || 'No nickname'}`);
+        return; // Success, exit retry loop
 
       } catch (error) {
-        console.error(`Error processing user ${userId}:`, error);
-        results.errors.push(`User ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        results.failed++;
+        console.error(`Error processing user ${userId} (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < maxRetries - 1) {
+          // Wait before retry
+          const waitTime = 1000 * (retryCount + 1); // Exponential backoff
+          console.log(`Retrying user ${userId} in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          retryCount++;
+          continue;
+        } else {
+          // Max retries reached
+          results.errors.push(`User ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          results.failed++;
+          return;
+        }
       }
     }
+  }
 
 // Background job storage (in production, use Redis or a proper job queue)
 const backgroundJobs = new Map<string, {
@@ -281,8 +308,8 @@ async function processBulkUpdateInBackground(jobId: string) {
 
     console.log(`Found ${results.total} users to process from main users collection`);
 
-    // Process users in smaller batches to avoid timeouts
-    const BATCH_SIZE = 10; // Process 10 users at a time
+    // Process users in smaller batches to avoid rate limits
+    const BATCH_SIZE = 5; // Reduced batch size
     const batches = [];
     
     for (let i = 0; i < allUserIds.length; i += BATCH_SIZE) {
@@ -303,19 +330,23 @@ async function processBulkUpdateInBackground(jobId: string) {
         job.progress = progress;
       }
 
-      // Process users in this batch concurrently (but with rate limiting)
-      const batchPromises = batch.map(async (userId, index) => {
-        // Add staggered delays to avoid overwhelming Discord API
-        await new Promise(resolve => setTimeout(resolve, index * 50));
-        return processUser(userId, guildId, results);
-      });
+      // Process users in this batch sequentially to avoid rate limits
+      for (let i = 0; i < batch.length; i++) {
+        const userId = batch[i];
+        console.log(`Processing user ${i + 1}/${batch.length} in batch ${batchIndex + 1}: ${userId}`);
+        
+        // Add delay between each user request
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between users
+        }
+        
+        await processUser(userId, guildId, results);
+      }
 
-      await Promise.all(batchPromises);
-
-      // Add delay between batches to be extra safe with rate limiting
+      // Add longer delay between batches to be extra safe with rate limiting
       if (batchIndex < batches.length - 1) {
-        console.log(`Batch ${batchIndex + 1} completed. Waiting 1 second before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log(`Batch ${batchIndex + 1} completed. Waiting 2 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
       }
     }
 

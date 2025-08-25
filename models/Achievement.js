@@ -1,31 +1,46 @@
 const mongoose = require('mongoose');
 
-const AchievementSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-  category: { 
-    type: String, 
+const achievementSchema = new mongoose.Schema({
+  title: {
+    type: String,
     required: true,
-    enum: ['login', 'trading', 'gacha', 'shop', 'voice', 'social', 'special']
+    unique: true
   },
-  rarity: { 
-    type: String, 
+  description: {
+    type: String,
+    required: true
+  },
+  icon: {
+    type: String,
     required: true,
-    enum: ['common', 'uncommon', 'rare', 'epic', 'legendary']
+    default: '🏆' // Default emoji icon
   },
-  icon: { type: String, required: true },
-  requirement: {
-    type: { type: String, required: true },
-    value: { type: Number, required: true },
-    description: { type: String, required: true }
+  rarity: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 50 // Percentage of players who have this achievement
   },
-  reward: {
-    hamsterCoins: { type: Number, default: 0 },
-    experience: { type: Number, default: 0 }
+  category: {
+    type: String,
+    enum: ['Task', 'Goal', 'Quest'],
+    default: 'Goal'
   },
-  isActive: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now }
+  coinReward: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 100 // Default coin reward when achievement is completed
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.models.Achievement || mongoose.model('Achievement', AchievementSchema);
+module.exports = mongoose.models.Achievement || mongoose.model('Achievement', achievementSchema);
