@@ -5,21 +5,24 @@ import { useSession } from 'next-auth/react';
 import { Trophy, Star, Award, Zap, Target, CheckCircle, Lock } from 'lucide-react';
 
 interface Achievement {
-  id: string;
-  name: string;
+  id?: string;
+  _id?: string;
+  name?: string;
+  title?: string;
   description: string;
   category: string;
   rarity: string;
   icon: string;
-  requirement: {
+  requirement?: {
     type: string;
     value: number;
     description: string;
   };
-  reward: {
+  reward?: {
     hamsterCoins: number;
     experience: number;
   };
+  coinReward?: number;
   progress: number;
   isUnlocked: boolean;
   unlockedAt?: string;
@@ -263,29 +266,33 @@ export default function Achievements() {
 
             {/* Achievement Info */}
             <div className="text-center mb-3">
-              <h3 className="text-white font-semibold mb-1">{achievement.name}</h3>
+              <h3 className="text-white font-semibold mb-1">{achievement.name || achievement.title}</h3>
               <p className="text-gray-400 text-sm mb-2">{achievement.description}</p>
               
               {/* Progress Bar */}
-              <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                <div
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min((achievement.progress / achievement.requirement.value) * 100, 100)}%`
-                  }}
-                ></div>
-              </div>
-              
-              <div className="text-xs text-gray-400">
-                {achievement.progress} / {achievement.requirement.value} - {achievement.requirement.description}
-              </div>
+              {achievement.requirement && (
+                <>
+                  <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                    <div
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min((achievement.progress / achievement.requirement.value) * 100, 100)}%`
+                      }}
+                    ></div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-400">
+                    {achievement.progress} / {achievement.requirement.value} - {achievement.requirement.description}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Reward Info */}
-            {achievement.reward.hamsterCoins > 0 && (
+            {((achievement.reward?.hamsterCoins || 0) > 0 || (achievement.coinReward || 0) > 0) && (
               <div className="text-center mb-3">
                 <div className="text-yellow-400 text-sm font-medium">
-                  🪙 {achievement.reward.hamsterCoins} Coins
+                  🪙 {achievement.reward?.hamsterCoins || achievement.coinReward || 0} Coins
                 </div>
               </div>
             )}
@@ -299,12 +306,12 @@ export default function Achievements() {
                     Claimed
                   </div>
                 ) : (
-                  <button
-                    onClick={() => claimAchievement(achievement.id)}
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Claim Reward
-                  </button>
+                                   <button
+                   onClick={() => claimAchievement(achievement.id || achievement._id || '')}
+                   className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                 >
+                   Claim Reward
+                 </button>
                 )
               ) : (
                 <div className="flex items-center justify-center text-gray-400 text-sm">

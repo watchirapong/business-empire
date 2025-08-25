@@ -32,15 +32,26 @@ export async function GET(request: NextRequest) {
 
     // Combine achievements with user progress
     const achievementsWithProgress = achievements.map((achievement: any) => {
-      const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievement.id);
-      return {
+      const achievementId = achievement.id || achievement._id;
+      const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievementId);
+      
+      // Normalize achievement data to handle both old and new formats
+      const normalizedAchievement = {
         ...achievement.toObject(),
+        id: achievementId,
+        name: achievement.name || achievement.title,
+        reward: {
+          hamsterCoins: achievement.reward?.hamsterCoins || achievement.coinReward || 0,
+          experience: achievement.reward?.experience || 0
+        },
         progress: userAchievement?.progress || 0,
         isUnlocked: userAchievement?.isUnlocked || false,
         unlockedAt: userAchievement?.unlockedAt,
         claimed: userAchievement?.claimed || false,
         claimedAt: userAchievement?.claimedAt
       };
+      
+      return normalizedAchievement;
     });
 
     return NextResponse.json({
