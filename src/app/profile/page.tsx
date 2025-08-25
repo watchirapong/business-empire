@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
 import UsernameHistory from '@/components/UsernameHistory';
 import ServerNicknameTest from '@/components/ServerNicknameTest';
+import Achievements from '@/components/Achievements';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -230,6 +231,9 @@ export default function ProfilePage() {
           <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
             <ServerNicknameTest />
           </div>
+
+          {/* Achievements */}
+          <Achievements />
 
           {/* Username History */}
           <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
