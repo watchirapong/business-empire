@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from 'mongoose';
 
 // Import models
-const Achievement = require('../../../../../models/Achievement');
-const UserAchievement = require('../../../../../models/UserAchievement');
+import Achievement from '../../../../../models/Achievement';
+import UserAchievement from '../../../../../models/UserAchievement';
 
 const connectDB = async () => {
   if (mongoose.connections[0].readyState) return;
-  await mongoose.connect(process.env.MONGODB_URI);
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI environment variable is not defined');
+  }
+  await mongoose.connect(mongoUri);
 };
 
 export async function GET(request: NextRequest) {
@@ -26,8 +30,8 @@ export async function GET(request: NextRequest) {
     const achievements = await Achievement.find({ isActive: true });
 
     // Combine achievements with user progress
-    const achievementsWithProgress = achievements.map(achievement => {
-      const userAchievement = userAchievements.find(ua => ua.achievementId === achievement.id);
+    const achievementsWithProgress = achievements.map((achievement: any) => {
+      const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievement.id);
       return {
         ...achievement.toObject(),
         progress: userAchievement?.progress || 0,
@@ -40,12 +44,12 @@ export async function GET(request: NextRequest) {
 
     // Calculate statistics
     const totalAchievements = achievementsWithProgress.length;
-    const unlockedAchievements = achievementsWithProgress.filter(a => a.isUnlocked);
-    const claimedAchievements = achievementsWithProgress.filter(a => a.claimed);
-    const totalRewards = claimedAchievements.reduce((sum, a) => sum + (a.reward?.hamsterCoins || 0), 0);
+    const unlockedAchievements = achievementsWithProgress.filter((a: any) => a.isUnlocked);
+    const claimedAchievements = achievementsWithProgress.filter((a: any) => a.claimed);
+    const totalRewards = claimedAchievements.reduce((sum: number, a: any) => sum + (a.reward?.hamsterCoins || 0), 0);
 
     // Group by category
-    const achievementsByCategory = achievementsWithProgress.reduce((acc, achievement) => {
+    const achievementsByCategory = achievementsWithProgress.reduce((acc: any, achievement: any) => {
       if (!acc[achievement.category]) {
         acc[achievement.category] = [];
       }
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
     }, {});
 
     // Group by rarity
-    const achievementsByRarity = achievementsWithProgress.reduce((acc, achievement) => {
+    const achievementsByRarity = achievementsWithProgress.reduce((acc: any, achievement: any) => {
       if (!acc[achievement.rarity]) {
         acc[achievement.rarity] = [];
       }
@@ -74,8 +78,8 @@ export async function GET(request: NextRequest) {
       byCategory: achievementsByCategory,
       byRarity: achievementsByRarity,
       recentUnlocks: unlockedAchievements
-        .filter(a => a.unlockedAt)
-        .sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
+        .filter((a: any) => a.unlockedAt)
+        .sort((a: any, b: any) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
         .slice(0, 5)
     });
   } catch (error) {

@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from 'mongoose';
 
 // Import models
-const Achievement = require('../../../../models/Achievement');
-const UserAchievement = require('../../../../models/UserAchievement');
+import Achievement from '../../../../models/Achievement';
+import UserAchievement from '../../../../models/UserAchievement';
 
 const connectDB = async () => {
   if (mongoose.connections[0].readyState) return;
-  await mongoose.connect(process.env.MONGODB_URI);
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI environment variable is not defined');
+  }
+  await mongoose.connect(mongoUri);
 };
 
 export async function GET(request: NextRequest) {
@@ -27,8 +31,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Combine achievements with user progress
-    const achievementsWithProgress = achievements.map(achievement => {
-      const userAchievement = userAchievements.find(ua => ua.achievementId === achievement.id);
+    const achievementsWithProgress = achievements.map((achievement: any) => {
+      const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievement.id);
       return {
         ...achievement.toObject(),
         progress: userAchievement?.progress || 0,
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       achievements: achievementsWithProgress,
       total: achievementsWithProgress.length,
-      unlocked: achievementsWithProgress.filter(a => a.isUnlocked).length
+      unlocked: achievementsWithProgress.filter((a: any) => a.isUnlocked).length
     });
   } catch (error) {
     console.error('Error fetching achievements:', error);
@@ -85,8 +89,8 @@ export async function POST(request: NextRequest) {
         // Add rewards to user's currency
         if (achievement.reward.hamsterCoins > 0) {
           // Update user's hamster coins
-          const Currency = require('../../../../models/Currency');
-          let userCurrency = await Currency.findOne({ userId });
+          const Currency = await import('../../../../models/Currency');
+          let userCurrency = await Currency.default.findOne({ userId });
           
           if (!userCurrency) {
             userCurrency = new Currency({ userId, hamsterCoins: 0 });
