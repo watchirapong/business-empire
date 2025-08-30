@@ -721,13 +721,6 @@ const HamsterShop: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handlePurchase(item.id)}
-                        disabled={!item.inStock}
-                        className="bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
-                      >
-                        💰 Purchase
-                      </button>
-                      <button
                         onClick={() => addToCart(item)}
                         disabled={!item.inStock}
                         className="bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
