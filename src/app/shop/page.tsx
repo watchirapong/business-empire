@@ -48,6 +48,7 @@ const HamsterShop: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+  const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
   const [hamsterCoinBalance, setHamsterCoinBalance] = useState<number>(0);
 
@@ -274,14 +275,11 @@ const HamsterShop: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Check if the purchased item has a file
+        // Get the purchased item data and show success modal
         const purchasedItemData = data.purchase;
-        if (purchasedItemData && purchasedItemData.hasFile) {
-          // Show download popup
+        if (purchasedItemData) {
           setPurchasedItem(purchasedItemData);
-          setShowDownloadPopup(true);
-        } else {
-          alert('Item purchased successfully!');
+          setShowPurchaseSuccess(true);
         }
         
         // Refresh purchase history and balance
@@ -789,6 +787,96 @@ const HamsterShop: React.FC = () => {
               >
                 {isCheckingOut ? 'Processing...' : '🛒 Checkout'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Purchase Success Modal */}
+        {showPurchaseSuccess && purchasedItem && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h2>
+                <p className="text-gray-300 mb-4">
+                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.itemName}</span>
+                </p>
+                
+                {/* Item Image */}
+                <div className="mb-4">
+                  {purchasedItem.image.startsWith('/') ? (
+                    <img 
+                      src={purchasedItem.image} 
+                      alt={purchasedItem.itemName}
+                      className="w-20 h-20 object-cover rounded-lg mx-auto border border-white/20"
+                    />
+                  ) : (
+                    <div className="text-4xl mx-auto">{purchasedItem.image}</div>
+                  )}
+                </div>
+
+                {/* Content Display Based on Type */}
+                {purchasedItem.contentType === 'text' && purchasedItem.textContent && (
+                  <div className="bg-green-500/20 rounded-lg p-4 mb-6 border border-green-500/30">
+                    <div className="text-2xl mb-2">📝</div>
+                    <p className="text-green-300 font-semibold mb-2">Text Content:</p>
+                    <div className="text-white text-sm bg-white/10 rounded p-3 max-h-32 overflow-y-auto">
+                      {purchasedItem.textContent}
+                    </div>
+                  </div>
+                )}
+                
+                {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
+                  <div className="bg-blue-500/20 rounded-lg p-4 mb-6 border border-blue-500/30">
+                    <div className="text-2xl mb-2">🔗</div>
+                    <p className="text-blue-300 font-semibold mb-2">External Link:</p>
+                    <a 
+                      href={purchasedItem.linkUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 text-sm break-all bg-white/10 rounded p-2 block"
+                    >
+                      {purchasedItem.linkUrl}
+                    </a>
+                    <p className="text-gray-400 text-xs mt-2">Click to open in new tab</p>
+                  </div>
+                )}
+                
+                {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
+                  <div className="bg-purple-500/20 rounded-lg p-4 mb-6 border border-purple-500/30">
+                    <div className="text-2xl mb-2">📁</div>
+                    <p className="text-purple-300 font-semibold mb-1">File Available for Download</p>
+                    {purchasedItem.fileName && (
+                      <p className="text-gray-300 text-sm">{purchasedItem.fileName}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3 mb-4">
+                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
+                    <button
+                      onClick={handleDownloadFromPopup}
+                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      📥 Download Now
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowPurchaseSuccess(false);
+                      setPurchasedItem(null);
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+                
+                <p className="text-gray-400 text-sm">
+                  You can access this content anytime from your <span className="text-blue-400 cursor-pointer" onClick={() => router.push('/purchases')}>Purchase History</span>
+                </p>
+              </div>
             </div>
           </div>
         )}
