@@ -15,6 +15,10 @@ interface ShopItem {
   fileUrl?: string;
   fileName?: string;
   inStock: boolean;
+  contentType?: string;
+  textContent?: string;
+  linkUrl?: string;
+  allowMultiplePurchases?: boolean;
 }
 
 const HamsterShop: React.FC = () => {
@@ -660,6 +664,36 @@ const HamsterShop: React.FC = () => {
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
                     <p className="text-gray-300 text-sm mb-4">{item.description}</p>
+                    
+                    {/* Additional Content Display */}
+                    {item.contentType === 'text' && item.textContent && (
+                      <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">📝 Content:</div>
+                        <div className="text-white text-sm">{item.textContent}</div>
+                      </div>
+                    )}
+                    
+                    {item.contentType === 'link' && item.linkUrl && (
+                      <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">🔗 External Link:</div>
+                        <a 
+                          href={item.linkUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 text-sm break-all"
+                        >
+                          {item.linkUrl}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {item.contentType === 'file' && item.fileUrl && (
+                      <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">📁 File Available:</div>
+                        <div className="text-green-400 text-sm">✓ Downloadable file included</div>
+                      </div>
+                    )}
+                    
                     <div className="text-2xl font-bold text-orange-400 mb-4">${item.price.toFixed(2)}</div>
                   </div>
                   

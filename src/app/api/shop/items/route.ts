@@ -50,6 +50,18 @@ const shopItemSchema = new mongoose.Schema({
     type: Boolean, 
     default: false
   },
+  contentType: { 
+    type: String, 
+    default: 'none'
+  },
+  textContent: { 
+    type: String, 
+    default: ''
+  },
+  linkUrl: { 
+    type: String, 
+    default: ''
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 
@@ -90,7 +102,10 @@ export async function GET() {
       fileUrl: item.fileUrl,
       fileName: item.fileName,
       inStock: item.inStock,
-      allowMultiplePurchases: item.allowMultiplePurchases || false
+      allowMultiplePurchases: item.allowMultiplePurchases || false,
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || ''
     }));
     
     return NextResponse.json({ items: itemsWithId });
@@ -123,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, image, inStock, allowMultiplePurchases } = body;
+    const { name, description, price, image, inStock, allowMultiplePurchases, contentType, textContent, linkUrl, fileUrl } = body;
 
     // Validate required fields
     if (!name || !description || !price || !image) {
@@ -139,7 +154,12 @@ export async function POST(request: NextRequest) {
       price: parseFloat(price),
       image,
       inStock: inStock !== undefined ? inStock : true,
-      allowMultiplePurchases: allowMultiplePurchases !== undefined ? allowMultiplePurchases : false
+      allowMultiplePurchases: allowMultiplePurchases !== undefined ? allowMultiplePurchases : false,
+      contentType: contentType || 'none',
+      textContent: textContent || '',
+      linkUrl: linkUrl || '',
+      fileUrl: fileUrl || '',
+      hasFile: fileUrl ? true : false
     });
 
     const savedItem = await newItem.save();
@@ -152,7 +172,12 @@ export async function POST(request: NextRequest) {
       price: savedItem.price,
       image: savedItem.image,
       inStock: savedItem.inStock,
-      allowMultiplePurchases: savedItem.allowMultiplePurchases
+      allowMultiplePurchases: savedItem.allowMultiplePurchases,
+      contentType: savedItem.contentType,
+      textContent: savedItem.textContent,
+      linkUrl: savedItem.linkUrl,
+      fileUrl: savedItem.fileUrl,
+      hasFile: savedItem.hasFile
     };
 
     return NextResponse.json({ 
