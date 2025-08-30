@@ -31,6 +31,7 @@ const HamsterShop: React.FC = () => {
     price: '',
     image: '',
     inStock: true,
+    allowMultiplePurchases: false,
     contentType: 'none',
     textContent: '',
     linkUrl: '',
@@ -44,6 +45,7 @@ const HamsterShop: React.FC = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
+  const [hamsterCoinBalance, setHamsterCoinBalance] = useState<number>(0);
 
 
 
@@ -59,7 +61,7 @@ const HamsterShop: React.FC = () => {
 
 
 
-  // Fetch shop items
+  // Fetch shop items and balance
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -73,8 +75,23 @@ const HamsterShop: React.FC = () => {
       }
     };
 
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('/api/currency/balance');
+        const data = await response.json();
+        if (data.balance !== undefined) {
+          setHamsterCoinBalance(data.balance);
+        }
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+      }
+    };
+
     fetchItems();
-  }, []);
+    if (session?.user) {
+      fetchBalance();
+    }
+  }, [session]);
 
 
 
@@ -132,6 +149,7 @@ const HamsterShop: React.FC = () => {
           price: '',
           image: '',
           inStock: true,
+          allowMultiplePurchases: false,
           contentType: 'none',
           textContent: '',
           linkUrl: '',
@@ -432,6 +450,15 @@ const HamsterShop: React.FC = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">🛒 Hamster Shop</h1>
           <p className="text-gray-300 text-lg">ระบบร้านค้าแฮมสเตอร์ - จัดการสินค้าและเหรียญในร้านค้า</p>
           
+          {/* HamsterCoin Balance */}
+          <div className="mt-4 mb-4">
+            <div className="inline-flex items-center bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3">
+              <span className="text-2xl mr-2">🪙</span>
+              <span className="text-yellow-400 font-bold text-xl">{hamsterCoinBalance.toLocaleString()}</span>
+              <span className="text-yellow-300 ml-1">Hamster Coins</span>
+            </div>
+          </div>
+          
           {/* Purchase History Button */}
           <div className="mt-4">
             <button
@@ -568,6 +595,16 @@ const HamsterShop: React.FC = () => {
                   className="bg-white/10 border border-white/20 rounded"
                 />
                 <label className="text-white">In Stock</label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={newItem.allowMultiplePurchases}
+                  onChange={(e) => setNewItem({...newItem, allowMultiplePurchases: e.target.checked})}
+                  className="bg-white/10 border border-white/20 rounded"
+                />
+                <label className="text-white">Allow Multiple Purchases</label>
               </div>
             </div>
             <button

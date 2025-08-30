@@ -46,6 +46,10 @@ const shopItemSchema = new mongoose.Schema({
     type: Boolean, 
     default: true
   },
+  allowMultiplePurchases: { 
+    type: Boolean, 
+    default: false
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 
@@ -85,7 +89,8 @@ export async function GET() {
       hasFile: item.hasFile || false,
       fileUrl: item.fileUrl,
       fileName: item.fileName,
-      inStock: item.inStock
+      inStock: item.inStock,
+      allowMultiplePurchases: item.allowMultiplePurchases || false
     }));
     
     return NextResponse.json({ items: itemsWithId });
@@ -118,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, image, inStock } = body;
+    const { name, description, price, image, inStock, allowMultiplePurchases } = body;
 
     // Validate required fields
     if (!name || !description || !price || !image) {
@@ -133,7 +138,8 @@ export async function POST(request: NextRequest) {
       description,
       price: parseFloat(price),
       image,
-      inStock: inStock !== undefined ? inStock : true
+      inStock: inStock !== undefined ? inStock : true,
+      allowMultiplePurchases: allowMultiplePurchases !== undefined ? allowMultiplePurchases : false
     });
 
     const savedItem = await newItem.save();
@@ -145,7 +151,8 @@ export async function POST(request: NextRequest) {
       description: savedItem.description,
       price: savedItem.price,
       image: savedItem.image,
-      inStock: savedItem.inStock
+      inStock: savedItem.inStock,
+      allowMultiplePurchases: savedItem.allowMultiplePurchases
     };
 
     return NextResponse.json({ 
