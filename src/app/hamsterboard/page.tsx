@@ -469,12 +469,20 @@ const Hamsterboard: React.FC = () => {
                 </div>
 
                 <div className="flex space-x-3 pt-4">
+                  {/* Debug info - remove this later */}
+                  <div className="w-full mb-2 text-xs text-gray-400">
+                    Debug: taskName={newTask.taskName ? '✓' : '✗'}, 
+                    description={newTask.description ? '✓' : '✗'}, 
+                    reward={newTask.reward ? '✓' : '✗'}, 
+                    image={newTask.image ? '✓' : '✗'}, 
+                    uploading={isUploading ? '✓' : '✗'}
+                  </div>
                   <button
                     onClick={handlePostTask}
-                    disabled={isPosting || !newTask.taskName || !newTask.description || !newTask.reward || !newTask.image}
+                    disabled={isPosting || !newTask.taskName || !newTask.description || !newTask.reward || !newTask.image || isUploading}
                     className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                   >
-                    {isPosting ? 'Posting...' : 'Post Task'}
+                    {isPosting ? 'Posting...' : isUploading ? 'Uploading...' : 'Post Task'}
                   </button>
                   <button
                     onClick={() => {
