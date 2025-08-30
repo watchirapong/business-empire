@@ -61,6 +61,18 @@ const HamsterShop: React.FC = () => {
 
 
 
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch('/api/currency/balance');
+      const data = await response.json();
+      if (data.balance !== undefined) {
+        setHamsterCoinBalance(data.balance);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
+
   // Fetch shop items and balance
   useEffect(() => {
     const fetchItems = async () => {
@@ -72,18 +84,6 @@ const HamsterShop: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch shop items:', error);
-      }
-    };
-
-    const fetchBalance = async () => {
-      try {
-        const response = await fetch('/api/currency/balance');
-        const data = await response.json();
-        if (data.balance !== undefined) {
-          setHamsterCoinBalance(data.balance);
-        }
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
       }
     };
 
@@ -280,8 +280,9 @@ const HamsterShop: React.FC = () => {
           alert('Item purchased successfully!');
         }
         
-        // Refresh purchase history
+        // Refresh purchase history and balance
         fetchPurchaseHistory();
+        fetchBalance();
       } else {
         const errorData = await response.json();
         alert(`Purchase failed: ${errorData.error}`);
@@ -402,6 +403,8 @@ const HamsterShop: React.FC = () => {
         const data = await response.json();
         setCart([]);
         alert(`Purchase completed successfully! Your new balance: ${data.newBalance} Hamster Shop coins`);
+        // Refresh balance after successful checkout
+        fetchBalance();
       } else {
         const errorData = await response.json();
         if (errorData.error === 'Insufficient Hamster Coins') {
