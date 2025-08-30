@@ -19,16 +19,39 @@ const connectDB = async () => {
   }
 };
 
-// User schema (re-defined here for API route context)
-const userSchema = new mongoose.Schema({
-  discordId: { type: String, required: true, unique: true },
-  username: { type: String, required: true },
-  balance: { type: Number, default: 0 },
+// Currency schema (re-defined here for API route context)
+const currencySchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  hamsterCoins: { type: Number, default: 0 },
+  totalEarned: { type: Number, default: 0 },
+  totalSpent: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+const Currency = mongoose.models.Currency || mongoose.model('Currency', currencySchema);
+
+// Get or create user currency
+const getUserCurrency = async (userId: string) => {
+  try {
+    let currency = await Currency.findOne({ userId });
+    
+    if (!currency) {
+      currency = new Currency({
+        userId,
+        hamsterCoins: 0,
+        totalEarned: 0
+      });
+      
+      await currency.save();
+    }
+    
+    return currency;
+  } catch (error) {
+    console.error('Error getting user currency:', error);
+    throw error;
+  }
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,21 +86,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You can only complete tasks you have accepted' }, { status: 403 });
     }
 
-    // Find the user who posted the task (to verify they still exist)
-    const posterUser = await User.findOne({ discordId: task.postedBy?.id });
-    if (!posterUser) {
-      return NextResponse.json({ error: 'Task poster not found' }, { status: 404 });
-    }
-
     // Find the user who completed the task
-    const completerUser = await User.findOne({ discordId: userId });
-    if (!completerUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const completerCurrency = await getUserCurrency(userId);
 
     // Transfer reward from poster to completer
-    completerUser.balance += task.reward;
-    await completerUser.save();
+    completerCurrency.hamsterCoins += task.reward;
+    completerCurrency.totalEarned += task.reward;
+    await completerCurrency.save();
 
     // Update task status to completed
     task.status = 'completed';
