@@ -127,10 +127,15 @@ const HamsterShop: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Create item data with the uploaded image URL
+      // Create item data with the uploaded image URL and content
       const itemData = {
         ...newItem,
-        image: imageUrl
+        image: imageUrl,
+        // Ensure content fields are included
+        contentType: newItem.contentType || 'none',
+        textContent: newItem.textContent || '',
+        linkUrl: newItem.linkUrl || '',
+        fileUrl: newItem.fileUrl || ''
       };
 
       console.log('Sending item data:', itemData);

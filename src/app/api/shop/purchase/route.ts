@@ -109,6 +109,18 @@ const purchaseHistorySchema = new mongoose.Schema({
   },
   fileName: {
     type: String
+  },
+  contentType: {
+    type: String,
+    default: 'none'
+  },
+  textContent: {
+    type: String,
+    default: ''
+  },
+  linkUrl: {
+    type: String,
+    default: ''
   }
 });
 
@@ -144,9 +156,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item is out of stock' }, { status: 400 });
     }
 
-    // Check if user already purchased this item
+    // Check if user already purchased this item (only if multiple purchases are not allowed)
     const existingPurchase = await PurchaseHistory.findOne({ userId, itemId });
-    if (existingPurchase) {
+    if (existingPurchase && !item.allowMultiplePurchases) {
       return NextResponse.json({ 
         error: 'You have already purchased this item',
         purchase: existingPurchase
@@ -162,7 +174,10 @@ export async function POST(request: NextRequest) {
       price: item.price,
       hasFile: item.hasFile,
       fileUrl: item.fileUrl,
-      fileName: item.fileName
+      fileName: item.fileName,
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || ''
     });
 
     await purchase.save();
