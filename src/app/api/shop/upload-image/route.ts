@@ -4,12 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { isAdmin } from '@/lib/admin-config';
 
-// Check if user is admin
-const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-  return ADMIN_USER_IDS.includes(userId);
-};
+// Using centralized admin config
 
 export async function POST(request: NextRequest) {
   try {

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { isAdmin } from '@/lib/admin-config';
 
 export async function DELETE(request: NextRequest) {
   try {
     // Check admin authorization
     const session = await getServerSession(authOptions);
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    if (!ADMIN_USER_IDS.includes(userId)) {
+    if (!isAdmin(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 

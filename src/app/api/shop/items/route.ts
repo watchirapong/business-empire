@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { isAdmin } from '@/lib/admin-config';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -63,11 +64,7 @@ shopItemSchema.pre('save', function(next) {
 
 const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', shopItemSchema);
 
-// Check if user is admin
-const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-  return ADMIN_USER_IDS.includes(userId);
-};
+// Using centralized admin config
 
 // GET - Get all shop items
 export async function GET() {
