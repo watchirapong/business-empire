@@ -80,24 +80,27 @@ const HamsterShop: React.FC = () => {
 
   const handleAddItem = async () => {
     try {
-      // Handle image upload if content type is image
-      if (newItem.contentType === 'image' && imageFile) {
-        await handleImageUpload();
-        // Wait a moment for the state to update
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Validate required fields including image
+      if (!newItem.name || !newItem.description || !newItem.price) {
+        alert('Please fill in all required fields');
+        return;
       }
+
+      if (!imageFile) {
+        alert('Please select an image for the item');
+        return;
+      }
+
+      // Always upload image first
+      await handleImageUpload();
+      // Wait a moment for the state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Handle file upload if content type is file
       if (newItem.contentType === 'file' && fileToUpload) {
         await handleFileUpload();
         // Wait a moment for the state to update
         await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Validate required fields
-      if (!newItem.name || !newItem.description || !newItem.price) {
-        alert('Please fill in all required fields');
-        return;
       }
 
       console.log('Sending item data:', newItem);
@@ -478,17 +481,34 @@ const HamsterShop: React.FC = () => {
               
               <div className="space-y-2">
                 <label className="text-white text-sm">Content Type (Optional)</label>
-                <select
-                  value={newItem.contentType || 'none'}
-                  onChange={(e) => setNewItem({...newItem, contentType: e.target.value})}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
-                >
-                  <option value="none">No Content</option>
-                  <option value="image">Image Upload</option>
-                  <option value="text">Text Content</option>
-                  <option value="link">External Link</option>
-                  <option value="file">File Upload</option>
-                </select>
+                <div className="md:col-span-2">
+                  <label className="text-white text-sm">Item Image (Required)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                  />
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-white text-sm">Additional Content (Optional)</label>
+                  <select
+                    value={newItem.contentType || 'none'}
+                    onChange={(e) => setNewItem({...newItem, contentType: e.target.value})}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                  >
+                    <option value="none">No Additional Content</option>
+                    <option value="text">Text Content</option>
+                    <option value="link">External Link</option>
+                    <option value="file">File Upload</option>
+                  </select>
+                </div>
               </div>
 
               {/* Conditional content fields based on type */}
@@ -517,22 +537,7 @@ const HamsterShop: React.FC = () => {
                 </div>
               )}
 
-              {newItem.contentType === 'image' && (
-                <div className="md:col-span-2">
-                  <label className="text-white text-sm">Image Upload</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
-                  />
-                  {imagePreview && (
-                    <div className="mt-2">
-                      <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
-                    </div>
-                  )}
-                </div>
-              )}
+
 
               {newItem.contentType === 'file' && (
                 <div className="md:col-span-2">
