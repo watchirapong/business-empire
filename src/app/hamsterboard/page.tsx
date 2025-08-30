@@ -91,19 +91,21 @@ const Hamsterboard: React.FC = () => {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch('/api/shop/upload-image', {
+                        const response = await fetch('/api/hamsterboard/upload-image', {
         method: 'POST',
         body: formData,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setNewTask({ ...newTask, image: data.imageUrl });
-        setImagePreview(data.imageUrl);
-        setImageFile(null);
-      } else {
-        console.error('Failed to upload image');
-      }
+                        if (response.ok) {
+                    const data = await response.json();
+                    setNewTask({ ...newTask, image: data.imageUrl });
+                    setImagePreview(data.imageUrl);
+                    setImageFile(null);
+                  } else {
+                    const errorData = await response.json();
+                    console.error('Failed to upload image:', errorData.error);
+                    alert(`Failed to upload image: ${errorData.error}`);
+                  }
     } catch (error) {
       console.error('Error uploading image:', error);
     } finally {
