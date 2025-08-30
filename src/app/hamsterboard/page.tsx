@@ -14,10 +14,19 @@ interface Task {
     id: string;
     username: string;
   };
-  status: 'open' | 'completed' | 'accepted';
-  acceptedBy?: {
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  acceptedBy: Array<{
     id: string;
     username: string;
+    acceptedAt: Date;
+    completedAt?: Date;
+    completionImage?: string;
+    isWinner: boolean;
+  }>;
+  winner?: {
+    id: string;
+    username: string;
+    selectedAt: Date;
   };
   createdAt: Date;
   completedAt?: Date;
@@ -41,6 +50,15 @@ const Hamsterboard: React.FC = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
   const [filter, setFilter] = useState<'all' | 'open' | 'my-tasks' | 'my-accepted'>('all');
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [selectedTaskForCompletion, setSelectedTaskForCompletion] = useState<Task | null>(null);
+  const [completionImage, setCompletionImage] = useState<File | null>(null);
+  const [completionImagePreview, setCompletionImagePreview] = useState<string>('');
+  const [isUploadingCompletion, setIsUploadingCompletion] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showWinnerSelection, setShowWinnerSelection] = useState(false);
+  const [selectedTaskForWinner, setSelectedTaskForWinner] = useState<Task | null>(null);
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
 
   // Check if user is admin
   const isAdmin = (userId: string) => {
@@ -197,19 +215,73 @@ const Hamsterboard: React.FC = () => {
   };
 
   const handleCompleteTask = async (taskId: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (task) {
+      setSelectedTaskForCompletion(task);
+      setShowCompletionModal(true);
+    }
+  };
+
+  const handleCompletionImageUpload = async (file: File) => {
     try {
+      setIsUploadingCompletion(true);
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/hamsterboard/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCompletionImagePreview(data.imageUrl);
+        setCompletionImage(file);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to upload image: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error uploading completion image:', error);
+      alert('Failed to upload completion image');
+    } finally {
+      setIsUploadingCompletion(false);
+    }
+  };
+
+  const handleCompletionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleCompletionImageUpload(file);
+    }
+  };
+
+  const handleSubmitCompletion = async () => {
+    if (!selectedTaskForCompletion || !completionImagePreview) {
+      alert('Please upload a completion image');
+      return;
+    }
+
+    try {
+      setIsCompleting(true);
       const response = await fetch('/api/hamsterboard/tasks/complete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ taskId }),
+        body: JSON.stringify({ 
+          taskId: selectedTaskForCompletion._id,
+          completionImage: completionImagePreview
+        }),
       });
 
       if (response.ok) {
-        alert('Task completed successfully! Reward has been transferred.');
+        alert('Task completed successfully! Waiting for poster to select winner.');
+        setShowCompletionModal(false);
+        setSelectedTaskForCompletion(null);
+        setCompletionImage(null);
+        setCompletionImagePreview('');
         fetchTasks();
-        fetchUserBalance();
       } else {
         const errorData = await response.json();
         alert(`Failed to complete task: ${errorData.error}`);
@@ -217,6 +289,51 @@ const Hamsterboard: React.FC = () => {
     } catch (error) {
       console.error('Error completing task:', error);
       alert('Failed to complete task');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleSelectWinner = async (taskId: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (task) {
+      setSelectedTaskForWinner(task);
+      setShowWinnerSelection(true);
+    }
+  };
+
+  const handleConfirmWinner = async (winnerId: string) => {
+    if (!selectedTaskForWinner) return;
+
+    try {
+      setIsSelectingWinner(true);
+      const response = await fetch('/api/hamsterboard/tasks/select-winner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          taskId: selectedTaskForWinner._id,
+          winnerId: winnerId
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Winner selected successfully! ${data.winner.username} received ${data.winner.reward} Hamster Coins.`);
+        setShowWinnerSelection(false);
+        setSelectedTaskForWinner(null);
+        fetchTasks();
+        fetchUserBalance();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to select winner: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error selecting winner:', error);
+      alert('Failed to select winner');
+    } finally {
+      setIsSelectingWinner(false);
     }
   };
 
@@ -347,11 +464,13 @@ const Hamsterboard: React.FC = () => {
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     task.status === 'open' ? 'bg-green-500/20 text-green-400' :
-                    task.status === 'accepted' ? 'bg-blue-500/20 text-blue-400' :
-                    'bg-purple-500/20 text-purple-400'
+                    task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                    task.status === 'completed' ? 'bg-purple-500/20 text-purple-400' :
+                    'bg-red-500/20 text-red-400'
                   }`}>
                     {task.status === 'open' ? 'Open' : 
-                     task.status === 'accepted' ? 'In Progress' : 'Completed'}
+                     task.status === 'in_progress' ? 'In Progress' : 
+                     task.status === 'completed' ? 'Completed' : 'Cancelled'}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     isAdminTask 
@@ -360,9 +479,14 @@ const Hamsterboard: React.FC = () => {
                   }`}>
                     {isAdminTask ? '👑 ' : ''}Posted by {task.postedBy.username}
                   </span>
-                  {task.acceptedBy && (
+                  {task.acceptedBy.length > 0 && (
                     <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-                      Accepted by {task.acceptedBy.username}
+                      {task.acceptedBy.length} Accepted
+                    </span>
+                  )}
+                  {task.winner && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                      🏆 Winner: {task.winner.username}
                     </span>
                   )}
                 </div>
@@ -378,12 +502,21 @@ const Hamsterboard: React.FC = () => {
                   </button>
                 )}
                 
-                {task.status === 'accepted' && task.acceptedBy?.id === (session.user as any).id && (
+                {task.status === 'in_progress' && task.acceptedBy.some(acceptor => acceptor.id === (session.user as any).id) && (
                   <button
                     onClick={() => handleCompleteTask(task._id)}
                     className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors"
                   >
                     🎉 Complete Task
+                  </button>
+                )}
+                
+                {task.status === 'in_progress' && task.postedBy.id === (session.user as any).id && task.acceptedBy.some(acceptor => acceptor.completedAt) && (
+                  <button
+                    onClick={() => handleSelectWinner(task._id)}
+                    className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    🏆 Select Winner
                   </button>
                 )}
                 
@@ -514,6 +647,115 @@ const Hamsterboard: React.FC = () => {
                     Cancel
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Completion Modal */}
+        {showCompletionModal && selectedTaskForCompletion && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Complete Task</h2>
+                <p className="text-gray-300">Upload proof of completion for: {selectedTaskForCompletion.taskName}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-white text-sm">Completion Proof Image</label>
+                  <input
+                    type="file"
+                    onChange={handleCompletionImageChange}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                    accept="image/*"
+                  />
+                  {isUploadingCompletion && <p className="text-blue-400 text-sm mt-1">Uploading image...</p>}
+                  {completionImagePreview && (
+                    <div className="mt-2">
+                      <img 
+                        src={completionImagePreview} 
+                        alt="Completion proof" 
+                        className="w-full h-32 object-cover rounded-lg border border-white/20"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleSubmitCompletion}
+                    disabled={isCompleting || !completionImagePreview}
+                    className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    {isCompleting ? 'Submitting...' : 'Submit Completion'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCompletionModal(false);
+                      setSelectedTaskForCompletion(null);
+                      setCompletionImage(null);
+                      setCompletionImagePreview('');
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Winner Selection Modal */}
+        {showWinnerSelection && selectedTaskForWinner && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Select Winner</h2>
+                <p className="text-gray-300">Choose who completed the task best: {selectedTaskForWinner.taskName}</p>
+                <p className="text-orange-400 font-semibold mt-2">Reward: ${selectedTaskForWinner.reward.toFixed(2)} 🪙</p>
+              </div>
+
+              <div className="space-y-4">
+                {selectedTaskForWinner.acceptedBy
+                  .filter(acceptor => acceptor.completedAt)
+                  .map((acceptor, index) => (
+                    <div key={acceptor.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-semibold">{acceptor.username}</span>
+                        <span className="text-gray-400 text-sm">
+                          Completed: {new Date(acceptor.acceptedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {acceptor.completionImage && (
+                        <div className="mb-3">
+                          <img 
+                            src={acceptor.completionImage} 
+                            alt="Completion proof" 
+                            className="w-full h-24 object-cover rounded-lg border border-white/20"
+                          />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleConfirmWinner(acceptor.id)}
+                        disabled={isSelectingWinner}
+                        className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
+                      >
+                        {isSelectingWinner ? 'Selecting...' : '🏆 Select as Winner'}
+                      </button>
+                    </div>
+                  ))}
+                
+                <button
+                  onClick={() => {
+                    setShowWinnerSelection(false);
+                    setSelectedTaskForWinner(null);
+                  }}
+                  className="w-full bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>

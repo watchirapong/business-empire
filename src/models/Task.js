@@ -37,26 +37,49 @@ const taskSchema = new mongoose.Schema({
   status: { 
     type: String, 
     required: true,
-    enum: ['open', 'accepted', 'completed'],
+    enum: ['open', 'in_progress', 'completed', 'cancelled'],
     default: 'open',
     index: true
   },
-  acceptedBy: { 
+  // Multiple acceptances
+  acceptedBy: [{ 
     id: { 
       type: String,
       index: true
     },
     username: { 
       type: String 
+    },
+    acceptedAt: {
+      type: Date,
+      default: Date.now
+    },
+    completedAt: {
+      type: Date
+    },
+    completionImage: {
+      type: String
+    },
+    isWinner: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  winner: {
+    id: {
+      type: String
+    },
+    username: {
+      type: String
+    },
+    selectedAt: {
+      type: Date
     }
   },
   createdAt: { 
     type: Date, 
     default: Date.now,
     index: true
-  },
-  acceptedAt: { 
-    type: Date 
   },
   completedAt: { 
     type: Date 

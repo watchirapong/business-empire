@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import mongoose from 'mongoose';
 import Task from '@/models/Task';
+import mongoose from 'mongoose';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -18,18 +18,17 @@ const connectDB = async () => {
     throw error;
   }
 };
-
+  
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDB();
-
     const { taskId } = await request.json();
-
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
@@ -43,9 +42,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // Check if task is open
+    // Check if task is still open
     if (task.status !== 'open') {
-      return NextResponse.json({ error: 'Task is not available for acceptance' }, { status: 400 });
+      return NextResponse.json({ error: 'Task is no longer available' }, { status: 400 });
     }
 
     // Check if user is trying to accept their own task
@@ -53,22 +52,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You cannot accept your own task' }, { status: 400 });
     }
 
-    // Update task status to accepted
-    task.status = 'accepted';
-    task.acceptedBy = {
+    // Check if user has already accepted this task
+    const alreadyAccepted = task.acceptedBy.some(acceptor => acceptor.id === userId);
+    if (alreadyAccepted) {
+      return NextResponse.json({ error: 'You have already accepted this task' }, { status: 400 });
+    }
+
+    // Add user to acceptedBy array
+    task.acceptedBy.push({
       id: userId,
-      username: username
-    };
-    task.acceptedAt = new Date();
+      username: username,
+      acceptedAt: new Date(),
+      isWinner: false
+    });
+
+    // Change status to 'in_progress' if this is the first acceptance
+    if (task.acceptedBy.length === 1) {
+      task.status = 'in_progress';
+    }
 
     await task.save();
 
     return NextResponse.json({ 
-      message: 'Task accepted successfully',
-      task: task.toObject()
+      success: true,
+      message: 'Task accepted successfully'
     });
+
   } catch (error) {
     console.error('Error accepting task:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to accept task' }, { status: 500 });
   }
 }
