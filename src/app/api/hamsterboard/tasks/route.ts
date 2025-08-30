@@ -66,10 +66,33 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get('filter') || 'all';
     const userId = (session.user as any).id;
 
-    const query: any = filter === 'open' ? { status: 'open' } :
-                      filter === 'my-tasks' ? { 'postedBy.id': userId } :
-                      filter === 'my-accepted' ? { 'acceptedBy.id': userId } :
-                      {};
+    let query: any = {};
+    
+    switch (filter) {
+      case 'open':
+        query = { status: 'open' };
+        break;
+      case 'my-tasks':
+        query = { 'postedBy.id': userId };
+        break;
+      case 'my-accepted':
+        query = { 'acceptedBy.id': userId };
+        break;
+      case 'task-history':
+        query = { 
+          'postedBy.id': userId,
+          status: { $in: ['completed', 'cancelled'] }
+        };
+        break;
+      case 'accepted-history':
+        query = { 
+          'acceptedBy.id': userId,
+          status: { $in: ['completed', 'cancelled'] }
+        };
+        break;
+      default:
+        query = {};
+    }
 
     const tasks = await Task.find(query)
       .sort({ createdAt: -1 })

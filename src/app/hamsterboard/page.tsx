@@ -50,7 +50,7 @@ const Hamsterboard: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
-  const [filter, setFilter] = useState<'all' | 'open' | 'my-tasks' | 'my-accepted'>('all');
+  const [filter, setFilter] = useState<'all' | 'open' | 'my-tasks' | 'my-accepted' | 'task-history' | 'accepted-history'>('all');
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [selectedTaskForCompletion, setSelectedTaskForCompletion] = useState<Task | null>(null);
   const [completionImage, setCompletionImage] = useState<File | null>(null);
@@ -439,39 +439,57 @@ const Hamsterboard: React.FC = () => {
 
         {/* Filter Tabs */}
         <div className="flex justify-center mb-6">
-          <div className="bg-white/10 rounded-lg p-1 border border-white/20">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                filter === 'all' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              All Tasks
-            </button>
-            <button
-              onClick={() => setFilter('open')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                filter === 'open' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Open Tasks
-            </button>
-            <button
-              onClick={() => setFilter('my-tasks')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                filter === 'my-tasks' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              My Posted Tasks
-            </button>
-            <button
-              onClick={() => setFilter('my-accepted')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                filter === 'my-accepted' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              My Accepted Tasks
-            </button>
+          <div className="bg-white/10 rounded-lg p-1 border border-white/20 overflow-x-auto max-w-full">
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'all' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                All Tasks
+              </button>
+              <button
+                onClick={() => setFilter('open')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'open' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                Open Tasks
+              </button>
+              <button
+                onClick={() => setFilter('my-tasks')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'my-tasks' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                My Posted Tasks
+              </button>
+              <button
+                onClick={() => setFilter('my-accepted')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'my-accepted' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                My Accepted Tasks
+              </button>
+              <button
+                onClick={() => setFilter('task-history')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'task-history' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                📚 Task History
+              </button>
+              <button
+                onClick={() => setFilter('accepted-history')}
+                className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  filter === 'accepted-history' ? 'bg-orange-600 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                📖 Accepted History
+              </button>
+            </div>
           </div>
         </div>
 
@@ -483,6 +501,8 @@ const Hamsterboard: React.FC = () => {
             <div key={task._id} className={`rounded-xl p-6 border transition-all duration-300 ${
               isAdminTask 
                 ? 'bg-gradient-to-br from-yellow-900/30 to-amber-900/30 border-yellow-500/40 hover:border-yellow-400/60 shadow-lg shadow-yellow-500/20' 
+                : (filter === 'task-history' || filter === 'accepted-history')
+                ? 'bg-gradient-to-br from-gray-800/50 to-gray-700/50 border-gray-500/40 hover:border-gray-400/60 shadow-lg shadow-gray-500/20'
                 : 'bg-white/10 border-white/20 hover:border-white/40'
             }`}>
               <div className="text-center mb-4">
@@ -504,6 +524,13 @@ const Hamsterboard: React.FC = () => {
                 <div className="text-2xl font-bold text-orange-400 mb-3">${task.reward.toFixed(2)} 🪙</div>
                 
                 <div className="flex flex-wrap gap-2 mb-4">
+                  {/* History indicator */}
+                  {(filter === 'task-history' || filter === 'accepted-history') && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-600/30 text-gray-300 border border-gray-500/30">
+                      📚 {filter === 'task-history' ? 'Task History' : 'Accepted History'}
+                    </span>
+                  )}
+                  
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     task.status === 'open' ? 'bg-green-500/20 text-green-400' :
                     task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
@@ -529,6 +556,13 @@ const Hamsterboard: React.FC = () => {
                   {task.winner && (
                     <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
                       🏆 Winner: {task.winner.username}
+                    </span>
+                  )}
+                  
+                  {/* Completion date for history */}
+                  {(filter === 'task-history' || filter === 'accepted-history') && task.completedAt && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-600/30 text-gray-300">
+                      📅 {new Date(task.completedAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
