@@ -499,7 +499,7 @@ const HamsterShop: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="text-white text-sm">Select File (Max 50MB)</label>
+                <label className="text-white text-sm">Select File</label>
                 <input
                   type="file"
                   onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}

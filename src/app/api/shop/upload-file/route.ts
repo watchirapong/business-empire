@@ -97,11 +97,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File and item ID are required' }, { status: 400 });
     }
 
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 });
-    }
-
     // Create uploads directory if it doesn't exist
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-files');
     if (!fs.existsSync(uploadsDir)) {
