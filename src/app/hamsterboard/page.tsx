@@ -248,7 +248,8 @@ const Hamsterboard: React.FC = () => {
         setCompletionImage(file);
       } else {
         const errorData = await response.json();
-        alert(`Failed to upload image: ${errorData.error}`);
+        console.error('Upload error details:', errorData);
+        alert(`Failed to upload image: ${errorData.error}${errorData.details ? ` - ${errorData.details}` : ''}`);
       }
     } catch (error) {
       console.error('Error uploading completion image:', error);
