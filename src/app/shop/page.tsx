@@ -413,13 +413,34 @@ const HamsterShop: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setCart([]);
-        alert(`Purchase completed successfully! Your new balance: ${data.newBalance} Hamster Shop coins`);
+        
+        // Show purchase success modal for cart checkout
+        if (data.purchases && data.purchases.length > 0) {
+          // For cart checkout, show the first purchased item as representative
+          const firstPurchase = data.purchases[0];
+          setPurchasedItem({
+            id: firstPurchase.itemId,
+            name: firstPurchase.itemName,
+            image: firstPurchase.image,
+            contentType: firstPurchase.contentType,
+            textContent: firstPurchase.textContent,
+            linkUrl: firstPurchase.linkUrl,
+            fileUrl: firstPurchase.fileUrl,
+            hasFile: firstPurchase.hasFile,
+            fileName: firstPurchase.fileName
+          });
+          setShowPurchaseSuccess(true);
+        } else {
+          // Fallback if no purchase data
+          alert(`Purchase completed successfully! Your new balance: ${data.newBalance} Hamster Coins`);
+        }
+        
         // Refresh balance after successful checkout
         fetchBalance();
       } else {
         const errorData = await response.json();
         if (errorData.error === 'Insufficient Hamster Coins') {
-          alert(`Insufficient Hamster Shop coins! You have ${errorData.currentBalance} coins but need ${errorData.requiredAmount} coins.`);
+          alert(`Insufficient Hamster Coins! You have ${errorData.currentBalance} coins but need ${errorData.requiredAmount} coins.`);
         } else {
           alert(errorData.error || 'Checkout failed');
         }

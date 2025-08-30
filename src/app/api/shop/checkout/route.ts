@@ -105,11 +105,25 @@ export async function POST(request: NextRequest) {
     });
     await purchase.save();
 
+    // Return detailed purchase information for the modal
+    const purchases = items.map((item: any) => ({
+      itemId: item.id,
+      itemName: item.name,
+      image: item.image,
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || '',
+      fileUrl: item.fileUrl || '',
+      hasFile: item.hasFile || false,
+      fileName: item.fileName || ''
+    }));
+
     return NextResponse.json({ 
       success: true,
       message: 'Purchase completed successfully',
       newBalance: userCurrency.hamsterCoins,
-      purchaseId: purchase._id
+      purchaseId: purchase._id,
+      purchases: purchases
     });
 
   } catch (error) {
