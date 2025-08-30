@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // Check if task is still open
-    if (task.status !== 'open') {
+    // Check if task is still available (open or in_progress)
+    if (task.status !== 'open' && task.status !== 'in_progress') {
       return NextResponse.json({ error: 'Task is no longer available' }, { status: 400 });
     }
 

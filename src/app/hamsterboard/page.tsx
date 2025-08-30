@@ -533,7 +533,7 @@ const Hamsterboard: React.FC = () => {
               </div>
               
               <div className="flex flex-col space-y-2">
-                {task.status === 'open' && task.postedBy.id !== (session.user as any).id && (
+                {(task.status === 'open' || task.status === 'in_progress') && task.postedBy.id !== (session.user as any).id && !task.acceptedBy.some(acceptor => acceptor.id === (session.user as any).id) && (
                   <button
                     onClick={() => handleAcceptTask(task._id)}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors"
