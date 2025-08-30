@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Task from '@/models/Task';
 import mongoose from 'mongoose';
+import { isAdmin } from '@/lib/admin-config';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -19,11 +20,7 @@ const connectDB = async () => {
   }
 };
 
-// Check if user is admin
-const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = ['1402212628956315709', '1402212628956315710', '1402212628956315711'];
-  return ADMIN_USER_IDS.includes(userId);
-};
+// Using centralized admin config
 
 export async function DELETE(request: NextRequest) {
   try {

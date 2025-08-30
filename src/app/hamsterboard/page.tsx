@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { isAdmin } from '@/lib/admin-config';
 
 interface Task {
   _id: string;
@@ -63,16 +64,21 @@ const Hamsterboard: React.FC = () => {
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [previewImageTitle, setPreviewImageTitle] = useState<string>('');
 
-  // Check if user is admin
-  const isAdmin = (userId: string) => {
-    const ADMIN_USER_IDS = ['1402212628956315709', '1402212628956315710', '1402212628956315711'];
-    return ADMIN_USER_IDS.includes(userId);
+  // Check if user is admin (using centralized config)
+  const checkAdminStatus = (userId: string) => {
+    console.log('Checking admin status for userId:', userId);
+    const adminStatus = isAdmin(userId);
+    console.log('Is admin?', adminStatus);
+    return adminStatus;
   };
 
   // Check if user is logged in
   useEffect(() => {
     if (!session?.user) {
       router.push('/auth/signin');
+    } else {
+      console.log('Session user:', session.user);
+      console.log('Session user ID:', (session.user as any).id);
     }
   }, [session, router]);
 

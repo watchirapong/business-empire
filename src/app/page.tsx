@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import Leaderboard from '@/components/Leaderboard';
+import { isAdmin } from '@/lib/admin-config';
 
 import VoiceRewards from '@/components/VoiceRewards';
 // Removed: import HamsterCoinBalance from '@/components/HamsterCoinBalance';
@@ -26,8 +27,7 @@ export default function HomePage() {
   };
 
   // Check if current user is admin
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-  const isAdmin = ADMIN_USER_IDS.includes((session?.user as any)?.id);
+  const isCurrentUserAdmin = isAdmin((session?.user as any)?.id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -100,7 +100,7 @@ export default function HomePage() {
                       </button>
                       
                       {/* Admin Panel Button - Only show for admin */}
-                      {isAdmin && (
+                      {isCurrentUserAdmin && (
                         <button
                           onClick={() => router.push('/admin')}
                           className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg font-medium flex items-center justify-center space-x-2"

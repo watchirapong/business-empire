@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { isAdmin as checkIsAdmin } from '@/lib/admin-config';
 
 interface ShopItem {
   id: string;
@@ -49,8 +50,7 @@ const HamsterShop: React.FC = () => {
   useEffect(() => {
     if (session?.user) {
       const userId = (session.user as any).id;
-      const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-      setIsAdmin(ADMIN_USER_IDS.includes(userId));
+      setIsAdmin(checkIsAdmin(userId));
     }
   }, [session]);
 

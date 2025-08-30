@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { isAdmin } from '@/lib/admin-config';
 
 interface UserData {
   _id: string;
@@ -126,8 +127,7 @@ export default function AdminPage() {
   const [userNicknames, setUserNicknames] = useState<{[key: string]: string}>({});
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Check if user is authorized (admin Discord IDs)
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+  // Using centralized admin config
 
   // Helper function to get display name (nickname > globalName > username)
   const getDisplayName = (user: UserData) => {
@@ -157,7 +157,7 @@ export default function AdminPage() {
       return;
     }
 
-    if (!ADMIN_USER_IDS.includes((session.user as any)?.id)) {
+    if (!isAdmin((session.user as any)?.id)) {
       router.push('/');
       return;
     }
@@ -718,7 +718,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!session || !ADMIN_USER_IDS.includes((session.user as any)?.id)) {
+      if (!session || !isAdmin((session.user as any)?.id)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-xl">Unauthorized Access</div>
