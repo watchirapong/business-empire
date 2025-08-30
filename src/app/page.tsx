@@ -146,7 +146,7 @@ export default function HomePage() {
         {/* Menu Section - Only show when logged in */}
         {session && (
           <div className="max-w-4xl mx-auto space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {/* Hamster Shop */}
               <button
                 onClick={() => handleMenuClick('/shop')}
@@ -175,6 +175,22 @@ export default function HomePage() {
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-purple-200 transition-colors duration-300">
                     ลุ้นรางวัลสุดพิเศษ
+                  </p>
+                </div>
+              </button>
+
+              {/* Hamsterboard */}
+              <button
+                onClick={() => handleMenuClick('/hamsterboard')}
+                className="group bg-gradient-to-br from-green-900/50 to-emerald-900/50 backdrop-blur-sm rounded-2xl border border-green-500/20 p-8 hover:border-green-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20"
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🐹</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-300 transition-colors duration-300">
+                    Hamsterboard
+                  </h3>
+                  <p className="text-gray-400 text-sm group-hover:text-green-200 transition-colors duration-300">
+                    Post tasks, earn rewards
                   </p>
                 </div>
               </button>
