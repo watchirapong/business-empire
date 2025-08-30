@@ -22,6 +22,18 @@ const shopItemSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  fileUrl: { 
+    type: String, 
+    trim: true
+  },
+  fileName: { 
+    type: String, 
+    trim: true
+  },
+  hasFile: { 
+    type: Boolean, 
+    default: false
+  },
   inStock: { 
     type: Boolean, 
     default: true

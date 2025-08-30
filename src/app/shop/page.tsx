@@ -10,6 +10,9 @@ interface ShopItem {
   description: string;
   price: number;
   image: string;
+  hasFile: boolean;
+  fileUrl?: string;
+  fileName?: string;
   inStock: boolean;
 }
 
@@ -30,6 +33,9 @@ const HamsterShop: React.FC = () => {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [selectedItemForFile, setSelectedItemForFile] = useState<string>('');
+  const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -132,7 +138,6 @@ const HamsterShop: React.FC = () => {
           name: '',
           description: '',
           price: '',
-          category: 'food',
           image: '',
           inStock: true
         });
@@ -162,6 +167,120 @@ const HamsterShop: React.FC = () => {
       console.error('Error deleting item:', error);
     }
   };
+
+  const handleFileUpload = async () => {
+    if (!fileToUpload || !selectedItemForFile) {
+      alert('Please select a file and an item');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+      formData.append('itemId', selectedItemForFile);
+
+      const response = await fetch('/api/shop/upload-file', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('File uploaded successfully!');
+        setFileToUpload(null);
+        setSelectedItemForFile('');
+        // Refresh shop items to show updated file status
+        const itemsResponse = await fetch('/api/shop/items');
+        if (itemsResponse.ok) {
+          const itemsData = await itemsResponse.json();
+          setShopItems(itemsData.items);
+        }
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to upload file: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    }
+  };
+
+  const handlePurchase = async (itemId: string) => {
+    try {
+      const response = await fetch('/api/shop/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('Item purchased successfully!');
+        // Refresh purchase history
+        fetchPurchaseHistory();
+      } else {
+        const errorData = await response.json();
+        alert(`Purchase failed: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error purchasing item:', error);
+      alert('Failed to purchase item');
+    }
+  };
+
+  const handleDownload = async (purchaseId: string) => {
+    try {
+      const response = await fetch('/api/shop/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ purchaseId }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = ''; // Browser will use the filename from Content-Disposition
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Refresh purchase history to update download count
+        fetchPurchaseHistory();
+      } else {
+        const errorData = await response.json();
+        alert(`Download failed: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file');
+    }
+  };
+
+  const fetchPurchaseHistory = async () => {
+    try {
+      const response = await fetch('/api/shop/purchase');
+      if (response.ok) {
+        const data = await response.json();
+        setPurchaseHistory(data.purchases);
+      }
+    } catch (error) {
+      console.error('Error fetching purchase history:', error);
+    }
+  };
+
+  // Fetch purchase history on component mount
+  useEffect(() => {
+    if (session?.user) {
+      fetchPurchaseHistory();
+    }
+  }, [session]);
 
   const handleClearAllItems = async () => {
     if (!confirm('Are you sure you want to delete ALL items from the shop? This action cannot be undone.')) {
@@ -359,6 +478,45 @@ const HamsterShop: React.FC = () => {
           </div>
         )}
 
+        {/* Admin File Upload Section */}
+        {isAdmin && (
+          <div className="bg-white/10 rounded-xl p-6 mb-6 border border-white/20">
+            <h2 className="text-2xl font-bold text-white mb-4">📁 Upload File to Item</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-white text-sm">Select Item</label>
+                <select
+                  value={selectedItemForFile}
+                  onChange={(e) => setSelectedItemForFile(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                >
+                  <option value="">Choose an item...</option>
+                  {shopItems.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} {item.hasFile ? '(Has File)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-white text-sm">Select File (Max 50MB)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleFileUpload}
+              disabled={!fileToUpload || !selectedItemForFile}
+              className="mt-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              📤 Upload File
+            </button>
+          </div>
+        )}
+
         {/* Cart Summary */}
         {cart.length > 0 && (
           <div className="bg-white/10 rounded-xl p-4 mb-6 border border-white/20">
@@ -400,15 +558,29 @@ const HamsterShop: React.FC = () => {
                     <div className="text-2xl font-bold text-orange-400 mb-4">${item.price.toFixed(2)}</div>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm px-2 py-1 rounded-full ${
-                      item.inStock 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {item.inStock ? 'In Stock' : 'Out of Stock'}
-                    </span>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm px-2 py-1 rounded-full ${
+                        item.inStock 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {item.inStock ? 'In Stock' : 'Out of Stock'}
+                      </span>
+                      {item.hasFile && (
+                        <span className="text-sm px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                          📁 Has File
+                        </span>
+                      )}
+                    </div>
                     <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePurchase(item.id)}
+                        disabled={!item.inStock}
+                        className="bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
+                      >
+                        💰 Purchase
+                      </button>
                       <button
                         onClick={() => addToCart(item)}
                         disabled={!item.inStock}

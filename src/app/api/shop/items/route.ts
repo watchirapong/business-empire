@@ -85,6 +85,9 @@ export async function GET() {
       description: item.description,
       price: item.price,
       image: item.image,
+      hasFile: item.hasFile || false,
+      fileUrl: item.fileUrl,
+      fileName: item.fileName,
       inStock: item.inStock
     }));
     

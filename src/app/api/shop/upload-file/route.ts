@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 
 // Connect to MongoDB
 const connectDB = async () => {
   try {
     if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
       return;
     }
     await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('MongoDB Connected successfully');
   } catch (error) {
     console.error('MongoDB connection error:', error);
     throw error;
@@ -35,7 +35,6 @@ const shopItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-
   image: { 
     type: String, 
     required: true,
@@ -75,8 +74,7 @@ const isAdmin = (userId: string) => {
   return ADMIN_USER_IDS.includes(userId);
 };
 
-// DELETE - Clear all shop items (admin only)
-export async function DELETE(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -91,16 +89,63 @@ export async function DELETE(request: NextRequest) {
 
     await connectDB();
 
-    // Delete all shop items
-    const result = await ShopItem.deleteMany({});
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const itemId = formData.get('itemId') as string;
+
+    if (!file || !itemId) {
+      return NextResponse.json({ error: 'File and item ID are required' }, { status: 400 });
+    }
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 });
+    }
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-files');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const originalName = file.name;
+    const extension = path.extname(originalName);
+    const fileName = `${timestamp}-${originalName}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    // Convert file to buffer and save
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    fs.writeFileSync(filePath, buffer);
+
+    // Update shop item with file information
+    const fileUrl = `/uploads/shop-files/${fileName}`;
+    const updatedItem = await ShopItem.findByIdAndUpdate(
+      itemId,
+      {
+        fileUrl,
+        fileName: originalName,
+        hasFile: true,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedItem) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ 
-      message: `Successfully deleted ${result.deletedCount} items from the shop`,
-      deletedCount: result.deletedCount
+      success: true,
+      fileUrl,
+      fileName: originalName,
+      message: 'File uploaded successfully'
     });
 
   } catch (error) {
-    console.error('Error clearing shop items:', error);
-    return NextResponse.json({ error: 'Failed to clear shop items' }, { status: 500 });
+    console.error('Error uploading file:', error);
+    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }
