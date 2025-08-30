@@ -42,6 +42,12 @@ const Hamsterboard: React.FC = () => {
   const [userBalance, setUserBalance] = useState(0);
   const [filter, setFilter] = useState<'all' | 'open' | 'my-tasks' | 'my-accepted'>('all');
 
+  // Check if user is admin
+  const isAdmin = (userId: string) => {
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    return ADMIN_USER_IDS.includes(userId);
+  };
+
   // Check if user is logged in
   useEffect(() => {
     if (!session?.user) {
@@ -312,8 +318,14 @@ const Hamsterboard: React.FC = () => {
 
         {/* Task Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tasks.map((task) => (
-            <div key={task._id} className="bg-white/10 rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
+          {tasks.map((task) => {
+            const isAdminTask = isAdmin(task.postedBy.id);
+            return (
+            <div key={task._id} className={`rounded-xl p-6 border transition-all duration-300 ${
+              isAdminTask 
+                ? 'bg-gradient-to-br from-yellow-900/30 to-amber-900/30 border-yellow-500/40 hover:border-yellow-400/60 shadow-lg shadow-yellow-500/20' 
+                : 'bg-white/10 border-white/20 hover:border-white/40'
+            }`}>
               <div className="text-center mb-4">
                 <div className="mb-3">
                   {task.image.startsWith('/') ? (
@@ -341,8 +353,12 @@ const Hamsterboard: React.FC = () => {
                     {task.status === 'open' ? 'Open' : 
                      task.status === 'accepted' ? 'In Progress' : 'Completed'}
                   </span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-400">
-                    Posted by {task.postedBy.username}
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    isAdminTask 
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' 
+                      : 'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {isAdminTask ? '👑 ' : ''}Posted by {task.postedBy.username}
                   </span>
                   {task.acceptedBy && (
                     <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
@@ -381,7 +397,8 @@ const Hamsterboard: React.FC = () => {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {tasks.length === 0 && (
