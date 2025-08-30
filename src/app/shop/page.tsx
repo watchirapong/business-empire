@@ -278,8 +278,12 @@ const HamsterShop: React.FC = () => {
         // Get the purchased item data and show success modal
         const purchasedItemData = data.purchase;
         if (purchasedItemData) {
+          console.log('Purchase data received:', purchasedItemData);
           setPurchasedItem(purchasedItemData);
           setShowPurchaseSuccess(true);
+        } else {
+          console.error('No purchase data received from API');
+          alert('Purchase successful, but could not load item details.');
         }
         
         // Refresh purchase history and balance
@@ -799,19 +803,19 @@ const HamsterShop: React.FC = () => {
                 <div className="text-6xl mb-4">🎉</div>
                 <h2 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h2>
                 <p className="text-gray-300 mb-4">
-                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.itemName}</span>
+                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.itemName || purchasedItem.name || 'Item'}</span>
                 </p>
                 
                 {/* Item Image */}
                 <div className="mb-4">
-                  {purchasedItem.image.startsWith('/') ? (
+                  {purchasedItem.image && purchasedItem.image.startsWith('/') ? (
                     <img 
                       src={purchasedItem.image} 
-                      alt={purchasedItem.itemName}
+                      alt={purchasedItem.itemName || purchasedItem.name || 'Item'}
                       className="w-20 h-20 object-cover rounded-lg mx-auto border border-white/20"
                     />
                   ) : (
-                    <div className="text-4xl mx-auto">{purchasedItem.image}</div>
+                    <div className="text-4xl mx-auto">{purchasedItem.image || '🛒'}</div>
                   )}
                 </div>
 
