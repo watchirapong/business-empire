@@ -329,7 +329,7 @@ const Hamsterboard: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Winner selected successfully! ${data.winner.username} received ${data.winner.reward} Hamster Coins.`);
+        alert(`Winner selected successfully! ${data.winner.username} received ${data.winner.reward} Hamster Coins. Task has been deleted.`);
         setShowWinnerSelection(false);
         setSelectedTaskForWinner(null);
         fetchTasks();

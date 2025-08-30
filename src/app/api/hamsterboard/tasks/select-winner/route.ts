@@ -129,9 +129,12 @@ export async function POST(request: NextRequest) {
 
     await task.save();
 
+    // Delete the task after completion
+    await Task.findByIdAndDelete(taskId);
+
     return NextResponse.json({ 
       success: true,
-      message: 'Winner selected successfully! Reward has been transferred.',
+      message: 'Winner selected successfully! Reward has been transferred and task has been deleted.',
       winner: {
         id: winnerId,
         username: winnerAcceptance.username,
