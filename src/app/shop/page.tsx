@@ -92,9 +92,11 @@ const HamsterShop: React.FC = () => {
       }
 
       // Always upload image first
-      await handleImageUpload();
-      // Wait a moment for the state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const imageUrl = await handleImageUpload();
+      if (!imageUrl) {
+        alert('Failed to upload image. Please try again.');
+        return;
+      }
 
       // Handle file upload if content type is file
       if (newItem.contentType === 'file' && fileToUpload) {
@@ -103,13 +105,19 @@ const HamsterShop: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      console.log('Sending item data:', newItem);
+      // Create item data with the uploaded image URL
+      const itemData = {
+        ...newItem,
+        image: imageUrl
+      };
+
+      console.log('Sending item data:', itemData);
       const response = await fetch('/api/shop/items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newItem),
+        body: JSON.stringify(itemData),
       });
       
       console.log('Response status:', response.status);
@@ -190,7 +198,7 @@ const HamsterShop: React.FC = () => {
   const handleImageUpload = async () => {
     if (!imageFile) {
       alert('Please select an image');
-      return;
+      return null;
     }
 
     try {
@@ -204,16 +212,18 @@ const HamsterShop: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNewItem({ ...newItem, image: data.imageUrl });
         setImageFile(null);
         setImagePreview('');
+        return data.imageUrl;
       } else {
         const errorData = await response.json();
         alert(`Failed to upload image: ${errorData.error}`);
+        return null;
       }
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image');
+      return null;
     }
   };
 
