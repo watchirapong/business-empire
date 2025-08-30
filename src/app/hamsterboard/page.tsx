@@ -421,7 +421,7 @@ const Hamsterboard: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">🐹 Hamsterboard</h1>
-          <p className="text-gray-300 text-lg">Post tasks, complete quests, earn rewards!</p>
+          <p className="text-gray-300 text-lg">ทำภารกิจ รับรางวัล</p>
           <div className="mt-4 text-orange-400 font-semibold">
             Your Balance: ${userBalance.toFixed(2)} 🪙
           </div>

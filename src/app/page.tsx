@@ -190,7 +190,7 @@ export default function HomePage() {
                     Hamsterboard
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-green-200 transition-colors duration-300">
-                    Post tasks, earn rewards
+                    ทำภารกิจ รับรางวัล
                   </p>
                 </div>
               </button>
