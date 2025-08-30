@@ -17,9 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    if (!isAdmin(userId)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    // Allow all authenticated users to upload images for shop items
+    // Admin check removed to allow regular users to add items with images
 
     const formData = await request.formData();
     const file = formData.get('image') as File;

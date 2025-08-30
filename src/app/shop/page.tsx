@@ -86,11 +86,14 @@ const HamsterShop: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Image upload successful:', data.imageUrl);
         setNewItem({ ...newItem, image: data.imageUrl });
         setImagePreview(data.imageUrl);
         setImageFile(null);
       } else {
         console.error('Failed to upload image');
+        const errorData = await response.json();
+        console.error('Upload error details:', errorData);
       }
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -117,9 +120,12 @@ const HamsterShop: React.FC = () => {
       // Upload image first if there's a file
       if (imageFile) {
         await handleImageUpload(imageFile);
+        // Wait a moment for the state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       // Validate that we have an image
+      console.log('Checking image validation:', { newItemImage: newItem.image, imageFile: !!imageFile });
       if (!newItem.image) {
         alert('Please upload an image for the item');
         return;
