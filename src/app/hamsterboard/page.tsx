@@ -65,7 +65,7 @@ const Hamsterboard: React.FC = () => {
 
   // Check if user is admin
   const isAdmin = (userId: string) => {
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    const ADMIN_USER_IDS = ['1402212628956315709', '1402212628956315710', '1402212628956315711'];
     return ADMIN_USER_IDS.includes(userId);
   };
 
