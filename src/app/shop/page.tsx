@@ -30,12 +30,13 @@ const HamsterShop: React.FC = () => {
     description: '',
     price: '',
     image: '',
-    inStock: true
+    inStock: true,
+    contentType: 'none',
+    textContent: '',
+    linkUrl: '',
+    fileUrl: ''
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
-  const [selectedItemForFile, setSelectedItemForFile] = useState<string>('');
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -73,61 +74,20 @@ const HamsterShop: React.FC = () => {
     fetchItems();
   }, []);
 
-  const handleImageUpload = async (file: File) => {
-    try {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('image', file);
 
-      const response = await fetch('/api/shop/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Image upload successful:', data.imageUrl);
-        setNewItem({ ...newItem, image: data.imageUrl });
-        setImagePreview(data.imageUrl);
-        setImageFile(null);
-      } else {
-        console.error('Failed to upload image');
-        const errorData = await response.json();
-        console.error('Upload error details:', errorData);
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleAddItem = async () => {
     try {
-      // Upload image first if there's a file
-      if (imageFile) {
-        await handleImageUpload(imageFile);
+      // Handle file upload if content type is file
+      if (newItem.contentType === 'file' && fileToUpload) {
+        await handleFileUpload();
         // Wait a moment for the state to update
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Validate that we have an image
-      console.log('Checking image validation:', { newItemImage: newItem.image, imageFile: !!imageFile });
-      if (!newItem.image) {
-        alert('Please upload an image for the item');
+      // Validate required fields
+      if (!newItem.name || !newItem.description || !newItem.price) {
+        alert('Please fill in all required fields');
         return;
       }
 
@@ -151,10 +111,13 @@ const HamsterShop: React.FC = () => {
           description: '',
           price: '',
           image: '',
-          inStock: true
+          inStock: true,
+          contentType: 'none',
+          textContent: '',
+          linkUrl: '',
+          fileUrl: ''
         });
-        setImageFile(null);
-        setImagePreview('');
+
         setShowAddForm(false);
       } else {
         console.error('Failed to add item');
@@ -181,15 +144,14 @@ const HamsterShop: React.FC = () => {
   };
 
   const handleFileUpload = async () => {
-    if (!fileToUpload || !selectedItemForFile) {
-      alert('Please select a file and an item');
+    if (!fileToUpload) {
+      alert('Please select a file');
       return;
     }
 
     try {
       const formData = new FormData();
       formData.append('file', fileToUpload);
-      formData.append('itemId', selectedItemForFile);
 
       const response = await fetch('/api/shop/upload-file', {
         method: 'POST',
@@ -198,15 +160,8 @@ const HamsterShop: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert('File uploaded successfully!');
+        setNewItem({ ...newItem, fileUrl: data.fileUrl });
         setFileToUpload(null);
-        setSelectedItemForFile('');
-        // Refresh shop items to show updated file status
-        const itemsResponse = await fetch('/api/shop/items');
-        if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json();
-          setShopItems(itemsData.items);
-        }
       } else {
         const errorData = await response.json();
         alert(`Failed to upload file: ${errorData.error}`);
@@ -466,28 +421,58 @@ const HamsterShop: React.FC = () => {
                 onChange={(e) => setNewItem({...newItem, price: e.target.value})}
                 className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
               />
-
+              
               <div className="space-y-2">
-                <label className="text-white text-sm">Item Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-500"
-                />
-                {imagePreview && (
-                  <div className="mt-2">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="w-20 h-20 object-cover rounded-lg border border-white/20"
-                    />
-                  </div>
-                )}
-                {isUploading && (
-                  <div className="text-orange-400 text-sm">Uploading image...</div>
-                )}
+                <label className="text-white text-sm">Content Type (Optional)</label>
+                <select
+                  value={newItem.contentType || 'none'}
+                  onChange={(e) => setNewItem({...newItem, contentType: e.target.value})}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                >
+                  <option value="none">No Content</option>
+                  <option value="text">Text Content</option>
+                  <option value="link">External Link</option>
+                  <option value="file">File Upload</option>
+                </select>
               </div>
+
+              {/* Conditional content fields based on type */}
+              {newItem.contentType === 'text' && (
+                <div className="md:col-span-2">
+                  <label className="text-white text-sm">Text Content</label>
+                  <textarea
+                    placeholder="Enter text content..."
+                    value={newItem.textContent || ''}
+                    onChange={(e) => setNewItem({...newItem, textContent: e.target.value})}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 h-24"
+                  />
+                </div>
+              )}
+
+              {newItem.contentType === 'link' && (
+                <div className="md:col-span-2">
+                  <label className="text-white text-sm">External Link</label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com"
+                    value={newItem.linkUrl || ''}
+                    onChange={(e) => setNewItem({...newItem, linkUrl: e.target.value})}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                  />
+                </div>
+              )}
+
+              {newItem.contentType === 'file' && (
+                <div className="md:col-span-2">
+                  <label className="text-white text-sm">File Upload</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -508,44 +493,7 @@ const HamsterShop: React.FC = () => {
           </div>
         )}
 
-        {/* Admin File Upload Section */}
-        {isAdmin && (
-          <div className="bg-white/10 rounded-xl p-6 mb-6 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-4">📁 Upload File to Item</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-white text-sm">Select Item</label>
-                <select
-                  value={selectedItemForFile}
-                  onChange={(e) => setSelectedItemForFile(e.target.value)}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
-                >
-                  <option value="">Choose an item...</option>
-                  {shopItems.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} {item.hasFile ? '(Has File)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-white text-sm">Select File</label>
-                <input
-                  type="file"
-                  onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
-                />
-              </div>
-            </div>
-            <button
-              onClick={handleFileUpload}
-              disabled={!fileToUpload || !selectedItemForFile}
-              className="mt-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
-            >
-              📤 Upload File
-            </button>
-          </div>
-        )}
+
 
         {/* Cart Summary */}
         {cart.length > 0 && (
