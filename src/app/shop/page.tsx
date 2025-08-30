@@ -125,6 +125,7 @@ const HamsterShop: React.FC = () => {
         return;
       }
 
+      console.log('Sending item data:', newItem);
       const response = await fetch('/api/shop/items', {
         method: 'POST',
         headers: {
@@ -132,10 +133,13 @@ const HamsterShop: React.FC = () => {
         },
         body: JSON.stringify(newItem),
       });
+      
+      console.log('Response status:', response.status);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
 
       if (response.ok) {
-        const data = await response.json();
-        setShopItems([...shopItems, data.item]);
+        setShopItems([...shopItems, responseData.item]);
         setNewItem({
           name: '',
           description: '',

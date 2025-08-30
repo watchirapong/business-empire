@@ -100,12 +100,20 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
+    console.log('Shop API - Session:', session);
+    console.log('Shop API - User:', session?.user);
+    
     if (!session?.user) {
+      console.log('Shop API - No session or user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = (session.user as any).id;
+    console.log('Shop API - User ID:', userId);
+    console.log('Shop API - Is Admin:', isAdmin(userId));
+    
     if (!isAdmin(userId)) {
+      console.log('Shop API - User is not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
