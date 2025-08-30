@@ -110,10 +110,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, category, image, inStock } = body;
+    const { name, description, price, image, inStock } = body;
 
     // Validate required fields
-    if (!name || !description || !price || !category || !image) {
+    if (!name || !description || !price || !image) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -124,7 +124,6 @@ export async function POST(request: NextRequest) {
       name,
       description,
       price: parseFloat(price),
-      category,
       image,
       inStock: inStock !== undefined ? inStock : true
     });
@@ -137,7 +136,6 @@ export async function POST(request: NextRequest) {
       name: savedItem.name,
       description: savedItem.description,
       price: savedItem.price,
-      category: savedItem.category,
       image: savedItem.image,
       inStock: savedItem.inStock
     };
@@ -167,7 +165,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, category, image, inStock } = body;
+    const { id, name, description, price, image, inStock } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
@@ -180,7 +178,6 @@ export async function PUT(request: NextRequest) {
     if (name) updateData.name = name;
     if (description) updateData.description = description;
     if (price) updateData.price = parseFloat(price);
-    if (category) updateData.category = category;
     if (image) updateData.image = image;
     if (inStock !== undefined) updateData.inStock = inStock;
 
@@ -200,7 +197,6 @@ export async function PUT(request: NextRequest) {
       name: updatedItem.name,
       description: updatedItem.description,
       price: updatedItem.price,
-      category: updatedItem.category,
       image: updatedItem.image,
       inStock: updatedItem.inStock
     };
