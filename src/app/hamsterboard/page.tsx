@@ -374,6 +374,31 @@ const Hamsterboard: React.FC = () => {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
+
+    try {
+      const response = await fetch('/api/hamsterboard/tasks/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (response.ok) {
+        alert('Task deleted successfully!');
+        fetchTasks();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
+    }
+  };
+
   if (!session?.user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
@@ -535,6 +560,16 @@ const Hamsterboard: React.FC = () => {
                     className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-colors"
                   >
                     ❌ Cancel Task
+                  </button>
+                )}
+                
+                {/* Admin Delete Button - can delete any task */}
+                {isAdmin((session.user as any).id) && (
+                  <button
+                    onClick={() => handleDeleteTask(task._id)}
+                    className="w-full bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    🗑️ Delete Task (Admin)
                   </button>
                 )}
               </div>
