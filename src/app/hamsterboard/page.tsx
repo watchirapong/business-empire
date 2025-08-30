@@ -761,41 +761,50 @@ const Hamsterboard: React.FC = () => {
         {/* Winner Selection Modal */}
         {showWinnerSelection && selectedTaskForWinner && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white mb-2">Select Winner</h2>
                 <p className="text-gray-300">Choose who completed the task best: {selectedTaskForWinner.taskName}</p>
                 <p className="text-orange-400 font-semibold mt-2">Reward: ${selectedTaskForWinner.reward.toFixed(2)} 🪙</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {selectedTaskForWinner.acceptedBy
                   .filter(acceptor => acceptor.completedAt)
                   .map((acceptor, index) => (
-                    <div key={acceptor.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-semibold">{acceptor.username}</span>
-                        <span className="text-gray-400 text-sm">
-                          Completed: {new Date(acceptor.acceptedAt).toLocaleDateString()}
-                        </span>
+                    <div key={acceptor.id} className="bg-white/10 rounded-lg p-6 border border-white/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="text-white font-bold text-lg">{acceptor.username}</span>
+                          <div className="text-gray-400 text-sm mt-1">
+                            Accepted: {new Date(acceptor.acceptedAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-green-400 text-sm">
+                            Completed: {new Date(acceptor.completedAt!).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-yellow-400 font-semibold">Submission #{index + 1}</div>
+                        </div>
                       </div>
+                      
                       {acceptor.completionImage && (
-                        <div className="mb-3">
-                          <div className="relative group">
+                        <div className="mb-4">
+                          <div className="relative group mb-3">
                             <img 
                               src={acceptor.completionImage} 
                               alt="Completion proof" 
-                              className="w-full h-24 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                              className="w-full h-48 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.username}'s completion proof`)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                              <div className="text-white text-xs font-semibold">Click to view full size</div>
+                              <div className="text-white font-semibold">Click to view full size</div>
                             </div>
                           </div>
-                          <div className="flex space-x-2 mt-2">
+                          <div className="flex space-x-3">
                             <button
                               onClick={() => window.open(acceptor.completionImage, '_blank')}
-                              className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded transition-colors"
+                              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
                             >
                               🔍 View Full Size
                             </button>
@@ -808,23 +817,26 @@ const Hamsterboard: React.FC = () => {
                                   link.click();
                                 }
                               }}
-                              className="text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded transition-colors"
+                              className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
                             >
                               📥 Download
                             </button>
                           </div>
                         </div>
                       )}
+                      
                       <button
                         onClick={() => handleConfirmWinner(acceptor.id)}
                         disabled={isSelectingWinner}
-                        className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
+                        className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors font-bold text-lg"
                       >
                         {isSelectingWinner ? 'Selecting...' : '🏆 Select as Winner'}
                       </button>
                     </div>
                   ))}
-                
+              </div>
+              
+              <div className="mt-6">
                 <button
                   onClick={() => {
                     setShowWinnerSelection(false);
