@@ -63,6 +63,7 @@ const Hamsterboard: React.FC = () => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [previewImageTitle, setPreviewImageTitle] = useState<string>('');
+  const [showFullImages, setShowFullImages] = useState(false);
 
   // Check if user is admin (using centralized config)
   const checkAdminStatus = (userId: string) => {
@@ -766,9 +767,18 @@ const Hamsterboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-white mb-2">Select Winner</h2>
                 <p className="text-gray-300">Choose who completed the task best: {selectedTaskForWinner.taskName}</p>
                 <p className="text-orange-400 font-semibold mt-2">Reward: ${selectedTaskForWinner.reward.toFixed(2)} 🪙</p>
+                
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowFullImages(!showFullImages)}
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
+                  >
+                    {showFullImages ? '📏 Show Compact Images' : '🖼️ Show Full Images'}
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className={`grid ${showFullImages ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-6`}>
                 {selectedTaskForWinner.acceptedBy
                   .filter(acceptor => acceptor.completedAt)
                   .map((acceptor, index) => (
@@ -794,7 +804,7 @@ const Hamsterboard: React.FC = () => {
                             <img 
                               src={acceptor.completionImage} 
                               alt="Completion proof" 
-                              className="w-full h-48 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                              className={`w-full ${showFullImages ? 'h-96' : 'h-64'} object-contain rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity bg-gray-900`}
                               onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.username}'s completion proof`)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
@@ -863,7 +873,7 @@ const Hamsterboard: React.FC = () => {
                 <img 
                   src={previewImageUrl} 
                   alt="Full size preview" 
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg border border-white/20"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg border border-white/20 bg-gray-900"
                 />
               </div>
               
