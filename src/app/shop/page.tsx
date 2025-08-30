@@ -37,6 +37,8 @@ const HamsterShop: React.FC = () => {
     fileUrl: ''
   });
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -78,6 +80,13 @@ const HamsterShop: React.FC = () => {
 
   const handleAddItem = async () => {
     try {
+      // Handle image upload if content type is image
+      if (newItem.contentType === 'image' && imageFile) {
+        await handleImageUpload();
+        // Wait a moment for the state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       // Handle file upload if content type is file
       if (newItem.contentType === 'file' && fileToUpload) {
         await handleFileUpload();
@@ -117,6 +126,9 @@ const HamsterShop: React.FC = () => {
           linkUrl: '',
           fileUrl: ''
         });
+        setImageFile(null);
+        setImagePreview('');
+        setFileToUpload(null);
 
         setShowAddForm(false);
       } else {
@@ -169,6 +181,48 @@ const HamsterShop: React.FC = () => {
     } catch (error) {
       console.error('Error uploading file:', error);
       alert('Failed to upload file');
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile) {
+      alert('Please select an image');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+
+      const response = await fetch('/api/shop/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNewItem({ ...newItem, image: data.imageUrl });
+        setImageFile(null);
+        setImagePreview('');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to upload image: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image');
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -430,6 +484,7 @@ const HamsterShop: React.FC = () => {
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
                 >
                   <option value="none">No Content</option>
+                  <option value="image">Image Upload</option>
                   <option value="text">Text Content</option>
                   <option value="link">External Link</option>
                   <option value="file">File Upload</option>
@@ -459,6 +514,23 @@ const HamsterShop: React.FC = () => {
                     onChange={(e) => setNewItem({...newItem, linkUrl: e.target.value})}
                     className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
                   />
+                </div>
+              )}
+
+              {newItem.contentType === 'image' && (
+                <div className="md:col-span-2">
+                  <label className="text-white text-sm">Image Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                  />
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                    </div>
+                  )}
                 </div>
               )}
 
