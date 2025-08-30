@@ -59,6 +59,9 @@ const Hamsterboard: React.FC = () => {
   const [showWinnerSelection, setShowWinnerSelection] = useState(false);
   const [selectedTaskForWinner, setSelectedTaskForWinner] = useState<Task | null>(null);
   const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [previewImageTitle, setPreviewImageTitle] = useState<string>('');
 
   // Check if user is admin
   const isAdmin = (userId: string) => {
@@ -300,6 +303,12 @@ const Hamsterboard: React.FC = () => {
       setSelectedTaskForWinner(task);
       setShowWinnerSelection(true);
     }
+  };
+
+  const handleImagePreview = (imageUrl: string, title: string) => {
+    setPreviewImageUrl(imageUrl);
+    setPreviewImageTitle(title);
+    setShowImagePreview(true);
   };
 
   const handleConfirmWinner = async (winnerId: string) => {
@@ -730,11 +739,38 @@ const Hamsterboard: React.FC = () => {
                       </div>
                       {acceptor.completionImage && (
                         <div className="mb-3">
-                          <img 
-                            src={acceptor.completionImage} 
-                            alt="Completion proof" 
-                            className="w-full h-24 object-cover rounded-lg border border-white/20"
-                          />
+                          <div className="relative group">
+                            <img 
+                              src={acceptor.completionImage} 
+                              alt="Completion proof" 
+                              className="w-full h-24 object-cover rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.username}'s completion proof`)}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                              <div className="text-white text-xs font-semibold">Click to view full size</div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2 mt-2">
+                            <button
+                              onClick={() => window.open(acceptor.completionImage, '_blank')}
+                              className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded transition-colors"
+                            >
+                              🔍 View Full Size
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (acceptor.completionImage) {
+                                  const link = document.createElement('a');
+                                  link.href = acceptor.completionImage;
+                                  link.download = `completion-proof-${acceptor.username}.jpg`;
+                                  link.click();
+                                }
+                              }}
+                              className="text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded transition-colors"
+                            >
+                              📥 Download
+                            </button>
+                          </div>
                         </div>
                       )}
                       <button
@@ -755,6 +791,55 @@ const Hamsterboard: React.FC = () => {
                   className="w-full bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Preview Modal */}
+        {showImagePreview && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-6 border border-white/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-bold text-white mb-2">{previewImageTitle}</h2>
+              </div>
+              
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={previewImageUrl} 
+                  alt="Full size preview" 
+                  className="max-w-full max-h-[60vh] object-contain rounded-lg border border-white/20"
+                />
+              </div>
+              
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => window.open(previewImageUrl, '_blank')}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  🔍 Open in New Tab
+                </button>
+                <button
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = previewImageUrl;
+                    link.download = `completion-proof-${Date.now()}.jpg`;
+                    link.click();
+                  }}
+                  className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  📥 Download
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImagePreview(false);
+                    setPreviewImageUrl('');
+                    setPreviewImageTitle('');
+                  }}
+                  className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  ✕ Close
                 </button>
               </div>
             </div>
