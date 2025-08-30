@@ -38,6 +38,8 @@ const HamsterShop: React.FC = () => {
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+  const [purchasedItem, setPurchasedItem] = useState<any>(null);
 
 
 
@@ -217,7 +219,17 @@ const HamsterShop: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert('Item purchased successfully!');
+        
+        // Check if the purchased item has a file
+        const purchasedItemData = data.purchase;
+        if (purchasedItemData && purchasedItemData.hasFile) {
+          // Show download popup
+          setPurchasedItem(purchasedItemData);
+          setShowDownloadPopup(true);
+        } else {
+          alert('Item purchased successfully!');
+        }
+        
         // Refresh purchase history
         fetchPurchaseHistory();
       } else {
@@ -260,6 +272,14 @@ const HamsterShop: React.FC = () => {
     } catch (error) {
       console.error('Error downloading file:', error);
       alert('Failed to download file');
+    }
+  };
+
+  const handleDownloadFromPopup = async () => {
+    if (purchasedItem) {
+      await handleDownload(purchasedItem._id);
+      setShowDownloadPopup(false);
+      setPurchasedItem(null);
     }
   };
 
@@ -650,6 +670,51 @@ const HamsterShop: React.FC = () => {
               >
                 {isCheckingOut ? 'Processing...' : '🛒 Checkout'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Download Popup */}
+        {showDownloadPopup && purchasedItem && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h2>
+                <p className="text-gray-300 mb-4">
+                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.itemName}</span>
+                </p>
+                
+                <div className="bg-blue-500/20 rounded-lg p-4 mb-6 border border-blue-500/30">
+                  <div className="text-4xl mb-2">📁</div>
+                  <p className="text-blue-300 font-semibold mb-1">File Available for Download</p>
+                  {purchasedItem.fileName && (
+                    <p className="text-gray-300 text-sm">{purchasedItem.fileName}</p>
+                  )}
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleDownloadFromPopup}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    📥 Download Now
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDownloadPopup(false);
+                      setPurchasedItem(null);
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Later
+                  </button>
+                </div>
+                
+                <p className="text-gray-400 text-sm mt-4">
+                  You can also download this file anytime from your <span className="text-blue-400 cursor-pointer" onClick={() => router.push('/purchases')}>Purchase History</span>
+                </p>
+              </div>
             </div>
           </div>
         )}

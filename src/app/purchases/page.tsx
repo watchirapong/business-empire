@@ -112,7 +112,7 @@ export default function PurchaseHistoryPage() {
             <div className="bg-white/10 rounded-xl p-8 border border-white/20 text-center">
               <div className="text-6xl mb-4">📦</div>
               <h2 className="text-2xl font-bold text-white mb-2">No Purchases Yet</h2>
-              <p className="text-gray-300 mb-4">You haven't purchased any items from the shop yet.</p>
+              <p className="text-gray-300 mb-4">You haven&apos;t purchased any items from the shop yet.</p>
               <button
                 onClick={() => router.push('/shop')}
                 className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg transition-colors"
