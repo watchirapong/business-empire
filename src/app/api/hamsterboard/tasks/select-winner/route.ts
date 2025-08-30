@@ -75,6 +75,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    console.log('Task data:', {
+      id: task._id,
+      status: task.status,
+      winner: task.winner,
+      acceptedByCount: task.acceptedBy.length,
+      completedCount: task.acceptedBy.filter(a => a.completedAt).length
+    });
+
     // Check if current user is the task poster
     if (task.postedBy?.id !== userId) {
       return NextResponse.json({ error: 'You can only select winners for your own tasks' }, { status: 403 });
@@ -96,7 +104,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if winner has already been selected
-    if (task.winner) {
+    if (task.winner && task.winner.id) {
+      console.log('Task already has winner:', task.winner);
       return NextResponse.json({ error: 'Winner has already been selected for this task' }, { status: 400 });
     }
 
