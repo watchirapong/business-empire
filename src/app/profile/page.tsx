@@ -4,8 +4,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
-import UsernameHistory from '@/components/UsernameHistory';
-import ServerNicknameTest from '@/components/ServerNicknameTest';
 import Achievements from '@/components/Achievements';
 
 export default function ProfilePage() {
@@ -13,7 +11,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [currentNickname, setCurrentNickname] = useState<string | null>(null);
-  const [joinDate, setJoinDate] = useState<string>('');
   const [userRank, setUserRank] = useState<string>('None');
   const [userHouse, setUserHouse] = useState<string>('None');
   const [globalRank, setGlobalRank] = useState<number>(0);
@@ -47,20 +44,6 @@ export default function ProfilePage() {
         if (nicknameResponse.ok) {
           const nicknameData = await nicknameResponse.json();
           setCurrentNickname(nicknameData.nickname);
-        }
-        
-        // Fetch join date from username history
-        const historyResponse = await fetch(`/api/users/username-history?userId=${(session.user as any).id}`);
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
-          if (historyData.history?.usernameHistory?.[0]?.changedAt) {
-            const joinDate = new Date(historyData.history.usernameHistory[0].changedAt);
-            setJoinDate(joinDate.toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            }));
-          }
         }
         // Fetch user rank and house
         const rankResponse = await fetch(`/api/users/get-rank?userId=${(session.user as any).id}`);
@@ -183,7 +166,7 @@ export default function ProfilePage() {
                   {currentNickname ? `@${currentNickname}` : `#${session.user?.name}`}
                 </p>
                 <p className="text-gray-400 text-sm mb-4">
-                  {joinDate ? `Joined Hamstellar: ${joinDate}` : 'Discord User'}
+                  Discord User
                 </p>
                 <p className="text-gray-400 mb-6">
                   House: {userHouse}
@@ -227,18 +210,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Server Nickname Test */}
-          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
-            <ServerNicknameTest />
-          </div>
-
           {/* Achievements */}
           <Achievements />
-
-          {/* Username History */}
-          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
-            <UsernameHistory />
-          </div>
         </div>
       </div>
     </div>

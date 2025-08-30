@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
       
       return {
         _id: achievement._id,
+        id: achievement._id, // Add id for compatibility
+        name: achievement.title, // Add name for compatibility
         title: achievement.title,
         description: achievement.description,
         icon: achievement.icon,
@@ -79,11 +81,43 @@ export async function GET(request: NextRequest) {
         isUnlocked,
         unlockedAt,
         progress: userAchievement?.progress || 0,
-        coinsRewarded: userAchievement?.coinsRewarded || 0
+        coinsRewarded: userAchievement?.coinsRewarded || 0,
+        // Add missing properties for component compatibility
+        requirement: {
+          type: 'default',
+          value: 100,
+          description: 'Complete this achievement'
+        },
+        reward: {
+          hamsterCoins: achievement.coinReward,
+          experience: 0
+        },
+        claimed: userAchievement?.coinsRewarded > 0 || false,
+        claimedAt: userAchievement?.coinsRewarded > 0 ? userAchievement.unlockedAt : null
       };
     });
     
-    return NextResponse.json({ achievements: achievementsWithStatus });
+    // Calculate statistics
+    const totalAchievements = achievementsWithStatus.length;
+    const unlockedAchievements = achievementsWithStatus.filter(a => a.isUnlocked).length;
+    const claimedAchievements = achievementsWithStatus.filter(a => a.claimed).length;
+    const totalRewards = achievementsWithStatus
+      .filter(a => a.claimed)
+      .reduce((sum, a) => sum + (a.coinReward || 0), 0);
+    const completionRate = totalAchievements > 0 ? Math.round((unlockedAchievements / totalAchievements) * 100) : 0;
+    
+    const statistics = {
+      total: totalAchievements,
+      unlocked: unlockedAchievements,
+      claimed: claimedAchievements,
+      totalRewards,
+      completionRate: completionRate.toString()
+    };
+    
+    return NextResponse.json({ 
+      achievements: achievementsWithStatus,
+      statistics
+    });
   } catch (error) {
     console.error('Error fetching user achievements:', error);
     return NextResponse.json({ error: 'Failed to fetch user achievements' }, { status: 500 });

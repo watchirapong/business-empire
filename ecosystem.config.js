@@ -9,7 +9,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
+        PORT: 3000,
         MONGODB_URI: 'mongodb://localhost:27017/business-empire',
         NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
         DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
@@ -18,6 +18,7 @@ module.exports = {
         DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
         DISCORD_GUILD_ID: process.env.DISCORD_GUILD_ID
       },
+      env_file: '.env',
       error_file: './logs/err.log',
       out_file: './logs/out.log',
       log_file: './logs/combined.log',

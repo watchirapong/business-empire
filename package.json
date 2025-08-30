@@ -5,12 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "start:prod": "next start",
+    "start": "node server.js",
+    "start:prod": "node server.js",
     "lint": "next lint",
     "multiplayer": "node socket-server.js",
     "discord-bot": "tsx scripts/start-discord-bot.ts",
-    "start:full": "npm run start & sleep 3 && curl -X POST http://localhost:3000/api/start-bot"
+    "start:full": "npm run start & sleep 3 && curl -X POST http://localhost:3000/api/start-bot",
+    "import-tcas": "node scripts/import-tcas-data.js",
+    "test-tcas": "node scripts/test-tcas-api.js",
+    "restart-app": "./scripts/restart-app.sh"
   },
   "dependencies": {
     "@auth/core": "0.34.2",

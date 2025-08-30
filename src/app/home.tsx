@@ -125,6 +125,42 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* TCAS Analysis */}
+              <div 
+                className="group relative bg-gradient-to-br from-blue-900/50 to-indigo-900/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25"
+                onClick={() => window.location.href = '/tcas-analysis'}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="text-5xl sm:text-6xl md:text-7xl mb-6 animate-pulse">🎓</div>
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-300 mb-4 group-hover:text-blue-200 transition-colors">
+                    TCAS Analysis
+                  </h3>
+                  <p className="text-blue-200 text-sm sm:text-base md:text-lg mb-6">
+                    วิเคราะห์ข้อมูล TCAS 68 - มหาวิทยาลัยและคณะคอมพิวเตอร์ในไทย
+                  </p>
+                  <div className="space-y-2 text-blue-300/80 text-sm">
+                    <div className="flex items-center">
+                      <span className="text-blue-400 mr-2">🏫</span>
+                      <span>ข้อมูลมหาวิทยาลัยทั้งหมด</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-blue-400 mr-2">💻</span>
+                      <span>คณะคอมพิวเตอร์ในไทย</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-blue-400 mr-2">📊</span>
+                      <span>วิเคราะห์รอบ 1,2,3,4</span>
+                    </div>
+                  </div>
+                  <div className="mt-6 text-center">
+                    <div className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl group-hover:from-blue-500 group-hover:to-indigo-500 transition-all duration-300 transform group-hover:scale-105 text-sm sm:text-base">
+                      ดูข้อมูล
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Add More Games Here */}
               <div className="group relative bg-gradient-to-br from-gray-900/50 to-slate-900/50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-gray-500/30 hover:border-gray-400/60 transition-all duration-500 cursor-pointer transform hover:scale-105">
                 <div className="relative z-10">

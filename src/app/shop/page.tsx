@@ -9,7 +9,6 @@ interface ShopItem {
   name: string;
   description: string;
   price: number;
-  category: string;
   image: string;
   inStock: boolean;
 }
@@ -17,7 +16,7 @@ interface ShopItem {
 const HamsterShop: React.FC = () => {
   const { data: session } = useSession();
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
   const [cart, setCart] = useState<ShopItem[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -26,7 +25,6 @@ const HamsterShop: React.FC = () => {
     name: '',
     description: '',
     price: '',
-    category: 'food',
     image: '',
     inStock: true
   });
@@ -37,13 +35,7 @@ const HamsterShop: React.FC = () => {
 
 
 
-  const categories = [
-    { id: 'all', name: 'All Items' },
-    { id: 'food', name: 'Food & Treats' },
-    { id: 'housing', name: 'Housing' },
-    { id: 'toys', name: 'Toys & Entertainment' },
-    { id: 'accessories', name: 'Accessories' }
-  ];
+
 
   // Check if user is admin
   useEffect(() => {
@@ -53,6 +45,8 @@ const HamsterShop: React.FC = () => {
       setIsAdmin(ADMIN_USER_IDS.includes(userId));
     }
   }, [session]);
+
+
 
   // Fetch shop items
   useEffect(() => {
@@ -193,6 +187,8 @@ const HamsterShop: React.FC = () => {
     }
   };
 
+
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
       alert('Your cart is empty');
@@ -233,9 +229,7 @@ const HamsterShop: React.FC = () => {
     }
   };
 
-  const filteredItems = selectedCategory === 'all' 
-    ? shopItems 
-    : shopItems.filter(item => item.category === selectedCategory);
+    const filteredItems = shopItems;
 
   const addToCart = (item: ShopItem) => {
     setCart([...cart, item]);
@@ -323,16 +317,7 @@ const HamsterShop: React.FC = () => {
                 onChange={(e) => setNewItem({...newItem, price: e.target.value})}
                 className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
               />
-              <select
-                value={newItem.category}
-                onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
-              >
-                <option value="food">Food & Treats</option>
-                <option value="housing">Housing</option>
-                <option value="toys">Toys & Entertainment</option>
-                <option value="accessories">Accessories</option>
-              </select>
+
               <div className="space-y-2">
                 <label className="text-white text-sm">Item Image</label>
                 <input
@@ -392,31 +377,9 @@ const HamsterShop: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Categories Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-              <h2 className="text-xl font-bold text-white mb-4">Categories</h2>
-              <div className="space-y-2">
-                {categories.map(category => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      selectedCategory === category.id
-                        ? 'bg-orange-600 text-white'
-                        : 'text-gray-300 hover:bg-white/10'
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Products Grid */}
-          <div className="lg:col-span-3">
+          <div className="w-full">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredItems.map(item => (
                 <div key={item.id} className="bg-white/10 rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all duration-300">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -27,7 +28,7 @@ const DailyVoiceReward = mongoose.models.DailyVoiceReward || mongoose.model('Dai
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,6 +56,13 @@ export async function GET(request: NextRequest) {
     const DAILY_REQUIREMENT = 15; // 15 minutes
     const REWARD_AMOUNT = 10; // 10 coins
 
+    // Calculate total rewards earned from all claimed rewards
+    const totalRewardsEarned = rewards
+      .filter(r => r.rewardClaimed)
+      .reduce((total, reward) => total + (reward.rewardAmount || REWARD_AMOUNT), 0);
+
+    console.log('Voice rewards API - Total rewards earned:', totalRewardsEarned);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -66,7 +74,7 @@ export async function GET(request: NextRequest) {
           remainingMinutes: Math.max(0, DAILY_REQUIREMENT - (todayReward?.voiceTimeMinutes || 0))
         },
         recentRewards: rewards,
-        totalRewardsEarned: rewards.filter(r => r.rewardClaimed).length * REWARD_AMOUNT
+        totalRewardsEarned: totalRewardsEarned
       }
     });
 

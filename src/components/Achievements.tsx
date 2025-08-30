@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Trophy, Star, Award, Zap, Target, CheckCircle, Lock } from 'lucide-react';
+import { Trophy, CheckCircle, Lock } from 'lucide-react';
 
 interface Achievement {
   id?: string;
@@ -43,8 +43,6 @@ export default function Achievements() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [stats, setStats] = useState<AchievementStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedRarity, setSelectedRarity] = useState<string>('all');
 
   useEffect(() => {
     if (session?.user) {
@@ -92,66 +90,9 @@ export default function Achievements() {
     }
   };
 
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case 'common': return 'text-gray-400';
-      case 'uncommon': return 'text-green-400';
-      case 'rare': return 'text-blue-400';
-      case 'epic': return 'text-purple-400';
-      case 'legendary': return 'text-yellow-400';
-      default: return 'text-gray-400';
-    }
-  };
-
-  const getRarityIcon = (rarity: string) => {
-    switch (rarity) {
-      case 'common': return '⭐';
-      case 'uncommon': return '⭐⭐';
-      case 'rare': return '⭐⭐⭐';
-      case 'epic': return '⭐⭐⭐⭐';
-      case 'legendary': return '⭐⭐⭐⭐⭐';
-      default: return '⭐';
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'login': return '🏠';
-      case 'trading': return '📈';
-      case 'gacha': return '🎰';
-      case 'shop': return '🛒';
-      case 'voice': return '🎤';
-      case 'social': return '👥';
-      case 'special': return '🎉';
-      default: return '🏆';
-    }
-  };
-
-  const filteredAchievements = achievements.filter(achievement => {
-    const categoryMatch = selectedCategory === 'all' || achievement.category === selectedCategory;
-    const rarityMatch = selectedRarity === 'all' || achievement.rarity === selectedRarity;
-    return categoryMatch && rarityMatch;
-  });
-
-  const categories = [
-    { id: 'all', name: 'All', icon: '🏆' },
-    { id: 'login', name: 'Login', icon: '🏠' },
-    { id: 'trading', name: 'Trading', icon: '📈' },
-    { id: 'gacha', name: 'Gacha', icon: '🎰' },
-    { id: 'shop', name: 'Shop', icon: '🛒' },
-    { id: 'voice', name: 'Voice', icon: '🎤' },
-    { id: 'social', name: 'Social', icon: '👥' },
-    { id: 'special', name: 'Special', icon: '🎉' }
-  ];
-
-  const rarities = [
-    { id: 'all', name: 'All Rarities' },
-    { id: 'common', name: 'Common' },
-    { id: 'uncommon', name: 'Uncommon' },
-    { id: 'rare', name: 'Rare' },
-    { id: 'epic', name: 'Epic' },
-    { id: 'legendary', name: 'Legendary' }
-  ];
+  // Separate achievements by completion status
+  const completedAchievements = achievements.filter(achievement => achievement.isUnlocked);
+  const incompleteAchievements = achievements.filter(achievement => !achievement.isUnlocked);
 
   if (loading) {
     return (
@@ -176,158 +117,184 @@ export default function Achievements() {
 
       {/* Statistics */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-orange-500/30 p-4 text-center">
-            <div className="text-white text-2xl font-bold">{stats.unlocked}</div>
-            <div className="text-gray-400 text-sm">Unlocked</div>
-          </div>
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-orange-500/30 p-4 text-center">
-            <div className="text-white text-2xl font-bold">{stats.total}</div>
-            <div className="text-gray-400 text-sm">Total</div>
-          </div>
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-orange-500/30 p-4 text-center">
-            <div className="text-white text-2xl font-bold">{stats.completionRate}%</div>
-            <div className="text-gray-400 text-sm">Complete</div>
-          </div>
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-orange-500/30 p-4 text-center">
-            <div className="text-white text-2xl font-bold">{stats.totalRewards}</div>
-            <div className="text-gray-400 text-sm">Coins Earned</div>
+        <div className="mb-6">
+          <div className="text-center mb-4">
+            <div className="text-white text-2xl font-bold mb-2">
+              {stats.unlocked} OF {stats.total} ACHIEVEMENTS EARNED
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
+                style={{
+                  width: `${stats.completionRate}%`
+                }}
+              ></div>
+            </div>
+            <div className="text-gray-400 text-sm">
+              ({stats.completionRate}%)
+            </div>
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="mb-6 space-y-4">
-        <div>
-          <label className="text-white text-sm font-medium mb-2 block">Category</label>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategory === category.id
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+      {/* Completed Achievements Section */}
+      {completedAchievements.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+            <CheckCircle className="text-green-400 mr-2" />
+            Completed Achievements ({completedAchievements.length})
+          </h3>
+          <div className="space-y-3">
+            {completedAchievements.map(achievement => (
+              <div
+                key={achievement.id}
+                className="flex items-center p-4 rounded-xl border border-green-500/30 bg-gradient-to-br from-gray-800/50 to-gray-900/50 transition-all duration-300"
               >
-                <span className="mr-1">{category.icon}</span>
-                {category.name}
-              </button>
+                {/* Achievement Icon */}
+                <div className="flex-shrink-0 mr-4">
+                  <div className="text-3xl">
+                    {achievement.icon}
+                  </div>
+                </div>
+
+                {/* Achievement Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg mb-1">{achievement.name || achievement.title}</h3>
+                      <p className="text-gray-400 text-sm mb-2">{achievement.description}</p>
+                      
+                      {/* Progress Bar */}
+                      {achievement.requirement && (
+                        <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min((achievement.progress / achievement.requirement.value) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Right side - Reward and Status */}
+                    <div className="flex flex-col items-end ml-4 space-y-2">
+                      {/* Reward Info */}
+                      {((achievement.reward?.hamsterCoins || 0) > 0 || (achievement.coinReward || 0) > 0) && (
+                        <div className="text-yellow-400 text-sm font-medium">
+                          🪙 {achievement.reward?.hamsterCoins || achievement.coinReward || 0} Coins
+                        </div>
+                      )}
+                      
+                      {/* Unlock Time */}
+                      {achievement.unlockedAt && (
+                        <div className="text-gray-400 text-xs">
+                          Unlocked {new Date(achievement.unlockedAt).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })} at {new Date(achievement.unlockedAt).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Status and Actions */}
+                      <div className="text-center">
+                        {achievement.claimed ? (
+                          <div className="flex items-center justify-center text-green-400 text-sm">
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Claimed
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => claimAchievement(achievement.id || achievement._id || '')}
+                            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Claim Reward
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-        
+      )}
+
+      {/* Incomplete Achievements Section */}
+      {incompleteAchievements.length > 0 && (
         <div>
-          <label className="text-white text-sm font-medium mb-2 block">Rarity</label>
-          <div className="flex flex-wrap gap-2">
-            {rarities.map(rarity => (
-              <button
-                key={rarity.id}
-                onClick={() => setSelectedRarity(rarity.id)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  selectedRarity === rarity.id
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+            <Lock className="text-gray-400 mr-2" />
+            Incomplete Achievements ({incompleteAchievements.length})
+          </h3>
+          <div className="space-y-3">
+            {incompleteAchievements.map(achievement => (
+              <div
+                key={achievement.id}
+                className="flex items-center p-4 rounded-xl border border-gray-600/30 bg-gradient-to-br from-gray-800/30 to-gray-900/30 transition-all duration-300"
               >
-                {rarity.name}
-              </button>
+                {/* Achievement Icon */}
+                <div className="flex-shrink-0 mr-4">
+                  <div className="text-3xl">
+                    🔒
+                  </div>
+                </div>
+
+                {/* Achievement Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg mb-1">{achievement.name || achievement.title}</h3>
+                      <p className="text-gray-400 text-sm mb-2">{achievement.description}</p>
+                      
+                      {/* Progress Bar */}
+                      {achievement.requirement && (
+                        <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                          <div
+                            className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min((achievement.progress / achievement.requirement.value) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Right side - Reward and Status */}
+                    <div className="flex flex-col items-end ml-4 space-y-2">
+                      {/* Reward Info */}
+                      {((achievement.reward?.hamsterCoins || 0) > 0 || (achievement.coinReward || 0) > 0) && (
+                        <div className="text-yellow-400 text-sm font-medium">
+                          🪙 {achievement.reward?.hamsterCoins || achievement.coinReward || 0} Coins
+                        </div>
+                      )}
+                      
+                      {/* Status */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center text-gray-400 text-sm">
+                          <Lock className="w-4 h-4 mr-1" />
+                          Locked
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Achievements Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredAchievements.map(achievement => (
-          <div
-            key={achievement.id}
-            className={`relative p-4 rounded-xl border transition-all duration-300 ${
-              achievement.isUnlocked
-                ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-green-500/30'
-                : 'bg-gradient-to-br from-gray-800/30 to-gray-900/30 border-gray-600/30'
-            }`}
-          >
-            {/* Rarity Badge */}
-            <div className={`absolute top-2 right-2 text-xs font-bold ${getRarityColor(achievement.rarity)}`}>
-              {getRarityIcon(achievement.rarity)}
-            </div>
-
-            {/* Achievement Icon */}
-            <div className="text-center mb-3">
-              <div className="text-4xl mb-2">
-                {achievement.isUnlocked ? achievement.icon : '🔒'}
-              </div>
-              <div className="text-sm text-gray-400">
-                {getCategoryIcon(achievement.category)} {achievement.category}
-              </div>
-            </div>
-
-            {/* Achievement Info */}
-            <div className="text-center mb-3">
-              <h3 className="text-white font-semibold mb-1">{achievement.name || achievement.title}</h3>
-              <p className="text-gray-400 text-sm mb-2">{achievement.description}</p>
-              
-              {/* Progress Bar */}
-              {achievement.requirement && (
-                <>
-                  <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min((achievement.progress / achievement.requirement.value) * 100, 100)}%`
-                      }}
-                    ></div>
-                  </div>
-                  
-                  <div className="text-xs text-gray-400">
-                    {achievement.progress} / {achievement.requirement.value} - {achievement.requirement.description}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Reward Info */}
-            {((achievement.reward?.hamsterCoins || 0) > 0 || (achievement.coinReward || 0) > 0) && (
-              <div className="text-center mb-3">
-                <div className="text-yellow-400 text-sm font-medium">
-                  🪙 {achievement.reward?.hamsterCoins || achievement.coinReward || 0} Coins
-                </div>
-              </div>
-            )}
-
-            {/* Status and Actions */}
-            <div className="text-center">
-              {achievement.isUnlocked ? (
-                achievement.claimed ? (
-                  <div className="flex items-center justify-center text-green-400 text-sm">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Claimed
-                  </div>
-                ) : (
-                                   <button
-                   onClick={() => claimAchievement(achievement.id || achievement._id || '')}
-                   className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                 >
-                   Claim Reward
-                 </button>
-                )
-              ) : (
-                <div className="flex items-center justify-center text-gray-400 text-sm">
-                  <Lock className="w-4 h-4 mr-1" />
-                  Locked
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredAchievements.length === 0 && (
+      {achievements.length === 0 && (
         <div className="text-center py-8">
           <div className="text-gray-400 text-lg">No achievements found</div>
-          <p className="text-gray-500 text-sm">Try adjusting your filters</p>
+          <p className="text-gray-500 text-sm">Start playing to unlock achievements!</p>
         </div>
       )}
     </div>

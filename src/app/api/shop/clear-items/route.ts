@@ -35,11 +35,7 @@ const shopItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  category: { 
-    type: String, 
-    required: true,
-    enum: ['food', 'housing', 'toys', 'accessories']
-  },
+
   image: { 
     type: String, 
     required: true,
