@@ -39,8 +39,9 @@ const shopItemSchema = new mongoose.Schema({
 
   image: { 
     type: String, 
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: '🛒'
   },
   inStock: { 
     type: Boolean, 
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     const { name, description, price, image, inStock } = body;
 
     // Validate required fields
-    if (!name || !description || !price || !image) {
+    if (!name || !description || !price) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
       name,
       description,
       price: parseFloat(price),
-      image,
+      image: image || '🛒', // Use default emoji if no image provided
       inStock: inStock !== undefined ? inStock : true
     });
 
