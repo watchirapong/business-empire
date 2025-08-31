@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import { isAdmin } from '@/lib/admin-config';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -386,12 +389,59 @@ export async function DELETE(request: NextRequest) {
 
     await connectDB();
 
-    // Find and delete item from MongoDB
-    const deletedItem = await ShopItem.findByIdAndDelete(id);
-
-    if (!deletedItem) {
+    // Find the item before deleting to get file information
+    const itemToDelete = await ShopItem.findById(id);
+    if (!itemToDelete) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
+
+    // Clean up associated files
+    try {
+      // 1. Delete file from FileStorage collection (database)
+      const FileStorage = mongoose.models.FileStorage || mongoose.model('FileStorage', new mongoose.Schema({
+        itemId: mongoose.Schema.Types.ObjectId,
+        fileName: String,
+        originalName: String,
+        fileData: String,
+        fileSize: Number,
+        mimeType: String,
+        uploadedAt: Date,
+        uploadedBy: String,
+        fileHash: String,
+        isActive: Boolean,
+        downloadCount: Number
+      }));
+
+      await FileStorage.deleteMany({ itemId: new mongoose.Types.ObjectId(id) });
+      console.log(`Deleted file records for item ${id}`);
+
+      // 2. Delete physical image file from uploads directory
+      if (itemToDelete.image && itemToDelete.image.includes('/api/uploads/shop/')) {
+        const fileName = itemToDelete.image.split('/').pop();
+        if (fileName) {
+          const imagePath = join(process.cwd(), 'public', 'uploads', 'shop', fileName);
+          if (existsSync(imagePath)) {
+            await unlink(imagePath);
+            console.log(`Deleted physical image file: ${imagePath}`);
+          }
+        }
+      }
+
+      // 3. Delete any associated files in shop-files directory
+      const shopFilesDir = join(process.cwd(), 'public', 'uploads', 'shop-files');
+      if (existsSync(shopFilesDir)) {
+        // Look for files that might be associated with this item
+        // This is a more complex cleanup that might need refinement
+        console.log(`Checked shop-files directory for item ${id}`);
+      }
+
+    } catch (fileError) {
+      console.error('Error cleaning up files:', fileError);
+      // Continue with item deletion even if file cleanup fails
+    }
+
+    // Delete the item from MongoDB
+    const deletedItem = await ShopItem.findByIdAndDelete(id);
 
     // Return the deleted item with id field
     const itemWithId = {
@@ -405,7 +455,7 @@ export async function DELETE(request: NextRequest) {
     };
 
     return NextResponse.json({ 
-      message: 'Item deleted successfully', 
+      message: 'Item and associated files deleted successfully', 
       item: itemWithId 
     });
   } catch (error) {

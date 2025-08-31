@@ -17,7 +17,7 @@ const fileStorageSchema = new mongoose.Schema({
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   fileName: { type: String, required: true },
   originalName: { type: String, required: true },
-  fileData: { type: String, required: true }, // Base64 encoded file data
+  fileData: { type: Buffer, required: true }, // Binary file data
   fileSize: { type: Number, required: true },
   mimeType: { type: String, required: true },
   uploadedAt: { type: Date, default: Date.now },
@@ -118,13 +118,36 @@ export async function POST(request: NextRequest) {
       await mongoose.connect(process.env.MONGODB_URI!);
     }
 
-    // Convert file to Base64
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Data = buffer.toString('base64');
-
-    // Generate simple hash for file integrity (optional)
-    const fileHash = crypto.createHash('md5').update(buffer).digest('hex');
+    // Store file as binary data instead of Base64 to avoid size issues
+    let fileData: Buffer;
+    let fileHash: string;
+    
+    try {
+      // Use streaming approach to avoid memory issues
+      const chunks: Uint8Array[] = [];
+      const reader = file.stream().getReader();
+      const hash = crypto.createHash('md5');
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        chunks.push(value);
+        hash.update(value);
+      }
+      
+      // Combine chunks into buffer
+      const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+      fileData = Buffer.concat(chunks, totalLength);
+      fileHash = hash.digest('hex');
+      
+      console.log(`File processed successfully: ${fileName} (${file.size} bytes)`);
+    } catch (bufferError) {
+      console.error('Buffer conversion error:', bufferError);
+      return NextResponse.json({ 
+        error: `File too large to process. Please try a smaller file or contact support.` 
+      }, { status: 413 });
+    }
 
     // Check if file already exists for this item
     const existingFile = await FileStorage.findOne({ itemId });
@@ -132,7 +155,7 @@ export async function POST(request: NextRequest) {
       // Update existing file
       existingFile.fileName = fileName;
       existingFile.originalName = fileName;
-      existingFile.fileData = base64Data;
+      existingFile.fileData = fileData;
       existingFile.fileSize = file.size;
       existingFile.mimeType = fileType;
       existingFile.uploadedAt = new Date();
@@ -148,7 +171,7 @@ export async function POST(request: NextRequest) {
         itemId: new mongoose.Types.ObjectId(itemId),
         fileName: fileName,
         originalName: fileName,
-        fileData: base64Data,
+        fileData: fileData,
         fileSize: file.size,
         mimeType: fileType,
         uploadedBy: userId,

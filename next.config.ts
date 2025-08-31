@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['discord.js', 'zlib-sync', 'bufferutil', 'utf-8-validate'],
     serverActions: {
-      bodySizeLimit: '100mb',
+      bodySizeLimit: '200mb',
     },
   },
   allowedDevOrigins: [

@@ -9,7 +9,7 @@ const fileStorageSchema = new mongoose.Schema({
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   fileName: { type: String, required: true },
   originalName: { type: String, required: true },
-  fileData: { type: String, required: true }, // Base64 encoded file data
+  fileData: { type: Buffer, required: true }, // Binary file data
   fileSize: { type: Number, required: true },
   mimeType: { type: String, required: true },
   uploadedAt: { type: Date, default: Date.now },
@@ -97,8 +97,8 @@ export async function GET(
     console.log(`Serving file for item ${itemId}: ${fileRecord.originalName} (Download #${fileRecord.downloadCount})`);
     console.log(`File details - fileName: ${fileRecord.fileName}, originalName: ${fileRecord.originalName}`);
 
-    // Convert Base64 back to buffer
-    const fileBuffer = Buffer.from(fileRecord.fileData, 'base64');
+    // File data is already a buffer
+    const fileBuffer = fileRecord.fileData;
 
     // Verify file integrity (optional)
     const calculatedHash = crypto.createHash('md5').update(fileBuffer).digest('hex');

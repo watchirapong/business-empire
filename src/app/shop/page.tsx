@@ -971,18 +971,7 @@ const HamsterShop: React.FC = () => {
                       >
                         Add to Cart
                       </button>
-                      {isAdmin && item.hasFile && item.fileUrl && (
-                        <button
-                          onClick={() => {
-                            console.log('Admin download clicked:', item.fileUrl);
-                            window.open(`/api/uploads${item.fileUrl}`, '_blank');
-                          }}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg transition-colors"
-                          title="Download File (Admin Only)"
-                        >
-                          📥
-                        </button>
-                      )}
+
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteItem(item.id)}

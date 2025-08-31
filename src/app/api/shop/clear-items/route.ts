@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { unlink, readdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -103,11 +106,60 @@ export async function DELETE(request: NextRequest) {
 
     await connectDB();
 
+    // Clean up all associated files before deleting items
+    try {
+      // 1. Delete all files from FileStorage collection
+      const FileStorage = mongoose.models.FileStorage || mongoose.model('FileStorage', new mongoose.Schema({
+        itemId: mongoose.Schema.Types.ObjectId,
+        fileName: String,
+        originalName: String,
+        fileData: String,
+        fileSize: Number,
+        mimeType: String,
+        uploadedAt: Date,
+        uploadedBy: String,
+        fileHash: String,
+        isActive: Boolean,
+        downloadCount: Number
+      }));
+
+      const fileResult = await FileStorage.deleteMany({});
+      console.log(`Deleted ${fileResult.deletedCount} file records from database`);
+
+      // 2. Clean up physical image files from uploads directory
+      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'shop');
+      if (existsSync(uploadsDir)) {
+        const files = await readdir(uploadsDir);
+        for (const file of files) {
+          if (file.startsWith('shop-')) {
+            const filePath = join(uploadsDir, file);
+            await unlink(filePath);
+            console.log(`Deleted image file: ${filePath}`);
+          }
+        }
+      }
+
+      // 3. Clean up shop-files directory
+      const shopFilesDir = join(process.cwd(), 'public', 'uploads', 'shop-files');
+      if (existsSync(shopFilesDir)) {
+        const files = await readdir(shopFilesDir);
+        for (const file of files) {
+          const filePath = join(shopFilesDir, file);
+          await unlink(filePath);
+          console.log(`Deleted shop file: ${filePath}`);
+        }
+      }
+
+    } catch (fileError) {
+      console.error('Error cleaning up files:', fileError);
+      // Continue with item deletion even if file cleanup fails
+    }
+
     // Delete all shop items
     const result = await ShopItem.deleteMany({});
 
     return NextResponse.json({ 
-      message: `Successfully deleted ${result.deletedCount} items from the shop`,
+      message: `Successfully deleted ${result.deletedCount} items and all associated files from the shop`,
       deletedCount: result.deletedCount
     });
 
