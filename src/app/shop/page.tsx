@@ -53,10 +53,12 @@ const HamsterShop: React.FC = () => {
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
   const [hamsterCoinBalance, setHamsterCoinBalance] = useState<number>(0);
+  const [fileUploadError, setFileUploadError] = useState<string>('');
+  const [fileUploadSuccess, setFileUploadSuccess] = useState<string>('');
 
 
 
@@ -216,52 +218,74 @@ const HamsterShop: React.FC = () => {
   };
 
   const handleFileUpload = async (itemId: string): Promise<boolean> => {
-    console.log('Starting file upload for item:', itemId);
-    
     if (!fileToUpload) {
-      console.log('No file to upload');
+      setFileUploadError('No file selected for upload');
       return false;
     }
 
     try {
-      console.log('Preparing form data...');
+      setIsUploading(true);
+      setFileUploadError('');
+      setFileUploadSuccess('Uploading file...');
+      
       const formData = new FormData();
       formData.append('file', fileToUpload);
       formData.append('itemId', itemId);
 
-      console.log('Sending file upload request...');
       const response = await fetch('/api/shop/upload-file', {
         method: 'POST',
         body: formData,
       });
 
-      console.log('File upload response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('File upload successful:', data);
         
-        // Update the item in the shop items list
-        setShopItems(prevItems => 
-          prevItems.map(item => 
-            item.id === itemId 
-              ? { ...item, fileUrl: data.fileUrl, hasFile: true, fileName: data.fileName }
-              : item
-          )
-        );
+        // Update the item in the database
+        const updateResponse = await fetch('/api/shop/items', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: itemId,
+            fileUrl: data.fileUrl,
+            fileName: data.fileName,
+            hasFile: true,
+            contentType: 'file'
+          }),
+        });
+
+        if (updateResponse.ok) {
+          const updateData = await updateResponse.json();
+          console.log('Item updated in database:', updateData);
+          
+          // Update the item in the shop items list
+          setShopItems(prevItems => 
+            prevItems.map(item => 
+              item.id === itemId 
+                ? { ...item, fileUrl: data.fileUrl, hasFile: true, fileName: data.fileName }
+                : item
+            )
+          );
+        } else {
+          console.error('Failed to update item in database');
+        }
         
         setFileToUpload(null);
+        setFileUploadSuccess('File uploaded successfully!');
+        setTimeout(() => setFileUploadSuccess(''), 3000);
         return true;
       } else {
         const errorData = await response.json();
-        console.error('File upload failed:', errorData);
-        alert(`Failed to upload file: ${errorData.error}`);
+        setFileUploadError(`Upload failed: ${errorData.error}`);
         return false;
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to upload file');
+      setFileUploadError('Network error: Failed to upload file');
       return false;
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -309,6 +333,29 @@ const HamsterShop: React.FC = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 50MB for all file types)
+      if (file.size > 50 * 1024 * 1024) {
+        setFileUploadError('File size must be less than 50MB');
+        setFileToUpload(null);
+        return;
+      }
+      
+      // Clear previous messages
+      setFileUploadError('');
+      setFileUploadSuccess('');
+      
+      setFileToUpload(file);
+      setFileUploadSuccess(`File selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+    } else {
+      setFileToUpload(null);
+      setFileUploadError('');
+      setFileUploadSuccess('');
+    }
+  };
+
   const handlePurchase = async (itemId: string) => {
     try {
       const response = await fetch('/api/shop/purchase', {
@@ -327,7 +374,8 @@ const HamsterShop: React.FC = () => {
         if (purchasedItemData) {
           console.log('Purchase data received:', purchasedItemData);
           setPurchasedItem(purchasedItemData);
-          setShowPurchaseSuccess(true);
+          
+                  setShowPurchaseSuccess(true);
         } else {
           console.error('No purchase data received from API');
           alert('Purchase successful, but could not load item details.');
@@ -348,12 +396,24 @@ const HamsterShop: React.FC = () => {
 
   const handleDownload = async (purchaseId: string) => {
     try {
-      const response = await fetch('/api/shop/download', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ purchaseId }),
+      // First get the purchase details to get the itemId
+      const purchaseResponse = await fetch('/api/shop/purchase');
+      if (!purchaseResponse.ok) {
+        alert('Failed to get purchase details');
+        return;
+      }
+      
+      const purchaseData = await purchaseResponse.json();
+      const purchase = purchaseData.purchases.find((p: any) => p._id === purchaseId);
+      
+      if (!purchase) {
+        alert('Purchase not found');
+        return;
+      }
+
+      // Use the new direct download endpoint
+      const response = await fetch(`/api/shop/download-file/${purchase.itemId}`, {
+        method: 'GET',
       });
 
       if (response.ok) {
@@ -361,13 +421,23 @@ const HamsterShop: React.FC = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = ''; // Browser will use the filename from Content-Disposition
+        
+        // Get filename from Content-Disposition header or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = 'download';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        // Refresh purchase history to update download count
         fetchPurchaseHistory();
       } else {
         const errorData = await response.json();
@@ -379,13 +449,7 @@ const HamsterShop: React.FC = () => {
     }
   };
 
-  const handleDownloadFromPopup = async () => {
-    if (purchasedItem) {
-      await handleDownload(purchasedItem._id);
-      setShowDownloadPopup(false);
-      setPurchasedItem(null);
-    }
-  };
+
 
   const fetchPurchaseHistory = async () => {
     try {
@@ -427,6 +491,27 @@ const HamsterShop: React.FC = () => {
     } catch (error) {
       console.error('Error clearing items:', error);
       alert('Error clearing items');
+    }
+  };
+
+  const handleFixFileItems = async () => {
+    try {
+      const response = await fetch('/api/shop/fix-file-items', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Fixed ${data.fixedCount} items with file content type`);
+        // Refresh the shop items to show updated data
+        fetchShopItems();
+      } else {
+        console.error('Failed to fix file items');
+        alert('Failed to fix file items');
+      }
+    } catch (error) {
+      console.error('Error fixing file items:', error);
+      alert('Error fixing file items');
     }
   };
 
@@ -489,6 +574,7 @@ const HamsterShop: React.FC = () => {
             hasFile: firstPurchase.hasFile,
             fileName: firstPurchase.fileName
           });
+          
           setShowPurchaseSuccess(true);
         } else {
           // Fallback if no purchase data
@@ -579,6 +665,12 @@ const HamsterShop: React.FC = () => {
                 className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 🗑️ Clear All Items
+              </button>
+              <button
+                onClick={handleFixFileItems}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                🔧 Fix File Items
               </button>
             </div>
           )}
@@ -683,9 +775,28 @@ const HamsterShop: React.FC = () => {
                   <label className="text-white text-sm">File Upload</label>
                   <input
                     type="file"
-                    onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
+                  {isUploading && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                      <span className="text-blue-400 text-sm">Uploading file...</span>
+                    </div>
+                  )}
+                  {fileUploadSuccess && (
+                    <p className="text-green-400 text-sm mt-2">{fileUploadSuccess}</p>
+                  )}
+                  {fileUploadError && (
+                    <p className="text-red-400 text-sm mt-2">{fileUploadError}</p>
+                  )}
+                  {fileToUpload && !isUploading && (
+                    <div className="mt-2 p-2 bg-blue-500/20 rounded text-sm text-blue-200">
+                      <p>Selected: {fileToUpload.name}</p>
+                      <p>Size: {(fileToUpload.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -713,16 +824,24 @@ const HamsterShop: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={newItem.requiresRole}
-                  onChange={(e) => setNewItem({...newItem, requiresRole: e.target.checked})}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setNewItem({
+                      ...newItem, 
+                      requiresRole: isChecked,
+                      requiredRoleId: isChecked ? '1388546120912998554' : '',
+                      requiredRoleName: isChecked ? 'Starway' : ''
+                    });
+                  }}
                   className="bg-white/10 border border-white/20 rounded"
                 />
-                <label className="text-white font-semibold">🔒 Require Discord Role</label>
+                <label className="text-white">Require Discord Role</label>
               </div>
 
               {newItem.requiresRole && (
-                <div className="md:col-span-2 space-y-3 bg-purple-900/20 rounded-lg p-4 border border-purple-500/30">
+                <div className="md:col-span-2 space-y-3">
                   <div>
-                    <label className="text-white text-sm font-semibold">Discord Role ID *</label>
+                    <label className="text-white text-sm">Discord Role ID *</label>
                     <input
                       type="text"
                       placeholder="1388546120912998554"
@@ -735,14 +854,11 @@ const HamsterShop: React.FC = () => {
                     <label className="text-white text-sm">Role Name (Optional - for display)</label>
                     <input
                       type="text"
-                      placeholder="VIP Member"
+                      placeholder="Starway"
                       value={newItem.requiredRoleName}
                       onChange={(e) => setNewItem({...newItem, requiredRoleName: e.target.value})}
                       className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
                     />
-                  </div>
-                  <div className="text-xs text-purple-300 bg-purple-900/30 p-2 rounded">
-                    💡 Only users with this Discord role can purchase this item
                   </div>
                 </div>
               )}
@@ -782,20 +898,39 @@ const HamsterShop: React.FC = () => {
           <div className="w-full">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredItems.map(item => (
-                <div key={item.id} className="bg-white/10 rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all duration-300">
-                  <div className="text-center mb-4">
-                    <div className="mb-4">
-                      {item.image.startsWith('/') ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-24 h-24 object-cover rounded-lg mx-auto border border-white/20"
-                        />
-                      ) : (
-                        <div className="text-6xl">{item.image}</div>
+                <div key={item.id} className={`rounded-xl p-6 transition-all duration-300 relative ${
+                  item.requiresRole 
+                    ? 'bg-gradient-to-br from-yellow-900/40 to-amber-800/30 border-2 border-yellow-500/60 hover:border-yellow-400/80 shadow-lg shadow-yellow-500/30' 
+                    : 'bg-white/10 border border-white/20 hover:border-white/40'
+                }`}>
+                                      <div className="text-center mb-4">
+                      {item.requiresRole && (
+                        <div className="absolute top-2 right-2 text-2xl animate-bounce">
+                          👑
+                        </div>
                       )}
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
+                      <div className="mb-4 relative">
+                        {item.image.startsWith('/') ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className={`w-24 h-24 object-cover rounded-lg mx-auto border ${
+                              item.requiresRole 
+                                ? 'border-yellow-400/60 shadow-lg shadow-yellow-500/40' 
+                                : 'border-white/20'
+                            }`}
+                          />
+                        ) : (
+                          <div className={`text-6xl ${
+                            item.requiresRole ? 'drop-shadow-lg drop-shadow-yellow-500/40' : ''
+                          }`}>{item.image}</div>
+                        )}
+                      </div>
+                    <h3 className={`text-xl font-bold mb-2 ${
+                      item.requiresRole 
+                        ? 'text-yellow-200 drop-shadow-lg drop-shadow-yellow-500/50' 
+                        : 'text-white'
+                    }`}>{item.name}</h3>
                     <p className="text-gray-300 text-sm mb-4">{item.description}</p>
                     
 
@@ -814,12 +949,15 @@ const HamsterShop: React.FC = () => {
                       </span>
                       <div className="flex space-x-1">
                         {item.hasFile && (
-                          <span className="text-sm px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-                            📁 Has File
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-sm px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                              📁 Has File
+                            </span>
+                            <span className="text-xs text-gray-400 mt-1">Purchase to download</span>
+                          </div>
                         )}
                         {item.requiresRole && (
-                          <span className="text-sm px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
+                          <span className="text-sm px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-600 to-amber-500 text-white font-semibold shadow-lg border border-yellow-400/50 animate-pulse">
                             🔒 {item.requiredRoleName || 'Role Required'}
                           </span>
                         )}
@@ -833,6 +971,18 @@ const HamsterShop: React.FC = () => {
                       >
                         Add to Cart
                       </button>
+                      {isAdmin && item.hasFile && item.fileUrl && (
+                        <button
+                          onClick={() => {
+                            console.log('Admin download clicked:', item.fileUrl);
+                            window.open(`/api/uploads${item.fileUrl}`, '_blank');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg transition-colors"
+                          title="Download File (Admin Only)"
+                        >
+                          📥
+                        </button>
+                      )}
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteItem(item.id)}
@@ -978,19 +1128,18 @@ const HamsterShop: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex space-x-3 mb-4">
-                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
-                    <button
-                      onClick={handleDownloadFromPopup}
-                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      📥 Download Now
-                    </button>
-                  )}
+                                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
+                  <button
+                    onClick={() => handleDownload(purchasedItem._id)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    📥 Download Now
+                  </button>
+                )}
                   <button
                     onClick={() => {
                       setShowPurchaseSuccess(false);
                       setPurchasedItem(null);
-                      setShowDownloadPopup(false);
                     }}
                     className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                   >
@@ -1006,50 +1155,7 @@ const HamsterShop: React.FC = () => {
           </div>
         )}
 
-        {/* Download Popup - Only for file downloads */}
-        {showDownloadPopup && purchasedItem && purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h2>
-                <p className="text-gray-300 mb-4">
-                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.itemName}</span>
-                </p>
-                
-                <div className="bg-blue-500/20 rounded-lg p-4 mb-6 border border-blue-500/30">
-                  <div className="text-4xl mb-2">📁</div>
-                  <p className="text-blue-300 font-semibold mb-1">File Available for Download</p>
-                  {purchasedItem.fileName && (
-                    <p className="text-gray-300 text-sm">{purchasedItem.fileName}</p>
-                  )}
-                </div>
 
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleDownloadFromPopup}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    📥 Download Now
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDownloadPopup(false);
-                      setPurchasedItem(null);
-                    }}
-                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    Later
-                  </button>
-                </div>
-                
-                <p className="text-gray-400 text-sm mt-4">
-                  You can also download this file anytime from your <span className="text-blue-400 cursor-pointer" onClick={() => router.push('/purchases')}>Purchase History</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

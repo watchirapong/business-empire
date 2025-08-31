@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { hasDiscordRole } from '@/lib/admin-config';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -222,6 +223,19 @@ export async function POST(request: NextRequest) {
         type: Boolean, 
         default: false
       },
+      // Role-based restrictions
+      requiresRole: {
+        type: Boolean,
+        default: false
+      },
+      requiredRoleId: {
+        type: String,
+        default: ''
+      },
+      requiredRoleName: {
+        type: String,
+        default: ''
+      },
       createdAt: { 
         type: Date, 
         default: Date.now 
@@ -233,6 +247,33 @@ export async function POST(request: NextRequest) {
     });
 
     const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', shopItemSchema);
+
+    // Check role requirements for all items before processing
+    for (const item of items) {
+      console.log('Checkout API - Checking role requirements for item:', item.id);
+      const fullItem = await ShopItem.findById(item.id);
+      console.log('Checkout API - Full item data:', JSON.stringify(fullItem, null, 2));
+      
+      if (fullItem && fullItem.requiresRole && fullItem.requiredRoleId) {
+        console.log(`Checkout API - Item ${fullItem.name} requires role: ${fullItem.requiredRoleId}`);
+        console.log(`Checkout API - User ID: ${userId}`);
+        
+        const hasRequiredRole = await hasDiscordRole(userId, fullItem.requiredRoleId);
+        console.log(`Checkout API - Has required role result: ${hasRequiredRole}`);
+        
+        if (!hasRequiredRole) {
+          console.log(`Checkout API - Access denied for user ${userId} on item ${fullItem.name}`);
+          return NextResponse.json({ 
+            error: `Item "${fullItem.name}" requires the role: ${fullItem.requiredRoleName || fullItem.requiredRoleId}`,
+            requiredRole: fullItem.requiredRoleName || fullItem.requiredRoleId,
+            itemName: fullItem.name
+          }, { status: 403 });
+        }
+        console.log(`Checkout API - User ${userId} has required role for item ${fullItem.name}`);
+      } else {
+        console.log(`Checkout API - Item ${fullItem?.name} does not require role or role data missing`);
+      }
+    }
 
     // Get complete item details from database and create purchase history records
     const itemDetails = await Promise.all(

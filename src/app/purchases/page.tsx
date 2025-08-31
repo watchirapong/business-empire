@@ -64,12 +64,24 @@ export default function PurchaseHistoryPage() {
     try {
       setDownloading(purchaseId);
       
-      const response = await fetch('/api/shop/download', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ purchaseId }),
+      // First get the purchase details to get the itemId
+      const purchaseResponse = await fetch('/api/shop/purchase');
+      if (!purchaseResponse.ok) {
+        alert('Failed to get purchase details');
+        return;
+      }
+      
+      const purchaseData = await purchaseResponse.json();
+      const purchase = purchaseData.purchases.find((p: any) => p._id === purchaseId);
+      
+      if (!purchase) {
+        alert('Purchase not found');
+        return;
+      }
+
+      // Use the new direct download endpoint
+      const response = await fetch(`/api/shop/download-file/${purchase.itemId}`, {
+        method: 'GET',
       });
 
       if (response.ok) {
@@ -77,7 +89,18 @@ export default function PurchaseHistoryPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = ''; // Browser will use the filename from Content-Disposition
+        
+        // Get filename from Content-Disposition header or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = 'download';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

@@ -4,9 +4,17 @@ const next = require('next');
 const { connectDB } = require('./config/database');
 const gameService = require('./services/gameService');
 require('dotenv').config();
+const { parse } = require('url');
 
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const hostname = 'localhost';
+const port = process.env.PORT || 3000;
+
+// Configure for large file uploads
+process.env.NODE_OPTIONS = process.env.NODE_OPTIONS || '--max-http-header-size=65536';
+
+// Prepare the Next.js app
+const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 // Game state management (in-memory cache for active games)
@@ -24,9 +32,54 @@ app.prepare().then(async () => {
     process.exit(1);
   }
 
-  const server = createServer((req, res) => {
-    handle(req, res);
+  const server = createServer(async (req, res) => {
+    try {
+      // Parse the URL
+      const parsedUrl = parse(req.url, true);
+      const { pathname } = parsedUrl;
+
+      // Configure timeout for large file uploads
+      if (pathname.startsWith('/api/shop/upload-file')) {
+        // Increase the limit for file uploads
+        req.setTimeout(300000); // 5 minutes timeout
+        
+        // Set headers for large file uploads
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+
+        // Set higher limits for file uploads
+        req.setMaxListeners(0);
+        res.setMaxListeners(0);
+        
+        // Increase buffer size for large uploads
+        req.setEncoding('binary');
+      }
+
+      // Let Next.js handle the request
+      await handle(req, res, parsedUrl);
+    } catch (err) {
+      console.error('Error occurred handling', req.url, err);
+      res.statusCode = 500;
+      res.end('internal server error');
+    }
   });
+
+  // Configure server for large file uploads
+  server.maxHeaderSize = 64 * 1024; // 64KB
+  server.timeout = 300000; // 5 minutes
+  
+  // Set higher limits for large file uploads
+  server.maxConnections = 1000;
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
 
   const io = new Server(server, {
     cors: {
@@ -35,6 +88,15 @@ app.prepare().then(async () => {
       credentials: true
     }
   });
+
+  server
+    .once('error', (err) => {
+      console.error(err);
+      process.exit(1);
+    })
+    .listen(port, () => {
+      console.log(`> Ready on http://${hostname}:${port}`);
+    });
 
   io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
@@ -527,11 +589,6 @@ app.prepare().then(async () => {
         }
       });
     });
-  });
-
-  const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`🚀 Multiplayer server running on port ${PORT}`);
   });
 });
 

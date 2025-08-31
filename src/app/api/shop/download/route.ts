@@ -2,90 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      return;
-    }
-    await mongoose.connect(process.env.MONGODB_URI!);
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
 
 // Purchase History Schema
 const purchaseHistorySchema = new mongoose.Schema({
-  userId: { 
-    type: String, 
-    required: true,
-    index: true
-  },
-  username: {
-    type: String,
-    required: true
-  },
-  itemId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'ShopItem',
-    required: true,
-    index: true
-  },
-  itemName: {
-    type: String,
-    required: true
-  },
-  price: { 
-    type: Number, 
-    required: true 
-  },
-  purchaseDate: { 
-    type: Date, 
-    default: Date.now 
-  },
-  downloadCount: { 
-    type: Number, 
-    default: 0 
-  },
-  lastDownloadDate: { 
-    type: Date 
-  },
-  hasFile: {
-    type: Boolean,
-    default: false
-  },
-  fileUrl: {
-    type: String
-  },
-  fileName: {
-    type: String
-  }
+  userId: { type: String, required: true },
+  itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: true },
+  itemName: { type: String, required: true },
+  price: { type: Number, required: true },
+  purchaseDate: { type: Date, default: Date.now },
+  hasFile: { type: Boolean, default: false },
+  fileUrl: { type: String },
+  fileName: { type: String },
+  contentType: { type: String },
+  textContent: { type: String },
+  linkUrl: { type: String }
+});
+
+// File Storage Schema
+const fileStorageSchema = new mongoose.Schema({
+  itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  fileName: { type: String, required: true },
+  originalName: { type: String, required: true },
+  fileData: { type: String, required: true },
+  fileSize: { type: Number, required: true },
+  mimeType: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now }
 });
 
 const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', purchaseHistorySchema);
+const FileStorage = mongoose.models.FileStorage || mongoose.model('FileStorage', fileStorageSchema);
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
     const session = await getServerSession(authOptions);
-    
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    await connectDB();
 
     const { purchaseId } = await request.json();
     const userId = (session.user as any).id;
 
     if (!purchaseId) {
-      return NextResponse.json({ error: 'Purchase ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Purchase ID required' }, { status: 400 });
     }
 
-    // Get the purchase record
+    // Get purchase record
     const purchase = await PurchaseHistory.findById(purchaseId);
     if (!purchase) {
       return NextResponse.json({ error: 'Purchase not found' }, { status: 404 });
@@ -93,40 +55,60 @@ export async function POST(request: NextRequest) {
 
     // Verify ownership
     if (purchase.userId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized access to this purchase' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Check if file exists
-    if (!purchase.hasFile || !purchase.fileUrl) {
-      return NextResponse.json({ error: 'No file available for this purchase' }, { status: 404 });
+    if (!purchase.hasFile || !purchase.fileUrl || purchase.fileUrl === '') {
+      console.log('Download API - No file available:', {
+        hasFile: purchase.hasFile,
+        fileUrl: purchase.fileUrl,
+        fileName: purchase.fileName
+      });
+      return NextResponse.json({ error: 'No file available' }, { status: 404 });
     }
 
-    // Get file path
-    const filePath = path.join(process.cwd(), 'public', purchase.fileUrl);
-    
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: 'File not found on server' }, { status: 404 });
+    // Connect to database
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(process.env.MONGODB_URI!);
     }
 
-    // Update download count and last download date
-    await PurchaseHistory.findByIdAndUpdate(purchaseId, {
-      downloadCount: purchase.downloadCount + 1,
-      lastDownloadDate: new Date()
+    // Get file from database
+    const fileRecord = await FileStorage.findOne({ 
+      itemId: purchase.itemId 
     });
 
-    // Read file and return as download
-    const fileBuffer = fs.readFileSync(filePath);
-    const fileName = purchase.fileName || 'download';
+    if (!fileRecord) {
+      console.log(`Download API - File not found in database for item ${purchase.itemId}`);
+      return NextResponse.json({ error: 'File not found in database' }, { status: 404 });
+    }
 
-    return new NextResponse(fileBuffer, {
+    console.log(`Download API - File found in database: ${fileRecord.originalName}`);
+
+    // Convert Base64 back to buffer
+    const fileBuffer = Buffer.from(fileRecord.fileData, 'base64');
+    const fileName = fileRecord.originalName || purchase.fileName || 'download';
+    console.log('Download API - Purchase fileName:', purchase.fileName);
+    console.log('Download API - Final fileName for download:', fileName);
+
+    // Use the MIME type from the database
+    const contentType = fileRecord.mimeType || 'application/octet-stream';
+    
+    console.log('Download API - Content type from database:', contentType);
+
+    // Ensure filename is properly encoded for Content-Disposition
+    const encodedFileName = encodeURIComponent(fileName);
+    console.log('Download API - Encoded filename:', encodedFileName);
+    
+    return new NextResponse(fileBuffer as any, {
       headers: {
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`,
+        'Content-Type': contentType,
       },
     });
 
   } catch (error) {
-    console.error('Error downloading file:', error);
-    return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
+    console.error('Download error:', error);
+    return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
 }

@@ -86,6 +86,7 @@ const shopItemSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+
   createdAt: { 
     type: Date, 
     default: Date.now 
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
       textContent: textContent || '',
       linkUrl: linkUrl || '',
       fileUrl: fileUrl || '',
-      hasFile: fileUrl ? true : false,
+      hasFile: false, // Will be set to true when file is actually uploaded
       requiresRole: requiresRole || false,
       requiredRoleId: requiredRoleId || '',
       requiredRoleName: requiredRoleName || ''
@@ -308,7 +309,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, image, inStock } = body;
+    const { id, name, description, price, image, inStock, fileUrl, fileName, hasFile, contentType } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
@@ -323,6 +324,10 @@ export async function PUT(request: NextRequest) {
     if (price) updateData.price = parseFloat(price);
     if (image) updateData.image = image;
     if (inStock !== undefined) updateData.inStock = inStock;
+    if (fileUrl !== undefined) updateData.fileUrl = fileUrl;
+    if (fileName !== undefined) updateData.fileName = fileName;
+    if (hasFile !== undefined) updateData.hasFile = hasFile;
+    if (contentType !== undefined) updateData.contentType = contentType;
 
     const updatedItem = await ShopItem.findByIdAndUpdate(
       id,
@@ -341,7 +346,11 @@ export async function PUT(request: NextRequest) {
       description: updatedItem.description,
       price: updatedItem.price,
       image: updatedItem.image,
-      inStock: updatedItem.inStock
+      inStock: updatedItem.inStock,
+      fileUrl: updatedItem.fileUrl,
+      fileName: updatedItem.fileName,
+      hasFile: updatedItem.hasFile,
+      contentType: updatedItem.contentType
     };
 
     return NextResponse.json({ 

@@ -16,38 +16,60 @@ export async function GET(
     }
 
     const fileBuffer = await readFile(filePath);
+    const fileName = resolvedParams.path[resolvedParams.path.length - 1];
     
-    // Determine content type based on file extension
-    const ext = resolvedParams.path[resolvedParams.path.length - 1].split('.').pop()?.toLowerCase();
+    // Set content type based on file extension
+    const ext = fileName.split('.').pop()?.toLowerCase();
     let contentType = 'application/octet-stream';
     
-    switch (ext) {
-      case 'jpg':
-      case 'jpeg':
-        contentType = 'image/jpeg';
-        break;
-      case 'png':
-        contentType = 'image/png';
-        break;
-      case 'gif':
-        contentType = 'image/gif';
-        break;
-      case 'webp':
-        contentType = 'image/webp';
-        break;
-      case 'svg':
-        contentType = 'image/svg+xml';
-        break;
+    if (ext) {
+      const mimeTypes: { [key: string]: string } = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'pdf': 'application/pdf',
+        'zip': 'application/zip',
+        'rar': 'application/vnd.rar',
+        '7z': 'application/x-7z-compressed',
+        'txt': 'text/plain',
+        'json': 'application/json',
+        'xml': 'application/xml',
+        'html': 'text/html',
+        'css': 'text/css',
+        'js': 'application/javascript',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'mp4': 'video/mp4',
+        'avi': 'video/x-msvideo',
+        'blend': 'application/octet-stream',
+        'unitypackage': 'application/octet-stream',
+        'fbx': 'application/octet-stream',
+        'obj': 'text/plain',
+        'mtl': 'text/plain',
+        'gltf': 'model/gltf+json',
+        'glb': 'model/gltf-binary'
+      };
+      contentType = mimeTypes[ext] || 'application/octet-stream';
     }
 
-    return new NextResponse(fileBuffer as any, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-      },
-    });
+    // Set headers
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=31536000'
+    };
+
+    // Force download for certain file types
+    if (['application/pdf', 'application/zip', 'application/octet-stream'].includes(contentType)) {
+      headers['Content-Disposition'] = `attachment; filename="${fileName}"`;
+    }
+
+    return new NextResponse(fileBuffer as any, { headers });
+    
   } catch (error) {
-    console.error('Error serving file:', error);
+    console.error('File serving error:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
 }
