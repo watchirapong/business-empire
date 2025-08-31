@@ -20,50 +20,19 @@ const connectDB = async () => {
 
 // Shop Item Schema
 const shopItemSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: true,
-    trim: true
-  },
-  description: { 
-    type: String, 
-    required: true,
-    trim: true
-  },
-  price: { 
-    type: Number, 
-    required: true,
-    min: 0
-  },
-  image: { 
-    type: String, 
-    required: true,
-    trim: true
-  },
-  fileUrl: { 
-    type: String, 
-    trim: true
-  },
-  fileName: { 
-    type: String, 
-    trim: true
-  },
-  hasFile: { 
-    type: Boolean, 
-    default: false
-  },
-  inStock: { 
-    type: Boolean, 
-    default: true
-  },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
-  },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
-  }
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: true, trim: true },
+  price: { type: Number, required: true, min: 0 },
+  image: { type: String, required: true, trim: true },
+  fileUrl: { type: String, trim: true },
+  fileName: { type: String, trim: true },
+  contentType: { type: String, default: 'none' },
+  textContent: { type: String, default: '' },
+  linkUrl: { type: String, default: '' },
+  hasFile: { type: Boolean, default: false },
+  inStock: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', shopItemSchema);
@@ -76,46 +45,81 @@ const isAdmin = (userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('File upload API called');
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user) {
+      console.log('No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = (session.user as any).id;
+    console.log('User ID:', userId);
+    
     if (!isAdmin(userId)) {
+      console.log('User is not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     await connectDB();
+    console.log('MongoDB connected');
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const itemId = formData.get('itemId') as string;
 
-    if (!file || !itemId) {
-      return NextResponse.json({ error: 'File and item ID are required' }, { status: 400 });
+    console.log('File received:', file ? file.name : 'No file');
+    console.log('Item ID received:', itemId);
+
+    if (!file) {
+      console.log('No file provided');
+      return NextResponse.json({ error: 'File is required' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
+    if (!itemId) {
+      console.log('No item ID provided');
+      return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
+    }
+
+    // Validate item ID format
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      console.log('Invalid item ID format:', itemId);
+      return NextResponse.json({ error: 'Invalid item ID format' }, { status: 400 });
+    }
+
+    // Check if item exists
+    const existingItem = await ShopItem.findById(itemId);
+    if (!existingItem) {
+      console.log('Item not found:', itemId);
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    console.log('Item found:', existingItem.name);
+
+    // Create uploads directory
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-files');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log('Created uploads directory:', uploadsDir);
     }
 
     // Generate unique filename
     const timestamp = Date.now();
     const originalName = file.name;
-    const extension = path.extname(originalName);
     const fileName = `${timestamp}-${originalName}`;
     const filePath = path.join(uploadsDir, fileName);
 
-    // Convert file to buffer and save
+    console.log('Saving file as:', fileName);
+
+    // Save file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     fs.writeFileSync(filePath, buffer);
 
-    // Update shop item with file information
+    console.log('File saved successfully');
+
+    // Update item with file information
     const fileUrl = `/uploads/shop-files/${fileName}`;
     const updatedItem = await ShopItem.findByIdAndUpdate(
       itemId,
@@ -129,8 +133,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (!updatedItem) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      console.log('Failed to update item');
+      return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
     }
+
+    console.log('Item updated successfully:', updatedItem.name);
 
     return NextResponse.json({ 
       success: true,

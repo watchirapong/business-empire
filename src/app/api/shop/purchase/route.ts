@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { hasDiscordRole } from '@/lib/admin-config';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -45,6 +46,18 @@ const shopItemSchema = new mongoose.Schema({
   fileName: { 
     type: String, 
     trim: true
+  },
+  contentType: { 
+    type: String, 
+    default: 'none'
+  },
+  textContent: { 
+    type: String, 
+    default: ''
+  },
+  linkUrl: { 
+    type: String, 
+    default: ''
   },
   hasFile: { 
     type: Boolean, 
@@ -156,6 +169,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item is out of stock' }, { status: 400 });
     }
 
+    // Check role restrictions
+    if (item.requiresRole && item.requiredRoleId) {
+      console.log(`Checking role requirement for item: ${item.name}`);
+      console.log(`Required role ID: ${item.requiredRoleId}`);
+      
+      const hasRequiredRole = await hasDiscordRole(userId, item.requiredRoleId);
+      if (!hasRequiredRole) {
+        return NextResponse.json({ 
+          error: `This item requires the role: ${item.requiredRoleName || item.requiredRoleId}`,
+          requiredRole: item.requiredRoleName || item.requiredRoleId
+        }, { status: 403 });
+      }
+      console.log(`User ${userId} has required role for item ${item.name}`);
+    }
+
     // Check if user already purchased this item (only if multiple purchases are not allowed)
     const existingPurchase = await PurchaseHistory.findOne({ userId, itemId });
     if (existingPurchase && !item.allowMultiplePurchases) {
@@ -181,6 +209,18 @@ export async function POST(request: NextRequest) {
     });
 
     await purchase.save();
+
+    // Also update any existing purchases for this item to include content
+    await PurchaseHistory.updateMany(
+      { itemId: item._id },
+      { 
+        $set: {
+          contentType: item.contentType || 'none',
+          textContent: item.textContent || '',
+          linkUrl: item.linkUrl || ''
+        }
+      }
+    );
 
     return NextResponse.json({ 
       success: true,

@@ -49,6 +49,18 @@ const shopItemSchema = new mongoose.Schema({
     type: String, 
     trim: true
   },
+  contentType: { 
+    type: String, 
+    default: 'none'
+  },
+  textContent: { 
+    type: String, 
+    default: ''
+  },
+  linkUrl: { 
+    type: String, 
+    default: ''
+  },
   hasFile: { 
     type: Boolean, 
     default: false

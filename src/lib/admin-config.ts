@@ -6,8 +6,47 @@ export const isAdmin = (userId: string): boolean => {
   return ADMIN_USER_IDS.includes(userId);
 };
 
+// Function to check if user has a specific Discord role
+export const hasDiscordRole = async (userId: string, requiredRoleId: string): Promise<boolean> => {
+  try {
+    if (!process.env.DISCORD_BOT_TOKEN) {
+      console.error('Discord bot token not configured');
+      return false;
+    }
+
+    // Get user's roles from Discord
+    const response = await fetch(
+      `https://discord.com/api/v10/guilds/699984143542517801/members/${userId}`,
+      {
+        headers: {
+          'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to fetch Discord member data:', response.status);
+      return false;
+    }
+
+    const memberData = await response.json();
+    const userRoles = memberData.roles || [];
+
+    // Check if user has the required role
+    const hasRole = userRoles.includes(requiredRoleId);
+    console.log(`User ${userId} has role ${requiredRoleId}: ${hasRole}`);
+    
+    return hasRole;
+  } catch (error) {
+    console.error('Error checking Discord role:', error);
+    return false;
+  }
+};
+
 // Admin configuration object
 export const adminConfig = {
   userIds: ADMIN_USER_IDS,
   isAdmin,
+  hasDiscordRole,
 };
