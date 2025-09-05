@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
 import Achievements from '@/components/Achievements';
+import HouseLeaderboard from '@/components/HouseLeaderboard';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -209,6 +210,9 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* House Leaderboard */}
+          <HouseLeaderboard />
 
           {/* Achievements */}
           <Achievements />

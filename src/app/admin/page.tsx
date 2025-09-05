@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/admin-config';
+import HousePointsManager from '@/components/admin/HousePointsManager';
 
 interface UserData {
   _id: string;
@@ -2067,6 +2068,9 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+
+            {/* House Points Manager */}
+            <HousePointsManager />
           </>
         )}
       </div>

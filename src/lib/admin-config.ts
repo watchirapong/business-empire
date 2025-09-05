@@ -16,11 +16,15 @@ export const hasDiscordRole = async (userId: string, requiredRoleId: string): Pr
       return false;
     }
 
+    // Get guild ID from environment or use default
+    const guildId = process.env.DISCORD_GUILD_ID || '699984143542517801';
+    console.log(`Using guild ID: ${guildId}`);
+
     console.log('Discord bot token is configured, fetching member data...');
 
     // Get user's roles from Discord
     const response = await fetch(
-      `https://discord.com/api/v10/guilds/699984143542517801/members/${userId}`,
+      `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
       {
         headers: {
           'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -35,6 +39,15 @@ export const hasDiscordRole = async (userId: string, requiredRoleId: string): Pr
       console.error('Failed to fetch Discord member data:', response.status);
       const errorText = await response.text();
       console.error('Discord API error response:', errorText);
+      
+      // If user is not found in the guild, they don't have the role
+      if (response.status === 404) {
+        console.log(`User ${userId} not found in guild ${guildId}`);
+        return false;
+      }
+      
+      // For other errors, log but don't fail completely
+      console.error('Discord API error, but continuing with role check');
       return false;
     }
 
@@ -51,6 +64,7 @@ export const hasDiscordRole = async (userId: string, requiredRoleId: string): Pr
     return hasRole;
   } catch (error) {
     console.error('Error checking Discord role:', error);
+    // Don't fail completely on network errors, just log and return false
     return false;
   }
 };

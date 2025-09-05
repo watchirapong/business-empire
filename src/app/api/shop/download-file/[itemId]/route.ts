@@ -68,8 +68,35 @@ export async function GET(
       return NextResponse.json({ error: 'File not found or has been removed' }, { status: 404 });
     }
 
-    // Check if user has purchased this item (optional security check)
-    // You can add purchase verification here if needed
+    // Check if user has purchased this item (required security check)
+    const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', new mongoose.Schema({
+      userId: { type: String, required: true, index: true },
+      username: { type: String, required: true },
+      itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShopItem', required: true, index: true },
+      itemName: { type: String, required: true },
+      price: { type: Number, required: true },
+      purchaseDate: { type: Date, default: Date.now },
+      downloadCount: { type: Number, default: 0 },
+      lastDownloadDate: { type: Date },
+      hasFile: { type: Boolean, default: false },
+      fileUrl: { type: String },
+      fileName: { type: String },
+      contentType: { type: String, default: 'none' },
+      textContent: { type: String, default: '' },
+      linkUrl: { type: String, default: '' }
+    }));
+
+    const purchaseRecord = await PurchaseHistory.findOne({ 
+      userId: userId, 
+      itemId: new mongoose.Types.ObjectId(itemId) 
+    });
+
+    if (!purchaseRecord) {
+      console.log(`User ${userId} has not purchased item ${itemId}`);
+      return NextResponse.json({ error: 'You have not purchased this item' }, { status: 403 });
+    }
+
+    console.log(`Purchase verification successful for user ${userId} and item ${itemId}`);
     
     // Log the download
     try {
@@ -96,15 +123,30 @@ export async function GET(
 
     console.log(`Serving file for item ${itemId}: ${fileRecord.originalName} (Download #${fileRecord.downloadCount})`);
     console.log(`File details - fileName: ${fileRecord.fileName}, originalName: ${fileRecord.originalName}`);
+    console.log(`File data type: ${typeof fileRecord.fileData}, isBuffer: ${Buffer.isBuffer(fileRecord.fileData)}`);
 
-    // File data is already a buffer
-    const fileBuffer = fileRecord.fileData;
+    // Handle file data properly - it might be stored as Buffer or base64 string
+    let fileBuffer: Buffer;
+    if (Buffer.isBuffer(fileRecord.fileData)) {
+      fileBuffer = fileRecord.fileData;
+    } else if (typeof fileRecord.fileData === 'string') {
+      // If it's stored as base64 string, convert it back to buffer
+      fileBuffer = Buffer.from(fileRecord.fileData, 'base64');
+    } else {
+      console.error(`Invalid file data format for item ${itemId}`);
+      return NextResponse.json({ error: 'File data format error. Please contact support.' }, { status: 500 });
+    }
 
-    // Verify file integrity (optional)
-    const calculatedHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
-    if (fileRecord.fileHash && calculatedHash !== fileRecord.fileHash) {
-      console.error(`File integrity check failed for item ${itemId}`);
-      return NextResponse.json({ error: 'File corrupted. Please contact support.' }, { status: 500 });
+    // Verify file integrity (optional) - only if hash exists
+    if (fileRecord.fileHash) {
+      const calculatedHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
+      if (calculatedHash !== fileRecord.fileHash) {
+        console.error(`File integrity check failed for item ${itemId}. Expected: ${fileRecord.fileHash}, Got: ${calculatedHash}`);
+        return NextResponse.json({ error: 'File corrupted. Please contact support.' }, { status: 500 });
+      }
+      console.log(`File integrity check passed for item ${itemId}`);
+    } else {
+      console.log(`No hash available for item ${itemId}, skipping integrity check`);
     }
 
     // Set content type with proper MIME type detection
@@ -143,12 +185,19 @@ export async function GET(
     };
 
     // Return file with proper headers
-    return new NextResponse(fileBuffer, { headers });
+    const buffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+    return new NextResponse(buffer as ArrayBuffer, { headers });
 
   } catch (error) {
     console.error('File download error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      itemId: await params.then(p => p.itemId).catch(() => 'unknown')
+    });
     return NextResponse.json({ 
-      error: 'Download failed. Please try again or contact support if the problem persists.' 
+      error: 'Download failed. Please try again or contact support if the problem persists.',
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
     }, { status: 500 });
   }
 }
