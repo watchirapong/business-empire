@@ -741,105 +741,206 @@ export default function ShopPage() {
                 </p>
 
                 {/* Item Image */}
-                <div className="mb-4">
+                <div className="mb-6">
                   {purchasedItem.image && purchasedItem.image.startsWith('/') ? (
                     <img
                       src={purchasedItem.image}
                       alt={purchasedItem.name}
-                      className="w-20 h-20 object-cover rounded-lg mx-auto border border-white/20"
+                      className="w-24 h-24 object-cover rounded-lg mx-auto border border-white/20 shadow-lg"
                     />
                   ) : (
-                    <div className="text-4xl mx-auto">{purchasedItem.image || '🛒'}</div>
+                    <div className="text-5xl mx-auto">{purchasedItem.image || '🛒'}</div>
                   )}
                 </div>
 
-                {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
-                  <div className="bg-blue-500/20 rounded-lg p-4 mb-6 border border-blue-500/30">
-                    <div className="text-2xl mb-2">🔗</div>
-                    <p className="text-blue-300 font-semibold mb-2">External Link:</p>
-                    <a
-                      href={purchasedItem.linkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 text-sm break-all bg-white/10 rounded p-2 block"
-                    >
-                      {purchasedItem.linkUrl}
-                    </a>
-                    <p className="text-gray-400 text-xs mt-2">Click to open in new tab</p>
-                  </div>
-                )}
+                {/* Content Display Based on Type */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">🎁 Your Purchased Content:</h3>
 
-                {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
-                  <div className="bg-purple-500/20 rounded-lg p-4 mb-6 border border-purple-500/30">
-                    <div className="text-2xl mb-2">📁</div>
-                    <p className="text-purple-300 font-semibold mb-1">File Available for Download</p>
-                    {purchasedItem.fileName && (
-                      <p className="text-gray-300 text-sm">{purchasedItem.fileName}</p>
-                    )}
-                  </div>
-                )}
-
-                {purchasedItem.contentType === 'text' && purchasedItem.textContent && (
-                  <div className="bg-green-500/20 rounded-lg p-4 mb-6 border border-green-500/30">
-                    <div className="text-2xl mb-2">📝</div>
-                    <p className="text-green-300 font-semibold mb-2">Text Content:</p>
-                    <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-600/30">
-                      <p className="text-white text-sm whitespace-pre-wrap">{purchasedItem.textContent}</p>
+                  {/* Text Content */}
+                  {purchasedItem.contentType === 'text' && purchasedItem.textContent && (
+                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-5 mb-4 border border-green-500/30 shadow-lg">
+                      <div className="flex items-center mb-3">
+                        <div className="text-3xl mr-3">📝</div>
+                        <div>
+                          <h4 className="text-green-300 font-bold text-lg">Text Content</h4>
+                          <p className="text-green-200 text-sm">Your exclusive text content</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
+                        <div className="text-white text-base leading-relaxed whitespace-pre-wrap font-mono">
+                          {purchasedItem.textContent}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center text-green-300 text-sm">
+                        <span className="mr-2">✅</span>
+                        <span>Content unlocked and available</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {/* Link Content */}
+                  {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
+                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-5 mb-4 border border-blue-500/30 shadow-lg">
+                      <div className="flex items-center mb-3">
+                        <div className="text-3xl mr-3">🔗</div>
+                        <div>
+                          <h4 className="text-blue-300 font-bold text-lg">External Link</h4>
+                          <p className="text-blue-200 text-sm">Access your exclusive link</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 mr-4">
+                            <p className="text-blue-300 font-semibold mb-1">Your Exclusive Link:</p>
+                            <p className="text-blue-400 text-sm break-all font-mono bg-blue-900/30 rounded p-2">
+                              {purchasedItem.linkUrl}
+                            </p>
+                          </div>
+                          <a
+                            href={purchasedItem.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+                          >
+                            🌐 Open Link
+                          </a>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center text-blue-300 text-sm">
+                        <span className="mr-2">🔓</span>
+                        <span>Link unlocked - opens in new tab</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Content */}
+                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
+                    <div className="bg-gradient-to-br from-purple-500/20 to-violet-500/20 rounded-xl p-5 mb-4 border border-purple-500/30 shadow-lg">
+                      <div className="flex items-center mb-3">
+                        <div className="text-3xl mr-3">📁</div>
+                        <div>
+                          <h4 className="text-purple-300 font-bold text-lg">Downloadable File</h4>
+                          <p className="text-purple-200 text-sm">Download your purchased file</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 mr-4">
+                            <p className="text-purple-300 font-semibold mb-1">File Details:</p>
+                            <p className="text-purple-400 text-sm">
+                              {purchasedItem.fileName || 'Download file'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/shop/download?itemId=${purchasedItem.id}`);
+                                if (response.ok) {
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+
+                                  // Get filename from Content-Disposition header or use default
+                                  const contentDisposition = response.headers.get('content-disposition');
+                                  let filename = purchasedItem.fileName || 'download';
+                                  if (contentDisposition) {
+                                    const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+                                    if (filenameMatch) {
+                                      filename = filenameMatch[1];
+                                    }
+                                  }
+
+                                  a.download = filename;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+
+                                  alert('✅ Download completed successfully!');
+                                } else {
+                                  alert('❌ Download failed. Please try again.');
+                                }
+                              } catch (error) {
+                                console.error('Download error:', error);
+                                alert('❌ Download failed. Please try again.');
+                              }
+                            }}
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+                          >
+                            📥 Download
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center text-purple-300 text-sm">
+                        <span className="mr-2">📋</span>
+                        <span>File ready for download</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* YouTube Content */}
+                  {purchasedItem.contentType === 'youtube' && purchasedItem.youtubeUrl && (
+                    <div className="bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl p-5 mb-4 border border-red-500/30 shadow-lg">
+                      <div className="flex items-center mb-3">
+                        <div className="text-3xl mr-3">🎥</div>
+                        <div>
+                          <h4 className="text-red-300 font-bold text-lg">YouTube Video</h4>
+                          <p className="text-red-200 text-sm">Access your exclusive video</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
+                        <p className="text-red-300 font-semibold mb-2">Your Exclusive Video:</p>
+                        <a
+                          href={purchasedItem.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-red-400 hover:text-red-300 font-semibold bg-red-900/30 rounded p-3 block text-center"
+                        >
+                          🎬 Watch Video on YouTube
+                        </a>
+                      </div>
+                      <div className="mt-3 flex items-center text-red-300 text-sm">
+                        <span className="mr-2">▶️</span>
+                        <span>Video unlocked - opens in new tab</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Content */}
+                  {(!purchasedItem.contentType || purchasedItem.contentType === 'none') && (
+                    <div className="bg-gradient-to-br from-gray-500/20 to-slate-500/20 rounded-xl p-5 mb-4 border border-gray-500/30 shadow-lg">
+                      <div className="flex items-center mb-3">
+                        <div className="text-3xl mr-3">🎁</div>
+                        <div>
+                          <h4 className="text-gray-300 font-bold text-lg">Digital Item</h4>
+                          <p className="text-gray-200 text-sm">You now own this exclusive item</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
+                        <p className="text-white text-center">
+                          ✨ <strong>{purchasedItem.name}</strong> is now in your collection!
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-center text-gray-300 text-sm">
+                        <span className="mr-2">🏆</span>
+                        <span>Item unlocked and added to your inventory</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Action Buttons */}
-                <div className="flex space-x-3 mb-4">
-                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/shop/download?itemId=${purchasedItem.id}`);
-                          if (response.ok) {
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-
-                            // Get filename from Content-Disposition header or use default
-                            const contentDisposition = response.headers.get('content-disposition');
-                            let filename = purchasedItem.fileName || 'download';
-                            if (contentDisposition) {
-                              const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-                              if (filenameMatch) {
-                                filename = filenameMatch[1];
-                              }
-                            }
-
-                            a.download = filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
-
-                            alert('Download completed successfully!');
-                          } else {
-                            alert('Download failed. Please try again.');
-                          }
-                        } catch (error) {
-                          console.error('Download error:', error);
-                          alert('Download failed. Please try again.');
-                        }
-                      }}
-                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      📥 Download Now
-                    </button>
-                  )}
+                <div className="flex justify-center">
                   <button
                     onClick={() => {
                       setShowPurchaseSuccess(false);
                       setPurchasedItem(null);
                     }}
-                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
-                    Close
+                    🛒 Continue Shopping
                   </button>
                 </div>
 
