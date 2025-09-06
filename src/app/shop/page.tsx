@@ -305,6 +305,7 @@ export default function ShopPage() {
                     contentType: 'none',
                     textContent: '',
                     linkUrl: '',
+                    youtubeUrl: '',
                     fileUrl: '',
                     fileName: '',
                     hasFile: false,
@@ -609,6 +610,92 @@ export default function ShopPage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
+                    <select
+                      value={editFormData.contentType || 'none'}
+                      onChange={(e) => setEditFormData({...editFormData, contentType: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="none">No Content (Digital Item)</option>
+                      <option value="text">Text Content</option>
+                      <option value="link">External Link</option>
+                      <option value="file">Downloadable File</option>
+                      <option value="youtube">YouTube Video</option>
+                    </select>
+                  </div>
+
+                  {/* Text Content Field */}
+                  {editFormData.contentType === 'text' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Text Content</label>
+                      <textarea
+                        value={editFormData.textContent || ''}
+                        onChange={(e) => setEditFormData({...editFormData, textContent: e.target.value})}
+                        rows={5}
+                        placeholder="Enter the text content that will be shown to buyers after purchase..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This text will be displayed to users after they purchase this item.</p>
+                    </div>
+                  )}
+
+                  {/* Link Content Field */}
+                  {editFormData.contentType === 'link' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">External Link URL</label>
+                      <input
+                        type="url"
+                        value={editFormData.linkUrl || ''}
+                        onChange={(e) => setEditFormData({...editFormData, linkUrl: e.target.value})}
+                        placeholder="https://example.com/your-link"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Users will be able to access this link after purchasing the item.</p>
+                    </div>
+                  )}
+
+                  {/* File Content Fields */}
+                  {editFormData.contentType === 'file' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">File URL</label>
+                        <input
+                          type="text"
+                          value={editFormData.fileUrl || ''}
+                          onChange={(e) => setEditFormData({...editFormData, fileUrl: e.target.value})}
+                          placeholder="/uploads/files/your-file.zip"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">File Name (for download)</label>
+                        <input
+                          type="text"
+                          value={editFormData.fileName || ''}
+                          onChange={(e) => setEditFormData({...editFormData, fileName: e.target.value})}
+                          placeholder="my-file.zip"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* YouTube Content Field */}
+                  {editFormData.contentType === 'youtube' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Video URL</label>
+                      <input
+                        type="url"
+                        value={editFormData.youtubeUrl || ''}
+                        onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
+                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Users will be able to access this YouTube video after purchasing the item.</p>
+                    </div>
+                  )}
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -650,12 +737,18 @@ export default function ShopPage() {
                         const method = isEditing ? 'PUT' : 'POST';
                         const successMessage = isEditing ? 'Item updated successfully!' : 'Item created successfully!';
 
+                        // Prepare form data with proper hasFile flag
+                        const formDataToSubmit = {
+                          ...editFormData,
+                          hasFile: editFormData.contentType === 'file'
+                        };
+
                         const response = await fetch('/api/shop/items', {
                           method: method,
                           headers: {
                             'Content-Type': 'application/json',
                           },
-                          body: JSON.stringify(editFormData),
+                          body: JSON.stringify(formDataToSubmit),
                         });
 
                         if (response.ok) {
