@@ -588,7 +588,7 @@ export default function ShopPage() {
                       type="text"
                       value={editFormData.name || ''}
                       onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     />
                   </div>
 
@@ -598,7 +598,7 @@ export default function ShopPage() {
                       value={editFormData.description || ''}
                       onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     />
                   </div>
 
@@ -609,7 +609,7 @@ export default function ShopPage() {
                         type="number"
                         value={editFormData.price || ''}
                         onChange={(e) => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                       />
                     </div>
 
@@ -618,7 +618,7 @@ export default function ShopPage() {
                       <select
                         value={editFormData.category || ''}
                         onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                       >
                         <option value="">Select Category</option>
                         <option value="weapons">Weapons</option>
@@ -636,7 +636,7 @@ export default function ShopPage() {
                       type="text"
                       value={editFormData.image || ''}
                       onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     />
                   </div>
 
@@ -645,7 +645,7 @@ export default function ShopPage() {
                     <select
                       value={editFormData.contentType || 'none'}
                       onChange={(e) => setEditFormData({...editFormData, contentType: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     >
                       <option value="none">No Content (Digital Item)</option>
                       <option value="text">Text Content</option>
@@ -664,7 +664,7 @@ export default function ShopPage() {
                         onChange={(e) => setEditFormData({...editFormData, textContent: e.target.value})}
                         rows={5}
                         placeholder="Enter the text content that will be shown to buyers after purchase..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-gray-900 bg-white"
                       />
                       <p className="text-xs text-gray-500 mt-1">This text will be displayed to users after they purchase this item.</p>
                     </div>
@@ -679,7 +679,7 @@ export default function ShopPage() {
                         value={editFormData.linkUrl || ''}
                         onChange={(e) => setEditFormData({...editFormData, linkUrl: e.target.value})}
                         placeholder="https://example.com/your-link"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                       />
                       <p className="text-xs text-gray-500 mt-1">Users will be able to access this link after purchasing the item.</p>
                     </div>
@@ -695,7 +695,7 @@ export default function ShopPage() {
                           value={editFormData.fileUrl || ''}
                           onChange={(e) => setEditFormData({...editFormData, fileUrl: e.target.value})}
                           placeholder="/uploads/files/your-file.zip"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
                       </div>
                       <div>
@@ -705,7 +705,7 @@ export default function ShopPage() {
                           value={editFormData.fileName || ''}
                           onChange={(e) => setEditFormData({...editFormData, fileName: e.target.value})}
                           placeholder="my-file.zip"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
                       </div>
                     </div>
@@ -714,13 +714,13 @@ export default function ShopPage() {
                   {/* YouTube Video Preview Field (Optional for all item types) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Video Preview (Optional)</label>
-                    <input
-                      type="url"
-                      value={editFormData.youtubeUrl || ''}
-                      onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
-                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                      <input
+                        type="url"
+                        value={editFormData.youtubeUrl || ''}
+                        onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
+                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                      />
                     <p className="text-xs text-gray-500 mt-1">Optional: Add a YouTube video that will show as a preview in the shop item card.</p>
                   </div>
 
