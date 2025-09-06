@@ -354,9 +354,9 @@ export default function PurchaseHistoryPage() {
 
                 {/* Top Selling Items */}
                 <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                  <h3 className="text-xl font-bold text-white mb-4">🏆 Top Selling Items</h3>
-                  <div className="space-y-3">
-                    {analytics.topSellingItems.slice(0, 10).map((item, index) => (
+                  <h3 className="text-xl font-bold text-white mb-4">🏆 All Shop Items ({analytics.topSellingItems.length} items)</h3>
+                  <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+                    {analytics.topSellingItems.map((item, index) => (
                       <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
                         <div className="flex items-center space-x-3">
                           <div className="text-orange-400 font-bold">#{index + 1}</div>

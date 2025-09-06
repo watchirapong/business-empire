@@ -6,6 +6,39 @@ import { useRouter } from 'next/navigation';
 import { isAdmin as checkIsAdmin } from '@/lib/admin-config';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
+// Utility function to extract YouTube video ID from URL
+const extractYouTubeVideoId = (url: string | undefined): string | null => {
+  if (!url) return null;
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
+
+// Utility function to fetch YouTube video title using our API endpoint
+const fetchYouTubeVideoTitle = async (videoId: string): Promise<string> => {
+  try {
+    const response = await fetch(`/api/youtube/title?videoId=${videoId}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.title || 'YouTube Video';
+    }
+  } catch (error) {
+    console.error('Error fetching YouTube video title:', error);
+  }
+  return 'YouTube Video';
+};
+
 interface ShopItem {
   id: string;
   name: string;
@@ -19,6 +52,7 @@ interface ShopItem {
   contentType?: string;
   textContent?: string;
   linkUrl?: string;
+  youtubeUrl?: string;
   allowMultiplePurchases?: boolean;
   requiresRole?: boolean;
   requiredRoleId?: string;
@@ -50,6 +84,7 @@ const HamsterShop: React.FC = () => {
     contentType: 'none',
     textContent: '',
     linkUrl: '',
+    youtubeUrl: '',
     fileUrl: '',
     requiresRole: false,
     requiredRoleId: '',
@@ -65,11 +100,35 @@ const HamsterShop: React.FC = () => {
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
   const [hamsterCoinBalance, setHamsterCoinBalance] = useState<number>(0);
+  
+  // Edit item states
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
+  const [editItem, setEditItem] = useState({
+    name: '',
+    description: '',
+    price: '',
+    image: '',
+    inStock: true,
+    allowMultiplePurchases: false,
+    contentType: 'none',
+    textContent: '',
+    linkUrl: '',
+    youtubeUrl: '',
+    fileUrl: '',
+    requiresRole: false,
+    requiredRoleId: '',
+    requiredRoleName: ''
+  });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string>('');
+  const [editFileToUpload, setEditFileToUpload] = useState<File | null>(null);
   const [stardustCoinBalance, setStardustCoinBalance] = useState<number>(0);
   const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin' | 'stardustcoin'>('hamstercoin');
   const [fileUploadError, setFileUploadError] = useState<string>('');
   const [fileUploadSuccess, setFileUploadSuccess] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [youtubeTitles, setYoutubeTitles] = useState<Record<string, string>>({});
 
 
 
@@ -111,6 +170,28 @@ const HamsterShop: React.FC = () => {
       const data = await response.json();
       if (data.items) {
         setShopItems(data.items);
+
+        // Fetch YouTube video titles for items with YouTube URLs
+        const titles: Record<string, string> = {};
+        const titlePromises = data.items
+          .filter((item: ShopItem) => item.youtubeUrl && item.youtubeUrl.trim() !== '')
+          .map(async (item: ShopItem) => {
+            if (item.youtubeUrl) {
+              const videoId = extractYouTubeVideoId(item.youtubeUrl as string);
+              if (videoId) {
+                try {
+                  const title = await fetchYouTubeVideoTitle(videoId);
+                  titles[item.id] = title;
+                } catch (error) {
+                  console.error(`Failed to fetch title for video ${videoId}:`, error);
+                  titles[item.id] = 'YouTube Video';
+                }
+              }
+            }
+          });
+
+        await Promise.all(titlePromises);
+        setYoutubeTitles(titles);
       }
     } catch (error) {
       console.error('Failed to fetch shop items:', error);
@@ -199,6 +280,7 @@ const HamsterShop: React.FC = () => {
           contentType: 'none',
           textContent: '',
           linkUrl: '',
+          youtubeUrl: '',
           fileUrl: '',
           requiresRole: false,
           requiredRoleId: '',
@@ -233,6 +315,152 @@ const HamsterShop: React.FC = () => {
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+    }
+  };
+
+  const handleEditItem = (item: ShopItem) => {
+    setEditingItem(item);
+    setEditItem({
+      name: item.name,
+      description: item.description,
+      price: item.price.toString(),
+      image: item.image,
+      inStock: item.inStock,
+      allowMultiplePurchases: item.allowMultiplePurchases || false,
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || '',
+      youtubeUrl: item.youtubeUrl || '',
+      fileUrl: item.fileUrl || '',
+      requiresRole: item.requiresRole || false,
+      requiredRoleId: item.requiredRoleId || '',
+      requiredRoleName: item.requiredRoleName || ''
+    });
+    setEditImagePreview(item.image);
+    setShowEditForm(true);
+  };
+
+  const handleUpdateItem = async () => {
+    if (!editingItem) return;
+    
+    console.log('Updating item...');
+    
+    if (!editItem.name || !editItem.description || !editItem.price) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+
+      // Upload new image if provided
+      let imageUrl = editItem.image;
+      if (editImageFile) {
+        const imageFormData = new FormData();
+        imageFormData.append('image', editImageFile);
+        
+        const imageResponse = await fetch('/api/shop/upload-image', {
+          method: 'POST',
+          body: imageFormData,
+        });
+        
+        if (imageResponse.ok) {
+          const imageData = await imageResponse.json();
+          imageUrl = imageData.imageUrl;
+        } else {
+          alert('Failed to upload image');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Upload new file if provided
+      let fileUrl = editItem.fileUrl;
+      let fileName = '';
+      if (editFileToUpload) {
+        const fileFormData = new FormData();
+        fileFormData.append('file', editFileToUpload);
+        
+        const fileResponse = await fetch('/api/shop/upload-file', {
+          method: 'POST',
+          body: fileFormData,
+        });
+        
+        if (fileResponse.ok) {
+          const fileData = await fileResponse.json();
+          fileUrl = fileData.fileUrl;
+          fileName = fileData.fileName;
+        } else {
+          alert('Failed to upload file');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Update item
+      const response = await fetch('/api/shop/items', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editingItem.id,
+          name: editItem.name,
+          description: editItem.description,
+          price: editItem.price,
+          image: imageUrl,
+          inStock: editItem.inStock,
+          allowMultiplePurchases: editItem.allowMultiplePurchases,
+          contentType: editItem.contentType,
+          textContent: editItem.textContent,
+          linkUrl: editItem.linkUrl,
+          youtubeUrl: editItem.youtubeUrl,
+          fileUrl: fileUrl,
+          fileName: fileName,
+          hasFile: editFileToUpload ? true : editingItem.hasFile,
+          requiresRole: editItem.requiresRole,
+          requiredRoleId: editItem.requiredRoleId,
+          requiredRoleName: editItem.requiredRoleName
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh shop items
+        fetchShopItems();
+        
+        // Reset edit form
+        setEditItem({
+          name: '',
+          description: '',
+          price: '',
+          image: '',
+          inStock: true,
+          allowMultiplePurchases: false,
+          contentType: 'none',
+          textContent: '',
+          linkUrl: '',
+          youtubeUrl: '',
+          fileUrl: '',
+          requiresRole: false,
+          requiredRoleId: '',
+          requiredRoleName: ''
+        });
+        setEditImageFile(null);
+        setEditImagePreview('');
+        setEditFileToUpload(null);
+        setEditingItem(null);
+        setShowEditForm(false);
+        
+        alert('Item updated successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error updating item: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+      alert('Error updating item');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -986,6 +1214,19 @@ const HamsterShop: React.FC = () => {
                 </div>
               )}
 
+              {/* YouTube URL Field - Always visible */}
+              <div className="md:col-span-2">
+                <label className="text-white text-sm">YouTube Preview Link (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={newItem.youtubeUrl || ''}
+                  onChange={(e) => setNewItem({...newItem, youtubeUrl: e.target.value})}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                />
+                <p className="text-gray-400 text-xs mt-1">Add a YouTube link for item preview video</p>
+              </div>
+
 
 
               {newItem.contentType === 'file' && (
@@ -1091,6 +1332,225 @@ const HamsterShop: React.FC = () => {
           </div>
         )}
 
+        {/* Admin Edit Item Form */}
+        {isAdmin && showEditForm && editingItem && (
+          <div className="bg-white/10 rounded-xl p-6 mb-6 border border-white/20">
+            <h2 className="text-2xl font-bold text-white mb-4">Edit Item: {editingItem.name}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Item Name"
+                value={editItem.name}
+                onChange={(e) => setEditItem({...editItem, name: e.target.value})}
+                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                value={editItem.description}
+                onChange={(e) => setEditItem({...editItem, description: e.target.value})}
+                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              />
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Price"
+                value={editItem.price}
+                onChange={(e) => setEditItem({...editItem, price: e.target.value})}
+                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              />
+              
+              <div className="space-y-2">
+                <label className="text-white text-sm">Item Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      setEditImageFile(file);
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        setEditImagePreview(e.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                />
+                {editImagePreview && (
+                  <div className="mt-2">
+                    <img src={editImagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                  </div>
+                )}
+                <p className="text-gray-400 text-xs">Leave empty to keep current image</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-white text-sm">Content Type</label>
+                <select
+                  value={editItem.contentType || 'none'}
+                  onChange={(e) => setEditItem({...editItem, contentType: e.target.value})}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                >
+                  <option value="none">No Additional Content</option>
+                  <option value="text">Text Content</option>
+                  <option value="link">External Link</option>
+                  <option value="file">File Upload</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Conditional content fields based on type */}
+            {editItem.contentType === 'text' && (
+              <div className="mt-4">
+                <label className="text-white text-sm">Text Content</label>
+                <textarea
+                  placeholder="Enter text content..."
+                  value={editItem.textContent || ''}
+                  onChange={(e) => setEditItem({...editItem, textContent: e.target.value})}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 h-24"
+                />
+              </div>
+            )}
+
+            {editItem.contentType === 'link' && (
+              <div className="mt-4">
+                <label className="text-white text-sm">External Link</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={editItem.linkUrl || ''}
+                  onChange={(e) => setEditItem({...editItem, linkUrl: e.target.value})}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                />
+              </div>
+            )}
+
+            {/* YouTube URL Field - Always visible */}
+            <div className="mt-4">
+              <label className="text-white text-sm">YouTube Preview Link (Optional)</label>
+              <input
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={editItem.youtubeUrl || ''}
+                onChange={(e) => setEditItem({...editItem, youtubeUrl: e.target.value})}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              />
+              <p className="text-gray-400 text-xs mt-1">Add a YouTube link for item preview video</p>
+            </div>
+
+            {editItem.contentType === 'file' && (
+              <div className="mt-4">
+                <label className="text-white text-sm">File Upload</label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setEditFileToUpload(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
+                />
+                {editFileToUpload && (
+                  <div className="mt-2 p-2 bg-white/5 rounded-lg">
+                    <p className="text-white text-sm">Selected file: {editFileToUpload.name}</p>
+                    <p className="text-gray-400 text-xs">Size: {(editFileToUpload.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                )}
+                <p className="text-gray-400 text-xs mt-1">Leave empty to keep current file</p>
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={editItem.inStock}
+                  onChange={(e) => setEditItem({...editItem, inStock: e.target.checked})}
+                  className="bg-white/10 border border-white/20 rounded"
+                />
+                <label className="text-white">In Stock</label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={editItem.allowMultiplePurchases}
+                  onChange={(e) => setEditItem({...editItem, allowMultiplePurchases: e.target.checked})}
+                  className="bg-white/10 border border-white/20 rounded"
+                />
+                <label className="text-white">Allow Multiple Purchases</label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={editItem.requiresRole}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setEditItem({
+                      ...editItem, 
+                      requiresRole: isChecked,
+                      requiredRoleId: isChecked ? '1388546120912998554' : '',
+                      requiredRoleName: isChecked ? 'Starway' : ''
+                    });
+                  }}
+                  className="bg-white/10 border border-white/20 rounded"
+                />
+                <label className="text-white">Require Discord Role</label>
+              </div>
+
+              {editItem.requiresRole && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-white text-sm">Discord Role ID *</label>
+                    <input
+                      type="text"
+                      placeholder="1388546120912998554"
+                      value={editItem.requiredRoleId}
+                      onChange={(e) => setEditItem({...editItem, requiredRoleId: e.target.value})}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm">Role Name (Optional - for display)</label>
+                    <input
+                      type="text"
+                      placeholder="Starway"
+                      value={editItem.requiredRoleName}
+                      onChange={(e) => setEditItem({...editItem, requiredRoleName: e.target.value})}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex space-x-3">
+              <button
+                onClick={handleUpdateItem}
+                disabled={!editItem.name || !editItem.description || !editItem.price || isUploading}
+                className="bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                {isUploading ? 'Updating...' : 'Update Item'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowEditForm(false);
+                  setEditingItem(null);
+                  setEditImageFile(null);
+                  setEditImagePreview('');
+                  setEditFileToUpload(null);
+                }}
+                className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
 
 
         {/* Sticky Cart Summary - Bottom Center */}
@@ -1160,7 +1620,25 @@ const HamsterShop: React.FC = () => {
                     
 
                     
-                    <div className="text-2xl font-bold text-orange-400 mb-4">${item.price.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-orange-400 mb-2">${item.price.toFixed(2)}</div>
+                    
+                    {/* YouTube Link Display */}
+                    {item.youtubeUrl && item.youtubeUrl.trim() !== '' && (
+                      <div className="mb-4">
+                        <a
+                          href={item.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 text-red-400 hover:text-red-300 transition-colors text-sm"
+                          title={youtubeTitles[item.id] || 'Loading...'}
+                        >
+                          <span>📺</span>
+                          <span className="truncate max-w-48">
+                            {youtubeTitles[item.id] || 'Loading YouTube title...'}
+                          </span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex flex-col space-y-2">
@@ -1201,6 +1679,14 @@ const HamsterShop: React.FC = () => {
                       </button>
 
                       {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleEditItem(item)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg transition-colors"
+                            title="Edit Item"
+                          >
+                            ✏️
+                          </button>
                         <button
                           onClick={() => handleDeleteItem(item.id)}
                           className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg transition-colors"
@@ -1208,6 +1694,7 @@ const HamsterShop: React.FC = () => {
                         >
                           🗑️
                         </button>
+                        </>
                       )}
                     </div>
                   </div>

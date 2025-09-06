@@ -64,6 +64,10 @@ const shopItemSchema = new mongoose.Schema({
     type: String, 
     default: ''
   },
+  youtubeUrl: { 
+    type: String, 
+    default: ''
+  },
   fileUrl: { 
     type: String, 
     default: ''
@@ -134,6 +138,7 @@ export async function GET() {
       contentType: item.contentType || 'none',
       textContent: item.textContent || '',
       linkUrl: item.linkUrl || '',
+      youtubeUrl: item.youtubeUrl || '',
       requiresRole: item.requiresRole || false,
       requiredRoleId: item.requiredRoleId || '',
       requiredRoleName: item.requiredRoleName || ''
@@ -229,6 +234,7 @@ export async function POST(request: NextRequest) {
       contentType, 
       textContent, 
       linkUrl, 
+      youtubeUrl,
       fileUrl,
       requiresRole,
       requiredRoleId,
@@ -257,6 +263,7 @@ export async function POST(request: NextRequest) {
       contentType: contentType || 'none',
       textContent: textContent || '',
       linkUrl: linkUrl || '',
+      youtubeUrl: youtubeUrl || '',
       fileUrl: fileUrl || '',
       hasFile: false, // Will be set to true when file is actually uploaded
       requiresRole: requiresRole || false,
@@ -312,7 +319,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, image, inStock, fileUrl, fileName, hasFile, contentType, requiresRole, requiredRoleId, requiredRoleName } = body;
+    console.log('PUT request body:', body);
+    const { id, name, description, price, image, inStock, fileUrl, fileName, hasFile, contentType, textContent, linkUrl, youtubeUrl, requiresRole, requiredRoleId, requiredRoleName } = body;
+    console.log('YouTube URL from request:', youtubeUrl);
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
@@ -322,18 +331,23 @@ export async function PUT(request: NextRequest) {
 
     // Find and update item in MongoDB
     const updateData: any = {};
-    if (name) updateData.name = name;
-    if (description) updateData.description = description;
-    if (price) updateData.price = parseFloat(price);
-    if (image) updateData.image = image;
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (image !== undefined) updateData.image = image;
     if (inStock !== undefined) updateData.inStock = inStock;
     if (fileUrl !== undefined) updateData.fileUrl = fileUrl;
     if (fileName !== undefined) updateData.fileName = fileName;
     if (hasFile !== undefined) updateData.hasFile = hasFile;
     if (contentType !== undefined) updateData.contentType = contentType;
+    if (textContent !== undefined) updateData.textContent = textContent;
+    if (linkUrl !== undefined) updateData.linkUrl = linkUrl;
+    if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
     if (requiresRole !== undefined) updateData.requiresRole = requiresRole;
     if (requiredRoleId !== undefined) updateData.requiredRoleId = requiredRoleId;
     if (requiredRoleName !== undefined) updateData.requiredRoleName = requiredRoleName;
+    
+    console.log('Update data being saved:', updateData);
 
     const updatedItem = await ShopItem.findByIdAndUpdate(
       id,
@@ -357,6 +371,9 @@ export async function PUT(request: NextRequest) {
       fileName: updatedItem.fileName,
       hasFile: updatedItem.hasFile,
       contentType: updatedItem.contentType,
+      textContent: updatedItem.textContent,
+      linkUrl: updatedItem.linkUrl,
+      youtubeUrl: updatedItem.youtubeUrl,
       requiresRole: updatedItem.requiresRole,
       requiredRoleId: updatedItem.requiredRoleId,
       requiredRoleName: updatedItem.requiredRoleName

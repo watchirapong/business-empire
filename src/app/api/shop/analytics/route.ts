@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -85,11 +86,7 @@ const purchaseHistorySchema = new mongoose.Schema({
 
 const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', purchaseHistorySchema);
 
-// Admin check function
-const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = process.env.ADMIN_USER_IDS?.split(',') || [];
-  return ADMIN_USER_IDS.includes(userId);
-};
+// Admin check function is now imported from @/lib/admin-config
 
 export async function GET(request: NextRequest) {
   try {
@@ -167,16 +164,55 @@ export async function GET(request: NextRequest) {
       itemBuyersArray[itemKey] = Array.from(itemBuyers[itemKey]);
     });
 
-    // Sort items by sales count
-    const topSellingItems = Object.entries(itemSales)
-      .map(([item, sales]) => ({
-        item,
-        sales,
-        revenue: itemRevenue[item],
-        uniqueBuyers: itemBuyers[item].size,
-        buyers: itemBuyersArray[item]
-      }))
-      .sort((a, b) => b.sales - a.sales);
+    // Sort items by sales count and fetch nicknames for buyers
+    const topSellingItems = await Promise.all(
+      Object.entries(itemSales)
+        .map(async ([item, sales]) => {
+          // Fetch nicknames for buyers
+          const buyersWithNicknames = await Promise.all(
+            itemBuyersArray[item].map(async (buyer) => {
+              try {
+                // Find the user's Discord ID from purchases
+                const userPurchase = purchases.find(p => p.username === buyer);
+                if (userPurchase && userPurchase.userId) {
+                  // Fetch nickname from Discord API
+                  const nicknameResponse = await fetch(
+                    `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID || '699984143542517801'}/members/${userPurchase.userId}`,
+                    {
+                      headers: {
+                        'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                        'Content-Type': 'application/json',
+                      },
+                    }
+                  );
+                  
+                  if (nicknameResponse.ok) {
+                    const memberData = await nicknameResponse.json();
+                    return memberData.nick || memberData.user.global_name || memberData.user.username || buyer;
+                  }
+                }
+              } catch (error) {
+                console.log(`Could not fetch nickname for buyer ${buyer}:`, error);
+              }
+              return buyer; // Fallback to original username
+            })
+          );
+          
+          return {
+            item,
+            sales,
+            revenue: itemRevenue[item],
+            uniqueBuyers: itemBuyers[item].size,
+            buyers: buyersWithNicknames
+          };
+        })
+    );
+    
+    // Sort by sales count after fetching nicknames
+    topSellingItems.sort((a, b) => b.sales - a.sales);
+    
+    // Get all items (not just top 10) for scrollable view
+    const allSellingItems = topSellingItems;
 
     // 2. User Spending Analytics
     const userSpending: Record<string, number> = {};
@@ -203,16 +239,49 @@ export async function GET(request: NextRequest) {
       userItemsArray[userKey] = Array.from(userItems[userKey]);
     });
 
-    // Sort users by spending
-    const topSpenders = Object.entries(userSpending)
-      .map(([user, spending]) => ({
-        user,
-        spending,
-        purchases: userPurchases[user],
-        uniqueItems: userItems[user].size,
-        items: userItemsArray[user]
-      }))
-      .sort((a, b) => b.spending - a.spending);
+    // Sort users by spending and fetch nicknames
+    const topSpenders = await Promise.all(
+      Object.entries(userSpending)
+        .map(async ([user, spending]) => {
+          // Try to get Discord nickname for the user
+          let displayName = user;
+          try {
+            // Find the user's Discord ID from purchases
+            const userPurchase = purchases.find(p => p.username === user);
+            if (userPurchase && userPurchase.userId) {
+              // Fetch nickname from Discord API
+              const nicknameResponse = await fetch(
+                `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID || '699984143542517801'}/members/${userPurchase.userId}`,
+                {
+                  headers: {
+                    'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              
+              if (nicknameResponse.ok) {
+                const memberData = await nicknameResponse.json();
+                displayName = memberData.nick || memberData.user.global_name || memberData.user.username || user;
+              }
+            }
+          } catch (error) {
+            console.log(`Could not fetch nickname for user ${user}:`, error);
+            // Keep original username if nickname fetch fails
+          }
+          
+          return {
+            user: displayName,
+            spending,
+            purchases: userPurchases[user],
+            uniqueItems: userItems[user].size,
+            items: userItemsArray[user]
+          };
+        })
+    );
+    
+    // Sort by spending after fetching nicknames
+    topSpenders.sort((a, b) => b.spending - a.spending);
 
     // 3. Revenue Analytics
     const totalRevenue = purchases.reduce((sum, purchase) => sum + purchase.price, 0);
@@ -270,7 +339,7 @@ export async function GET(request: NextRequest) {
           uniqueItems,
           averageOrderValue: totalPurchases > 0 ? totalRevenue / totalPurchases : 0
         },
-        topSellingItems: topSellingItems.slice(0, 20), // Top 20
+        topSellingItems: allSellingItems, // All items for scrollable view
         topSpenders: topSpenders.slice(0, 20), // Top 20
         currencyBreakdown,
         dailySales: dailySalesArray,
