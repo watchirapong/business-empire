@@ -80,7 +80,7 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin' | 'stardustcoin'>('hamstercoin');
-  const [balance, setBalance] = useState<{hamstercoin: number, stardustcoin: number}>({hamstercoin: 2500, stardustcoin: 1500});
+  const [balance, setBalance] = useState<{hamstercoin: number, stardustcoin: number}>({hamstercoin: 0, stardustcoin: 0});
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [youtubeTitles, setYoutubeTitles] = useState<Record<string, string>>({});
@@ -91,18 +91,19 @@ export default function ShopPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
 
-  // Fetch shop items
+  // Fetch shop items and currency balance
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/shop/items');
-        const data = await response.json();
-        if (data.items) {
-          setItems(data.items);
+        // Fetch shop items
+        const itemsResponse = await fetch('/api/shop/items');
+        const itemsData = await itemsResponse.json();
+        if (itemsData.items) {
+          setItems(itemsData.items);
 
           // Fetch YouTube video titles for items with YouTube URLs
           const titles: Record<string, string> = {};
-          const titlePromises = data.items
+          const titlePromises = itemsData.items
             .filter((item: ShopItem) => item.youtubeUrl && item.youtubeUrl.trim() !== '')
             .map(async (item: ShopItem) => {
               if (item.youtubeUrl) {
@@ -122,14 +123,23 @@ export default function ShopPage() {
           await Promise.all(titlePromises);
           setYoutubeTitles(titles);
         }
+
+        // Fetch currency balance
+        const balanceResponse = await fetch('/api/currency/balance');
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          if (balanceData.success) {
+            setBalance(balanceData.balance);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching shop items:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchItems();
+    fetchData();
   }, []);
 
   // Redirect if not logged in and check admin status
@@ -253,6 +263,19 @@ export default function ShopPage() {
 
       setCart([]);
       setShowPurchaseSuccess(true);
+
+      // Refresh balance after purchase
+      try {
+        const balanceResponse = await fetch('/api/currency/balance');
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          if (balanceData.success) {
+            setBalance(balanceData.balance);
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing balance:', error);
+      }
     } catch (error) {
       console.error('Purchase error:', error);
       alert('Purchase failed. Please try again.');

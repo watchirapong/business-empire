@@ -94,6 +94,38 @@ export async function POST(request: NextRequest) {
     item.totalRevenue = (item.totalRevenue || 0) + item.price;
     await item.save();
 
+    // Deduct from user's currency balance
+    const db = mongoose.connection.db;
+    const userId = (session.user as any).id;
+
+    if (currency === 'hamstercoin') {
+      // Update HamsterCoin balance in currencies collection
+      const currencies = db.collection('currencies');
+      await currencies.updateOne(
+        { userId },
+        {
+          $inc: {
+            hamsterCoins: -item.price,
+            totalSpent: item.price
+          },
+          $set: { updatedAt: new Date() }
+        }
+      );
+    } else if (currency === 'stardustcoin') {
+      // Update StardustCoin balance in stardustcoins collection
+      const stardustCoins = db.collection('stardustcoins');
+      await stardustCoins.updateOne(
+        { userId },
+        {
+          $inc: {
+            balance: -item.price,
+            totalSpent: item.price
+          },
+          $set: { lastUpdated: new Date(), updatedAt: new Date() }
+        }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Purchase successful',
