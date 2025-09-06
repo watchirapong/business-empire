@@ -316,12 +316,85 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     };
 
-    // In a real app, this would save to database
-    shopItems.push(newItem);
+    await connectDB();
+
+    // Save to MongoDB
+    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
+      name: String,
+      description: String,
+      price: Number,
+      image: String,
+      inStock: Boolean,
+      category: String,
+      contentType: String,
+      textContent: String,
+      linkUrl: String,
+      fileUrl: String,
+      fileName: String,
+      hasFile: Boolean,
+      requiresRole: Boolean,
+      requiredRoleId: String,
+      requiredRoleName: String,
+      allowMultiplePurchases: Boolean,
+      youtubeUrl: String,
+      purchaseCount: Number,
+      totalRevenue: Number,
+      createdAt: Date,
+      updatedAt: Date
+    }));
+
+    const savedItem = new ShopItem({
+      name,
+      description,
+      price: parseFloat(price),
+      image,
+      category,
+      contentType: contentType || 'none',
+      textContent: textContent || '',
+      linkUrl: linkUrl || '',
+      youtubeUrl: youtubeUrl || '',
+      inStock: inStock !== undefined ? inStock : true,
+      allowMultiplePurchases: allowMultiplePurchases || false,
+      requiresRole: requiresRole || false,
+      requiredRoleId: requiredRoleId || '',
+      requiredRoleName: requiredRoleName || '',
+      hasFile: false,
+      fileUrl: '',
+      fileName: '',
+      purchaseCount: 0,
+      totalRevenue: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    await savedItem.save();
 
     return NextResponse.json({
       message: 'Item created successfully',
-      item: newItem
+      item: {
+        id: savedItem._id.toString(),
+        name: savedItem.name,
+        description: savedItem.description,
+        price: savedItem.price,
+        image: savedItem.image,
+        inStock: savedItem.inStock,
+        category: savedItem.category,
+        contentType: savedItem.contentType,
+        textContent: savedItem.textContent,
+        linkUrl: savedItem.linkUrl,
+        youtubeUrl: savedItem.youtubeUrl,
+        fileUrl: savedItem.fileUrl,
+        fileName: savedItem.fileName,
+        hasFile: savedItem.hasFile,
+        requiresRole: savedItem.requiresRole,
+        requiredRoleId: savedItem.requiredRoleId,
+        requiredRoleName: savedItem.requiredRoleName,
+        allowMultiplePurchases: savedItem.allowMultiplePurchases,
+        purchaseCount: savedItem.purchaseCount,
+        totalRevenue: savedItem.totalRevenue,
+        createdAt: savedItem.createdAt,
+        updatedAt: savedItem.updatedAt
+      }
     });
   } catch (error) {
     console.error('Error processing request:', error);
@@ -396,23 +469,69 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
 
-    const itemIndex = shopItems.findIndex(item => item.id === id);
-    if (itemIndex === -1) {
+    await connectDB();
+
+    // Find and update item in MongoDB
+    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
+      name: String,
+      description: String,
+      price: Number,
+      image: String,
+      inStock: Boolean,
+      category: String,
+      contentType: String,
+      textContent: String,
+      linkUrl: String,
+      fileUrl: String,
+      fileName: String,
+      hasFile: Boolean,
+      requiresRole: Boolean,
+      requiredRoleId: String,
+      requiredRoleName: String,
+      allowMultiplePurchases: Boolean,
+      youtubeUrl: String,
+      purchaseCount: Number,
+      totalRevenue: Number,
+      createdAt: Date,
+      updatedAt: Date
+    }));
+
+    const updatedItem = await ShopItem.findByIdAndUpdate(
+      id,
+      { ...updateData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedItem) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    // Update item
-    const updatedItem = {
-      ...shopItems[itemIndex],
-      ...updateData,
-      updatedAt: new Date().toISOString()
-    };
-
-    shopItems[itemIndex] = updatedItem;
-
     return NextResponse.json({
       message: 'Item updated successfully',
-      item: updatedItem
+      item: {
+        id: updatedItem._id.toString(),
+        name: updatedItem.name,
+        description: updatedItem.description,
+        price: updatedItem.price,
+        image: updatedItem.image,
+        inStock: updatedItem.inStock,
+        category: updatedItem.category,
+        contentType: updatedItem.contentType,
+        textContent: updatedItem.textContent,
+        linkUrl: updatedItem.linkUrl,
+        youtubeUrl: updatedItem.youtubeUrl,
+        fileUrl: updatedItem.fileUrl,
+        fileName: updatedItem.fileName,
+        hasFile: updatedItem.hasFile,
+        requiresRole: updatedItem.requiresRole,
+        requiredRoleId: updatedItem.requiredRoleId,
+        requiredRoleName: updatedItem.requiredRoleName,
+        allowMultiplePurchases: updatedItem.allowMultiplePurchases,
+        purchaseCount: updatedItem.purchaseCount,
+        totalRevenue: updatedItem.totalRevenue,
+        createdAt: updatedItem.createdAt,
+        updatedAt: updatedItem.updatedAt
+      }
     });
   } catch (error) {
     console.error('Error updating item:', error);
@@ -440,16 +559,65 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
 
-    const itemIndex = shopItems.findIndex(item => item.id === id);
-    if (itemIndex === -1) {
+    await connectDB();
+
+    // Find and delete item from MongoDB
+    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
+      name: String,
+      description: String,
+      price: Number,
+      image: String,
+      inStock: Boolean,
+      category: String,
+      contentType: String,
+      textContent: String,
+      linkUrl: String,
+      fileUrl: String,
+      fileName: String,
+      hasFile: Boolean,
+      requiresRole: Boolean,
+      requiredRoleId: String,
+      requiredRoleName: String,
+      allowMultiplePurchases: Boolean,
+      youtubeUrl: String,
+      purchaseCount: Number,
+      totalRevenue: Number,
+      createdAt: Date,
+      updatedAt: Date
+    }));
+
+    const deletedItem = await ShopItem.findByIdAndDelete(id);
+
+    if (!deletedItem) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    const deletedItem = shopItems.splice(itemIndex, 1)[0];
-
     return NextResponse.json({
       message: 'Item deleted successfully',
-      item: deletedItem
+      item: {
+        id: deletedItem._id.toString(),
+        name: deletedItem.name,
+        description: deletedItem.description,
+        price: deletedItem.price,
+        image: deletedItem.image,
+        inStock: deletedItem.inStock,
+        category: deletedItem.category,
+        contentType: deletedItem.contentType,
+        textContent: deletedItem.textContent,
+        linkUrl: deletedItem.linkUrl,
+        youtubeUrl: deletedItem.youtubeUrl,
+        fileUrl: deletedItem.fileUrl,
+        fileName: deletedItem.fileName,
+        hasFile: deletedItem.hasFile,
+        requiresRole: deletedItem.requiresRole,
+        requiredRoleId: deletedItem.requiredRoleId,
+        requiredRoleName: deletedItem.requiredRoleName,
+        allowMultiplePurchases: deletedItem.allowMultiplePurchases,
+        purchaseCount: deletedItem.purchaseCount,
+        totalRevenue: deletedItem.totalRevenue,
+        createdAt: deletedItem.createdAt,
+        updatedAt: deletedItem.updatedAt
+      }
     });
   } catch (error) {
     console.error('Error deleting item:', error);

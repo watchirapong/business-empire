@@ -44,12 +44,18 @@ export async function POST(request: NextRequest) {
       contentType: String,
       textContent: String,
       linkUrl: String,
+      youtubeUrl: String,
       fileUrl: String,
       fileName: String,
       hasFile: Boolean,
       requiresRole: Boolean,
       requiredRoleId: String,
-      requiredRoleName: String
+      requiredRoleName: String,
+      allowMultiplePurchases: Boolean,
+      purchaseCount: Number,
+      totalRevenue: Number,
+      createdAt: Date,
+      updatedAt: Date
     }));
 
     const item = await ShopItem.findById(itemId);
