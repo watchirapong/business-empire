@@ -99,12 +99,33 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop'>('users');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
   const [gachaItems, setGachaItems] = useState<any[]>([]);
   const [showGachaForm, setShowGachaForm] = useState(false);
   const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
+
+  // Shop management states
+  const [shopItems, setShopItems] = useState<any[]>([]);
+  const [showShopForm, setShowShopForm] = useState(false);
+  const [editingShopItem, setEditingShopItem] = useState<any>(null);
+  const [newShopItem, setNewShopItem] = useState({
+    name: '',
+    description: '',
+    price: '',
+    image: '',
+    category: 'cosmetic',
+    contentType: 'none',
+    textContent: '',
+    linkUrl: '',
+    youtubeUrl: '',
+    inStock: true,
+    allowMultiplePurchases: false,
+    requiresRole: false,
+    requiredRoleId: '',
+    requiredRoleName: ''
+  });
   const [newGachaItem, setNewGachaItem] = useState({
     name: '',
     description: '',
@@ -839,6 +860,16 @@ export default function AdminPage() {
             }`}
           >
             📊 Analytics Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('shop')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'shop'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🛒 Shop Management
           </button>
         </div>
 
@@ -2020,6 +2051,382 @@ export default function AdminPage() {
         {activeTab === 'analytics' && (
           <>
             <AnalyticsDashboard />
+          </>
+        )}
+
+        {/* Shop Management Tab */}
+        {activeTab === 'shop' && (
+          <>
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  🛒 Shop Management
+                </h2>
+                <p className="text-gray-300 text-lg">
+                  Manage shop items, inventory, and sales
+                </p>
+              </div>
+
+              {/* Add New Item Button */}
+              <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-white">Shop Items Management</h2>
+                  <button
+                    onClick={() => {
+                      setShowShopForm(!showShopForm);
+                      setEditingShopItem(null);
+                      setNewShopItem({
+                        name: '',
+                        description: '',
+                        price: '',
+                        image: '',
+                        category: 'cosmetic',
+                        contentType: 'none',
+                        textContent: '',
+                        linkUrl: '',
+                        youtubeUrl: '',
+                        inStock: true,
+                        allowMultiplePurchases: false,
+                        requiresRole: false,
+                        requiredRoleId: '',
+                        requiredRoleName: ''
+                      });
+                    }}
+                    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white px-6 py-3 rounded-lg transition-all duration-300"
+                  >
+                    {showShopForm ? 'Cancel' : '➕ Add New Item'}
+                  </button>
+                </div>
+
+                {/* Add/Edit Item Form */}
+                {showShopForm && (
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-2xl font-bold text-white mb-4">
+                      {editingShopItem ? 'Edit Item' : 'Add New Item'}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        placeholder="Item Name"
+                        value={editingShopItem ? editingShopItem.name : newShopItem.name}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, name: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, name: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description"
+                        value={editingShopItem ? editingShopItem.description : newShopItem.description}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, description: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, description: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Price"
+                        value={editingShopItem ? editingShopItem.price : newShopItem.price}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, price: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, price: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Image (emoji or URL)"
+                        value={editingShopItem ? editingShopItem.image : newShopItem.image}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, image: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, image: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                      />
+
+                      <select
+                        value={editingShopItem ? editingShopItem.category : newShopItem.category}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, category: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, category: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                      >
+                        <option value="cosmetic">Cosmetic</option>
+                        <option value="gaming">Gaming</option>
+                        <option value="other">Other</option>
+                      </select>
+
+                      <select
+                        value={editingShopItem ? editingShopItem.contentType : newShopItem.contentType}
+                        onChange={(e) => {
+                          if (editingShopItem) {
+                            setEditingShopItem({...editingShopItem, contentType: e.target.value});
+                          } else {
+                            setNewShopItem({...newShopItem, contentType: e.target.value});
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+                      >
+                        <option value="none">No Additional Content</option>
+                        <option value="text">Text Content</option>
+                        <option value="link">External Link</option>
+                        <option value="file">File Download</option>
+                        <option value="youtube">YouTube Video</option>
+                      </select>
+
+                      {/* Conditional content fields */}
+                      {(editingShopItem ? editingShopItem.contentType : newShopItem.contentType) === 'text' && (
+                        <div className="md:col-span-2">
+                          <textarea
+                            placeholder="Enter text content..."
+                            value={editingShopItem ? editingShopItem.textContent : newShopItem.textContent}
+                            onChange={(e) => {
+                              if (editingShopItem) {
+                                setEditingShopItem({...editingShopItem, textContent: e.target.value});
+                              } else {
+                                setNewShopItem({...newShopItem, textContent: e.target.value});
+                              }
+                            }}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 h-24"
+                          />
+                        </div>
+                      )}
+
+                      {(editingShopItem ? editingShopItem.contentType : newShopItem.contentType) === 'link' && (
+                        <div className="md:col-span-2">
+                          <input
+                            type="url"
+                            placeholder="https://example.com"
+                            value={editingShopItem ? editingShopItem.linkUrl : newShopItem.linkUrl}
+                            onChange={(e) => {
+                              if (editingShopItem) {
+                                setEditingShopItem({...editingShopItem, linkUrl: e.target.value});
+                              } else {
+                                setNewShopItem({...newShopItem, linkUrl: e.target.value});
+                              }
+                            }}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                          />
+                        </div>
+                      )}
+
+                      {(editingShopItem ? editingShopItem.contentType : newShopItem.contentType) === 'youtube' && (
+                        <div className="md:col-span-2">
+                          <input
+                            type="url"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            value={editingShopItem ? editingShopItem.youtubeUrl : newShopItem.youtubeUrl}
+                            onChange={(e) => {
+                              if (editingShopItem) {
+                                setEditingShopItem({...editingShopItem, youtubeUrl: e.target.value});
+                              } else {
+                                setNewShopItem({...newShopItem, youtubeUrl: e.target.value});
+                              }
+                            }}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editingShopItem ? editingShopItem.inStock : newShopItem.inStock}
+                          onChange={(e) => {
+                            if (editingShopItem) {
+                              setEditingShopItem({...editingShopItem, inStock: e.target.checked});
+                            } else {
+                              setNewShopItem({...newShopItem, inStock: e.target.checked});
+                            }
+                          }}
+                          className="bg-white/10 border border-white/20 rounded"
+                        />
+                        <label className="text-white">In Stock</label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editingShopItem ? editingShopItem.allowMultiplePurchases : newShopItem.allowMultiplePurchases}
+                          onChange={(e) => {
+                            if (editingShopItem) {
+                              setEditingShopItem({...editingShopItem, allowMultiplePurchases: e.target.checked});
+                            } else {
+                              setNewShopItem({...newShopItem, allowMultiplePurchases: e.target.checked});
+                            }
+                          }}
+                          className="bg-white/10 border border-white/20 rounded"
+                        />
+                        <label className="text-white">Allow Multiple Purchases</label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editingShopItem ? editingShopItem.requiresRole : newShopItem.requiresRole}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            if (editingShopItem) {
+                              setEditingShopItem({
+                                ...editingShopItem,
+                                requiresRole: checked,
+                                requiredRoleId: checked ? '1388546120912998554' : '',
+                                requiredRoleName: checked ? 'Starway' : ''
+                              });
+                            } else {
+                              setNewShopItem({
+                                ...newShopItem,
+                                requiresRole: checked,
+                                requiredRoleId: checked ? '1388546120912998554' : '',
+                                requiredRoleName: checked ? 'Starway' : ''
+                              });
+                            }
+                          }}
+                          className="bg-white/10 border border-white/20 rounded"
+                        />
+                        <label className="text-white">Require Discord Role</label>
+                      </div>
+
+                      {(editingShopItem ? editingShopItem.requiresRole : newShopItem.requiresRole) && (
+                        <div className="md:col-span-2 space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Discord Role ID"
+                            value={editingShopItem ? editingShopItem.requiredRoleId : newShopItem.requiredRoleId}
+                            onChange={(e) => {
+                              if (editingShopItem) {
+                                setEditingShopItem({...editingShopItem, requiredRoleId: e.target.value});
+                              } else {
+                                setNewShopItem({...newShopItem, requiredRoleId: e.target.value});
+                              }
+                            }}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Role Name"
+                            value={editingShopItem ? editingShopItem.requiredRoleName : newShopItem.requiredRoleName}
+                            onChange={(e) => {
+                              if (editingShopItem) {
+                                setEditingShopItem({...editingShopItem, requiredRoleName: e.target.value});
+                              } else {
+                                setNewShopItem({...newShopItem, requiredRoleName: e.target.value});
+                              }
+                            }}
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 flex space-x-3">
+                      <button
+                        onClick={() => {
+                          if (editingShopItem) {
+                            // Update existing item
+                            setShopItems(shopItems.map(item =>
+                              item.id === editingShopItem.id ? editingShopItem : item
+                            ));
+                            setEditingShopItem(null);
+                          } else {
+                            // Add new item
+                            const newItem = { ...newShopItem, id: Date.now().toString() };
+                            setShopItems([...shopItems, newItem]);
+                          }
+                          setShowShopForm(false);
+                        }}
+                        className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        {editingShopItem ? 'Update Item' : 'Add Item'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowShopForm(false);
+                          setEditingShopItem(null);
+                        }}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Shop Items List */}
+                <div className="grid gap-4">
+                  {shopItems.map(item => (
+                    <div
+                      key={item.id}
+                      className="bg-white/5 rounded-lg p-4 border border-white/10"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="text-2xl">{item.image}</div>
+                          <div>
+                            <h3 className="text-white font-semibold">{item.name}</h3>
+                            <p className="text-gray-400 text-sm">{item.description}</p>
+                            <div className="flex items-center space-x-4 mt-1">
+                              <span className="text-orange-400 font-bold">${item.price}</span>
+                              <span className={`text-sm px-2 py-1 rounded-full ${
+                                item.inStock
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-red-500/20 text-red-400'
+                              }`}>
+                                {item.inStock ? 'In Stock' : 'Out of Stock'}
+                              </span>
+                              {item.requiresRole && (
+                                <span className="text-sm px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                                  🔒 {item.requiredRoleName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingShopItem(item);
+                              setShowShopForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg transition-colors"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShopItems(shopItems.filter(i => i.id !== item.id));
+                            }}
+                            className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded-lg transition-colors"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </>
         )}
 
