@@ -466,21 +466,51 @@ export default function ShopPage() {
                 }`}>{item.name}</h3>
                 <p className="text-gray-300 text-sm mb-4">{item.description}</p>
 
-                {/* YouTube Link Display */}
+                {/* YouTube Video Preview */}
                 {item.youtubeUrl && item.youtubeUrl.trim() !== '' && (
                   <div className="mb-4">
-                    <a
-                      href={item.youtubeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-2 text-red-400 hover:text-red-300 transition-colors text-sm"
-                      title={youtubeTitles[item.id] || 'Loading...'}
-                    >
-                      <span>📺</span>
-                      <span className="truncate max-w-48">
-                        {youtubeTitles[item.id] || 'Loading YouTube title...'}
-                      </span>
-                    </a>
+                    <div className="relative group">
+                      <a
+                        href={item.youtubeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block relative overflow-hidden rounded-lg border border-red-500/30 hover:border-red-400/50 transition-all duration-300"
+                        title={`Watch: ${youtubeTitles[item.id] || 'YouTube Video'}`}
+                      >
+                        {/* YouTube Thumbnail */}
+                        <div className="relative bg-gradient-to-br from-red-500/20 to-red-600/20 p-3">
+                          <div className="aspect-video bg-gray-800 rounded flex items-center justify-center relative overflow-hidden">
+                            {/* YouTube Play Button Overlay */}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                              <div className="bg-red-600 rounded-full p-3 shadow-lg">
+                                <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M8 5v10l8-5-8-5z"/>
+                                </svg>
+                              </div>
+                            </div>
+
+                            {/* Video Title Overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                              <p className="text-white text-sm font-semibold truncate">
+                                {youtubeTitles[item.id] || 'Loading YouTube title...'}
+                              </p>
+                              <p className="text-red-300 text-xs flex items-center">
+                                <span className="mr-1">🎬</span>
+                                Click to watch
+                              </p>
+                            </div>
+
+                            {/* Fallback for when thumbnail doesn't load */}
+                            <div className="text-red-400 text-4xl opacity-50">
+                              📺
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Hover Effect */}
+                        <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                      </a>
+                    </div>
                   </div>
                 )}
 
@@ -681,20 +711,18 @@ export default function ShopPage() {
                     </div>
                   )}
 
-                  {/* YouTube Content Field */}
-                  {editFormData.contentType === 'youtube' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Video URL</label>
-                      <input
-                        type="url"
-                        value={editFormData.youtubeUrl || ''}
-                        onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
-                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Users will be able to access this YouTube video after purchasing the item.</p>
-                    </div>
-                  )}
+                  {/* YouTube Video Preview Field (Optional for all item types) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Video Preview (Optional)</label>
+                    <input
+                      type="url"
+                      value={editFormData.youtubeUrl || ''}
+                      onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
+                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Optional: Add a YouTube video that will show as a preview in the shop item card.</p>
+                  </div>
 
                   <div className="flex items-center space-x-2">
                     <input
@@ -973,30 +1001,54 @@ export default function ShopPage() {
                     </div>
                   )}
 
-                  {/* YouTube Content */}
-                  {purchasedItem.contentType === 'youtube' && purchasedItem.youtubeUrl && (
+                  {/* YouTube Video Preview */}
+                  {purchasedItem.youtubeUrl && purchasedItem.youtubeUrl.trim() !== '' && (
                     <div className="bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl p-5 mb-4 border border-red-500/30 shadow-lg">
                       <div className="flex items-center mb-3">
                         <div className="text-3xl mr-3">🎥</div>
                         <div>
-                          <h4 className="text-red-300 font-bold text-lg">YouTube Video</h4>
-                          <p className="text-red-200 text-sm">Access your exclusive video</p>
+                          <h4 className="text-red-300 font-bold text-lg">YouTube Video Preview</h4>
+                          <p className="text-red-200 text-sm">Watch the video preview for this item</p>
                         </div>
                       </div>
                       <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <p className="text-red-300 font-semibold mb-2">Your Exclusive Video:</p>
-                        <a
-                          href={purchasedItem.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-red-400 hover:text-red-300 font-semibold bg-red-900/30 rounded p-3 block text-center"
-                        >
-                          🎬 Watch Video on YouTube
-                        </a>
+                        <div className="relative">
+                          <div className="aspect-video bg-gray-800 rounded flex items-center justify-center relative overflow-hidden mb-3">
+                            {/* YouTube Play Button Overlay */}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                              <div className="bg-red-600 rounded-full p-4 shadow-lg">
+                                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M8 5v10l8-5-8-5z"/>
+                                </svg>
+                              </div>
+                            </div>
+
+                            {/* Video Title */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                              <p className="text-white text-sm font-semibold">
+                                {youtubeTitles[purchasedItem.id] || 'YouTube Video Preview'}
+                              </p>
+                            </div>
+
+                            {/* Fallback */}
+                            <div className="text-red-400 text-4xl opacity-50">
+                              📺
+                            </div>
+                          </div>
+
+                          <a
+                            href={purchasedItem.youtubeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg inline-block text-center w-full"
+                          >
+                            🎬 Watch Video on YouTube
+                          </a>
+                        </div>
                       </div>
                       <div className="mt-3 flex items-center text-red-300 text-sm">
                         <span className="mr-2">▶️</span>
-                        <span>Video unlocked - opens in new tab</span>
+                        <span>Video preview available - opens in new tab</span>
                       </div>
                     </div>
                   )}
