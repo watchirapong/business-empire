@@ -281,14 +281,44 @@ export default function ShopPage() {
           </h1>
           <p className="text-gray-300 text-lg">Purchase exclusive items and boosts</p>
 
-          {/* Purchase History Button */}
-          <div className="mt-4">
+          {/* Admin and Purchase History Buttons */}
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
             <button
               onClick={() => router.push('/purchases')}
               className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
             >
               📦 View Purchase History
             </button>
+
+            {isShopAdmin && (
+              <button
+                onClick={() => {
+                  setEditingShopItem(null);
+                  setEditFormData({
+                    name: '',
+                    description: '',
+                    price: 0,
+                    category: '',
+                    image: '',
+                    inStock: true,
+                    allowMultiplePurchases: false,
+                    contentType: 'none',
+                    textContent: '',
+                    linkUrl: '',
+                    fileUrl: '',
+                    fileName: '',
+                    hasFile: false,
+                    requiresRole: false,
+                    requiredRoleId: '',
+                    requiredRoleName: ''
+                  });
+                  setShowEditForm(true);
+                }}
+                className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                ➕ Post New Item
+              </button>
+            )}
           </div>
 
           {/* Balance Display */}
@@ -512,11 +542,13 @@ export default function ShopPage() {
         </div>
 
         {/* Edit Item Modal */}
-        {showEditForm && editingShopItem && (
+        {showEditForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Shop Item</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  {editingShopItem ? 'Edit Shop Item' : 'Post New Item'}
+                </h2>
 
                 <div className="space-y-4">
                   <div>
@@ -614,8 +646,12 @@ export default function ShopPage() {
                   <button
                     onClick={async () => {
                       try {
+                        const isEditing = editingShopItem !== null;
+                        const method = isEditing ? 'PUT' : 'POST';
+                        const successMessage = isEditing ? 'Item updated successfully!' : 'Item created successfully!';
+
                         const response = await fetch('/api/shop/items', {
-                          method: 'PUT',
+                          method: method,
                           headers: {
                             'Content-Type': 'application/json',
                           },
@@ -631,18 +667,19 @@ export default function ShopPage() {
                           setShowEditForm(false);
                           setEditingShopItem(null);
                           setEditFormData({});
-                          alert('Item updated successfully!');
+                          alert(successMessage);
                         } else {
-                          alert('Failed to update item');
+                          const errorData = await response.json();
+                          alert(`Failed to ${isEditing ? 'update' : 'create'} item: ${errorData.error || 'Unknown error'}`);
                         }
                       } catch (error) {
-                        console.error('Error updating item:', error);
-                        alert('Error updating item');
+                        console.error(`Error ${editingShopItem ? 'updating' : 'creating'} item:`, error);
+                        alert(`Error ${editingShopItem ? 'updating' : 'creating'} item`);
                       }
                     }}
                     className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                   >
-                    Update Item
+                    {editingShopItem ? 'Update Item' : 'Create Item'}
                   </button>
                 </div>
               </div>
