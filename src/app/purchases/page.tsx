@@ -10,6 +10,9 @@ interface Purchase {
   price: number;
   purchaseDate: string;
   status: 'completed' | 'pending';
+  downloadCount?: number;
+  hasFile?: boolean;
+  fileName?: string;
 }
 
 export default function PurchasesPage() {
@@ -18,28 +21,32 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock purchase history data
+  // Fetch real purchase history
   useEffect(() => {
-    const mockPurchases: Purchase[] = [
-      {
-        id: '1',
-        itemName: 'Premium Avatar Frame',
-        price: 500,
-        purchaseDate: new Date().toISOString(),
-        status: 'completed'
-      },
-      {
-        id: '2',
-        itemName: 'VIP Badge',
-        price: 1000,
-        purchaseDate: new Date(Date.now() - 86400000).toISOString(),
-        status: 'completed'
+    const fetchPurchaseHistory = async () => {
+      try {
+        const response = await fetch('/api/shop/purchase');
+        if (response.ok) {
+          const data = await response.json();
+          setPurchases(data.purchases || []);
+        } else {
+          console.error('Failed to fetch purchase history');
+          setPurchases([]);
+        }
+      } catch (error) {
+        console.error('Error fetching purchase history:', error);
+        setPurchases([]);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setPurchases(mockPurchases);
-    setLoading(false);
-  }, []);
+    if (session) {
+      fetchPurchaseHistory();
+    } else {
+      setLoading(false);
+    }
+  }, [session]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -81,22 +88,44 @@ export default function PurchasesPage() {
                 {purchases.map(purchase => (
                   <div
                     key={purchase.id}
-                    className="flex items-center justify-between bg-white/5 rounded-lg p-4"
+                    className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-colors"
                   >
-                    <div>
-                      <h3 className="text-white font-semibold">{purchase.itemName}</h3>
-                      <p className="text-gray-400 text-sm">
-                        Purchased on {new Date(purchase.purchaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-orange-400">${purchase.price}</div>
-                      <div className={`text-sm px-2 py-1 rounded-full inline-block mt-2 ${
-                        purchase.status === 'completed'
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {purchase.status}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg mb-1">{purchase.itemName}</h3>
+                        <p className="text-gray-400 text-sm mb-2">
+                          Purchased on {new Date(purchase.purchaseDate).toLocaleDateString()} at {new Date(purchase.purchaseDate).toLocaleTimeString()}
+                        </p>
+                        <div className="flex items-center space-x-4 text-sm">
+                          <div className={`px-2 py-1 rounded-full ${
+                            purchase.status === 'completed'
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {purchase.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
+                          </div>
+
+                          {purchase.hasFile && (
+                            <div className="flex items-center text-blue-400">
+                              <span className="mr-1">📁</span>
+                              <span>File Available</span>
+                              {purchase.downloadCount !== undefined && (
+                                <span className="ml-1 text-xs text-gray-400">
+                                  ({purchase.downloadCount} downloads)
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {purchase.fileName && (
+                            <div className="text-gray-300 text-xs">
+                              {purchase.fileName}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className="text-2xl font-bold text-orange-400">${purchase.price}</div>
                       </div>
                     </div>
                   </div>
