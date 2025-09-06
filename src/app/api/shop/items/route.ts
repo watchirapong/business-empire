@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
+import mongoose from 'mongoose';
+
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB already connected');
+      return;
+    }
+    await mongoose.connect(process.env.MONGODB_URI!);
+    console.log('MongoDB Connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
 
 // Comprehensive shop items data with all features
 const shopItems = [
@@ -104,7 +120,62 @@ const shopItems = [
 
 export async function GET() {
   try {
-    return NextResponse.json({ items: shopItems });
+    await connectDB();
+
+    // Fetch items from MongoDB instead of using hardcoded array
+    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
+      name: String,
+      description: String,
+      price: Number,
+      image: String,
+      inStock: Boolean,
+      category: String,
+      contentType: String,
+      textContent: String,
+      linkUrl: String,
+      fileUrl: String,
+      fileName: String,
+      hasFile: Boolean,
+      requiresRole: Boolean,
+      requiredRoleId: String,
+      requiredRoleName: String,
+      allowMultiplePurchases: Boolean,
+      youtubeUrl: String,
+      purchaseCount: Number,
+      totalRevenue: Number,
+      createdAt: Date,
+      updatedAt: Date
+    }));
+
+    const items = await ShopItem.find().sort({ createdAt: -1 });
+
+    // Convert MongoDB documents to plain objects and add id field
+    const itemsWithId = items.map(item => ({
+      id: item._id.toString(),
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      image: item.image,
+      inStock: item.inStock,
+      category: item.category || 'other',
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || '',
+      fileUrl: item.fileUrl || '',
+      fileName: item.fileName || '',
+      hasFile: item.hasFile || false,
+      requiresRole: item.requiresRole || false,
+      requiredRoleId: item.requiredRoleId || '',
+      requiredRoleName: item.requiredRoleName || '',
+      allowMultiplePurchases: item.allowMultiplePurchases !== undefined ? item.allowMultiplePurchases : true,
+      youtubeUrl: item.youtubeUrl || '',
+      purchaseCount: item.purchaseCount || 0,
+      totalRevenue: item.totalRevenue || 0,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
+    }));
+
+    return NextResponse.json({ items: itemsWithId });
   } catch (error) {
     console.error('Error fetching shop items:', error);
     return NextResponse.json({ error: 'Failed to fetch shop items' }, { status: 500 });
