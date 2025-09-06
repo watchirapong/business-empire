@@ -85,6 +85,9 @@ export default function ShopPage() {
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
   const [isShopAdmin, setIsShopAdmin] = useState(false);
+  const [editingShopItem, setEditingShopItem] = useState<any>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
 
   // Fetch shop items
   useEffect(() => {
@@ -493,8 +496,9 @@ export default function ShopPage() {
                 {isShopAdmin && (
                   <button
                     onClick={() => {
-                      // Admin edit functionality would go here
-                      alert(`Edit item: ${item.name}`);
+                      setEditingShopItem(item);
+                      setEditFormData({...item});
+                      setShowEditForm(true);
                     }}
                     className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
                     title="Edit Item (Admin)"
@@ -506,6 +510,145 @@ export default function ShopPage() {
             </div>
           ))}
         </div>
+
+        {/* Edit Item Modal */}
+        {showEditForm && editingShopItem && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Shop Item</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editFormData.name || ''}
+                      onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={editFormData.description || ''}
+                      onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                      <input
+                        type="number"
+                        value={editFormData.price || ''}
+                        onChange={(e) => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={editFormData.category || ''}
+                        onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">Select Category</option>
+                        <option value="weapons">Weapons</option>
+                        <option value="armor">Armor</option>
+                        <option value="consumables">Consumables</option>
+                        <option value="cosmetics">Cosmetics</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                    <input
+                      type="text"
+                      value={editFormData.image || ''}
+                      onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="inStock"
+                      checked={editFormData.inStock || false}
+                      onChange={(e) => setEditFormData({...editFormData, inStock: e.target.checked})}
+                      className="rounded"
+                    />
+                    <label htmlFor="inStock" className="text-sm font-medium text-gray-700">In Stock</label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="allowMultiple"
+                      checked={editFormData.allowMultiplePurchases || false}
+                      onChange={(e) => setEditFormData({...editFormData, allowMultiplePurchases: e.target.checked})}
+                      className="rounded"
+                    />
+                    <label htmlFor="allowMultiple" className="text-sm font-medium text-gray-700">Allow Multiple Purchases</label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowEditForm(false);
+                      setEditingShopItem(null);
+                      setEditFormData({});
+                    }}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/shop/items', {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(editFormData),
+                        });
+
+                        if (response.ok) {
+                          // Refresh items
+                          const itemsResponse = await fetch('/api/shop/items');
+                          const data = await itemsResponse.json();
+                          setItems(data);
+
+                          setShowEditForm(false);
+                          setEditingShopItem(null);
+                          setEditFormData({});
+                          alert('Item updated successfully!');
+                        } else {
+                          alert('Failed to update item');
+                        }
+                      } catch (error) {
+                        console.error('Error updating item:', error);
+                        alert('Error updating item');
+                      }
+                    }}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  >
+                    Update Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cart Summary */}
         {cart.length > 0 && (
