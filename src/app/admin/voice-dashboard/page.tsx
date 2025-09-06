@@ -17,6 +17,9 @@ interface VoiceActivityData {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  roles?: string[];
+  rank?: string;
+  displayName?: string;
 }
 
 interface TodayVoiceData extends VoiceActivityData {
@@ -67,6 +70,34 @@ interface TodayStats {
   averageTimePerUser: number;
 }
 
+interface RoleStats {
+  role: string;
+  count: number;
+  totalJoins: number;
+  totalTime: number;
+  avgJoins: number;
+  avgTime: number;
+}
+
+interface DailyVoiceData extends VoiceActivityData {
+  dailyJoinCount: number;
+  dailyVoiceTime: number;
+  sessions: VoiceSessionData[];
+  channels: string[];
+  firstJoin: string;
+  lastJoin: string;
+}
+
+interface DailyStats {
+  totalUsers: number;
+  totalSessions: number;
+  totalTime: number;
+  realUsers: number;
+  suspiciousUsers: number;
+  averageTimePerUser: number;
+  uniqueChannels: number;
+}
+
 interface ServerInfo {
   guildId: string;
   guildName: string;
@@ -91,9 +122,22 @@ export default function VoiceDashboardPage() {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [botStatus, setBotStatus] = useState<boolean | null>(null);
   const [botLoading, setBotLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'today'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'comprehensive'>('all');
   const [sortBy, setSortBy] = useState<'totalTime' | 'todayTime' | 'joins' | 'todayJoins'>('totalTime');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Role-based data
+  const [voiceActivitiesByRoles, setVoiceActivitiesByRoles] = useState<VoiceActivityData[]>([]);
+  const [roleStats, setRoleStats] = useState<RoleStats[]>([]);
+  const [roleFilter, setRoleFilter] = useState('all');
+  
+  // Daily data
+  const [dailyVoiceData, setDailyVoiceData] = useState<DailyVoiceData[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  
+  // Comprehensive view mode
+  const [viewMode, setViewMode] = useState<'today' | 'daily' | 'roles'>('today');
 
   // Check if user is admin
   const isAdmin = session?.user && ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'].includes((session.user as any).id);
@@ -107,10 +151,20 @@ export default function VoiceDashboardPage() {
     if (isAdmin) {
       loadVoiceStats();
       loadVoiceActivities();
-      loadTodayVoiceData();
       checkBotStatus();
+      
+      // Load data based on active tab and view mode
+      if (activeTab === 'comprehensive') {
+        if (viewMode === 'today') {
+          loadTodayVoiceData();
+        } else if (viewMode === 'daily') {
+          loadDailyVoiceData();
+        } else if (viewMode === 'roles') {
+          loadVoiceActivitiesByRoles();
+        }
+      }
     }
-  }, [isAdmin, filter, limit]);
+  }, [isAdmin, filter, limit, roleFilter, selectedDate, activeTab, viewMode]);
 
   // Reset sort when switching tabs
   useEffect(() => {
@@ -174,6 +228,38 @@ export default function VoiceDashboardPage() {
       }
     } catch (error) {
       console.error('Error loading today voice data:', error);
+    }
+  };
+
+  const loadVoiceActivitiesByRoles = async () => {
+    try {
+      const response = await fetch(`/api/admin/voice-activity-by-roles?filter=${filter}&limit=${limit}&roleFilter=${roleFilter}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setVoiceActivitiesByRoles(data.data.voiceActivities);
+        setRoleStats(data.data.roleStats);
+      } else {
+        console.error('Failed to load voice activities by roles:', data.error);
+      }
+    } catch (error) {
+      console.error('Error loading voice activities by roles:', error);
+    }
+  };
+
+  const loadDailyVoiceData = async () => {
+    try {
+      const response = await fetch(`/api/admin/voice-activity-daily?date=${selectedDate}&filter=${filter}&limit=${limit}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setDailyVoiceData(data.data.dailyVoiceData);
+        setDailyStats(data.data.dailyStats);
+      } else {
+        console.error('Failed to load daily voice data:', data.error);
+      }
+    } catch (error) {
+      console.error('Error loading daily voice data:', error);
     }
   };
 
@@ -271,6 +357,37 @@ export default function VoiceDashboardPage() {
         default:
           aValue = a.totalVoiceTime;
           bValue = b.totalVoiceTime;
+      }
+      
+      return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
+    });
+  };
+
+  // Sort function for daily voice data
+  const sortDailyVoiceData = (activities: DailyVoiceData[]) => {
+    return [...activities].sort((a, b) => {
+      let aValue: number, bValue: number;
+      
+      switch (sortBy) {
+        case 'totalTime':
+          aValue = a.totalVoiceTime;
+          bValue = b.totalVoiceTime;
+          break;
+        case 'todayTime':
+          aValue = a.dailyVoiceTime;
+          bValue = b.dailyVoiceTime;
+          break;
+        case 'joins':
+          aValue = a.voiceJoinCount;
+          bValue = b.voiceJoinCount;
+          break;
+        case 'todayJoins':
+          aValue = a.dailyJoinCount;
+          bValue = b.dailyJoinCount;
+          break;
+        default:
+          aValue = a.dailyVoiceTime;
+          bValue = b.dailyVoiceTime;
       }
       
       return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
@@ -415,6 +532,8 @@ export default function VoiceDashboardPage() {
                 loadVoiceStats();
                 loadVoiceActivities();
                 loadTodayVoiceData();
+                loadVoiceActivitiesByRoles();
+                loadDailyVoiceData();
               }}
               className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
             >
@@ -438,6 +557,8 @@ export default function VoiceDashboardPage() {
                       loadVoiceStats();
                       loadVoiceActivities();
                       loadTodayVoiceData();
+                      loadVoiceActivitiesByRoles();
+                      loadDailyVoiceData();
                     }}
                     className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors flex items-center"
                   >
@@ -534,35 +655,131 @@ export default function VoiceDashboardPage() {
               </div>
             )}
 
-            {/* Today's Statistics */}
-            {todayStats && (
-              <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/20">
-                <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
-                  <span className="mr-2">📅</span>
-                  Today&apos;s Voice Activity
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-green-300 mb-1">{todayStats.totalUsersToday}</div>
-                    <div className="text-green-200 text-sm">Users Today</div>
+            {/* Comprehensive Statistics */}
+            {activeTab === 'comprehensive' && (
+              <>
+                {/* Today's Statistics */}
+                {viewMode === 'today' && todayStats && (
+                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/20">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                      <span className="mr-2">📅</span>
+                      Today&apos;s Voice Activity
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-300 mb-1">{todayStats.totalUsersToday}</div>
+                        <div className="text-green-200 text-sm">Users Today</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-300 mb-1">{formatDuration(todayStats.totalTimeToday)}</div>
+                        <div className="text-blue-200 text-sm">Total Time Today</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-300 mb-1">{todayStats.totalSessionsToday}</div>
+                        <div className="text-purple-200 text-sm">Sessions Today</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-yellow-300 mb-1">{formatDuration(todayStats.averageTimePerUser)}</div>
+                        <div className="text-yellow-200 text-sm">Avg Time/User</div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-300 mb-1">{formatDuration(todayStats.totalTimeToday)}</div>
-                    <div className="text-blue-200 text-sm">Total Time Today</div>
+                )}
+
+                {/* Role Statistics */}
+                {viewMode === 'roles' && roleStats.length > 0 && (
+                  <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-500/20">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                      <span className="mr-2">👑</span>
+                      Voice Activity by Role
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {roleStats.map((roleStat) => (
+                        <div key={roleStat.role} className="bg-white/5 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-bold text-white">{roleStat.role}</h3>
+                            <span className="text-purple-300 text-sm">{roleStat.count} users</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Total Time:</span>
+                              <span className="text-purple-300">{formatDuration(roleStat.totalTime)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Total Joins:</span>
+                              <span className="text-blue-300">{roleStat.totalJoins}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Avg Time:</span>
+                              <span className="text-green-300">{formatDuration(roleStat.avgTime)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Avg Joins:</span>
+                              <span className="text-yellow-300">{roleStat.avgJoins}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-300 mb-1">{todayStats.totalSessionsToday}</div>
-                    <div className="text-purple-200 text-sm">Sessions Today</div>
+                )}
+
+                {/* Daily Statistics */}
+                {viewMode === 'daily' && dailyStats && (
+                  <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-500/20">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                      <span className="mr-2">📅</span>
+                      Voice Activity for {new Date(selectedDate).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-orange-300 mb-1">{dailyStats.totalUsers}</div>
+                        <div className="text-orange-200 text-sm">Active Users</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-300 mb-1">{dailyStats.totalSessions}</div>
+                        <div className="text-blue-200 text-sm">Total Sessions</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-300 mb-1">{formatDuration(dailyStats.totalTime)}</div>
+                        <div className="text-green-200 text-sm">Total Time</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-300 mb-1">{dailyStats.uniqueChannels}</div>
+                        <div className="text-purple-200 text-sm">Channels Used</div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-lg font-bold text-green-300 mb-1">{dailyStats.realUsers}</div>
+                        <div className="text-green-200 text-sm">Real Users</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-lg font-bold text-yellow-300 mb-1">{dailyStats.suspiciousUsers}</div>
+                        <div className="text-yellow-200 text-sm">Suspicious Users</div>
+                      </div>
+                      
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-lg font-bold text-cyan-300 mb-1">{formatDuration(dailyStats.averageTimePerUser)}</div>
+                        <div className="text-cyan-200 text-sm">Avg Time/User</div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-300 mb-1">{formatDuration(todayStats.averageTimePerUser)}</div>
-                    <div className="text-yellow-200 text-sm">Avg Time/User</div>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
 
             {/* Tab Navigation */}
@@ -580,14 +797,14 @@ export default function VoiceDashboardPage() {
                     📊 All Users Total Time
                   </button>
                   <button
-                    onClick={() => setActiveTab('today')}
+                    onClick={() => setActiveTab('comprehensive')}
                     className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                      activeTab === 'today'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-white/10 text-green-200 hover:bg-white/20'
+                      activeTab === 'comprehensive'
+                        ? 'bg-gradient-to-r from-green-500 to-purple-500 text-white'
+                        : 'bg-white/10 text-gray-200 hover:bg-white/20'
                     }`}
                   >
-                    📅 Today&apos;s Voice Activity
+                    🎯 Comprehensive View
                   </button>
                 </div>
                 
@@ -600,6 +817,67 @@ export default function VoiceDashboardPage() {
                           value={filter}
                           onChange={(e) => setFilter(e.target.value)}
                           className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="all">All Users</option>
+                          <option value="real_user">Real Users</option>
+                          <option value="suspicious_user">Suspicious Users</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeTab === 'comprehensive' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-bold text-indigo-300 mb-2">View Mode</label>
+                        <select
+                          value={viewMode}
+                          onChange={(e) => setViewMode(e.target.value as 'today' | 'daily' | 'roles')}
+                          className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="today">📅 Today's Activity</option>
+                          <option value="daily">📆 Daily View</option>
+                          <option value="roles">👑 By Role</option>
+                        </select>
+                      </div>
+                      
+                      {viewMode === 'daily' && (
+                        <div>
+                          <label className="block text-sm font-bold text-orange-300 mb-2">Select Date</label>
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                      )}
+                      
+                      {viewMode === 'roles' && (
+                        <div>
+                          <label className="block text-sm font-bold text-purple-300 mb-2">Role Filter</label>
+                          <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                          >
+                            <option value="all">All Roles</option>
+                            <option value="Ace">Ace</option>
+                            <option value="Hero">Hero</option>
+                            <option value="Enigma">Enigma</option>
+                            <option value="Warrior">Warrior</option>
+                            <option value="Trainee">Trainee</option>
+                            <option value="None">No Role</option>
+                          </select>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <label className="block text-sm font-bold text-green-300 mb-2">User Filter</label>
+                        <select
+                          value={filter}
+                          onChange={(e) => setFilter(e.target.value)}
+                          className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-green-500"
                         >
                           <option value="all">All Users</option>
                           <option value="real_user">Real Users</option>
@@ -729,76 +1007,291 @@ export default function VoiceDashboardPage() {
               </div>
             )}
 
-            {/* Today's Activity Tab */}
-            {activeTab === 'today' && (
+            {/* Comprehensive View Tab */}
+            {activeTab === 'comprehensive' && (
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <h2 className="text-2xl font-bold text-white mb-4">📅 Today&apos;s Voice Activity</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  {viewMode === 'today' && '📅 Today\'s Voice Activity'}
+                  {viewMode === 'daily' && `📅 Daily Voice Activity - ${new Date(selectedDate).toLocaleDateString()}`}
+                  {viewMode === 'roles' && '👑 Voice Activity by Role'}
+                </h2>
                 
-                {todayVoiceData.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🎤</div>
-                    <p className="text-blue-200 text-lg">No voice activity recorded today</p>
-                    <p className="text-gray-400 text-sm">Users who join voice channels today will appear here</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="py-3 px-4 text-green-300 font-semibold">User</th>
-                          <th className="py-3 px-4 text-green-300 font-semibold">Today&apos;s Joins</th>
-                          <th className="py-3 px-4 text-green-300 font-semibold">Today&apos;s Time</th>
-                          <th className="py-3 px-4 text-green-300 font-semibold">Total Time</th>
-                          <th className="py-3 px-4 text-green-300 font-semibold">Type</th>
-                          <th className="py-3 px-4 text-green-300 font-semibold">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortTodayVoiceData(todayVoiceData).map((activity) => (
-                          <tr key={activity._id} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="py-3 px-4 text-white">
-                              <div className="flex items-center">
-                                {activity.avatar && (
-                                  <img
-                                    src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
-                                    alt={activity.username}
-                                    className="w-8 h-8 rounded-full mr-3"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                <div>
-                                  <div className="font-semibold">{activity.globalName || activity.username}</div>
-                                  <div className="text-sm text-green-300">@{activity.username}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-green-200">{activity.todayJoinCount}</td>
-                            <td className="py-3 px-4 text-green-300 font-semibold">{formatDuration(activity.todayVoiceTime)}</td>
-                            <td className="py-3 px-4 text-blue-300">{formatDuration(activity.totalVoiceTime)}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                activity.userType === 'real_user' 
-                                  ? 'bg-green-500/20 text-green-300' 
-                                  : 'bg-yellow-500/20 text-yellow-300'
-                              }`}>
-                                {activity.userType === 'real_user' ? 'Real User' : 'Suspicious'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <button
-                                onClick={() => loadUserDetails(activity.userId)}
-                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
-                              >
-                                View Details
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                {/* Today's View */}
+                {viewMode === 'today' && (
+                  <>
+                    {todayVoiceData.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">🎤</div>
+                        <p className="text-blue-200 text-lg">No voice activity recorded today</p>
+                        <p className="text-gray-400 text-sm">Users who join voice channels today will appear here</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-white/10">
+                              <th className="py-3 px-4 text-green-300 font-semibold">User</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Role</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Today's Joins</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Today's Time</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Total Time</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Type</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortTodayVoiceData(todayVoiceData).map((activity) => (
+                              <tr key={activity._id} className="border-b border-white/5 hover:bg-white/5">
+                                <td className="py-3 px-4 text-white">
+                                  <div className="flex items-center">
+                                    {activity.avatar && (
+                                      <img
+                                        src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
+                                        alt={activity.username}
+                                        className="w-8 h-8 rounded-full mr-3"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    )}
+                                    <div>
+                                      <div className="font-semibold">{activity.globalName || activity.username}</div>
+                                      <div className="text-sm text-green-300">@{activity.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    activity.rank === 'Ace' ? 'bg-yellow-500/20 text-yellow-300' :
+                                    activity.rank === 'Hero' ? 'bg-red-500/20 text-red-300' :
+                                    activity.rank === 'Enigma' ? 'bg-purple-500/20 text-purple-300' :
+                                    activity.rank === 'Warrior' ? 'bg-blue-500/20 text-blue-300' :
+                                    activity.rank === 'Trainee' ? 'bg-green-500/20 text-green-300' :
+                                    'bg-gray-500/20 text-gray-300'
+                                  }`}>
+                                    {activity.rank || 'None'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-green-200">{activity.todayJoinCount}</td>
+                                <td className="py-3 px-4 text-green-300 font-semibold">{formatDuration(activity.todayVoiceTime)}</td>
+                                <td className="py-3 px-4 text-blue-300">{formatDuration(activity.totalVoiceTime)}</td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    activity.userType === 'real_user' 
+                                      ? 'bg-green-500/20 text-green-300' 
+                                      : 'bg-yellow-500/20 text-yellow-300'
+                                  }`}>
+                                    {activity.userType === 'real_user' ? 'Real User' : 'Suspicious'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => loadUserDetails(activity.userId)}
+                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
+                                  >
+                                    View Details
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Daily View */}
+                {viewMode === 'daily' && (
+                  <>
+                    {dailyVoiceData.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">📅</div>
+                        <p className="text-orange-200 text-lg">No voice activity found for {new Date(selectedDate).toLocaleDateString()}</p>
+                        <p className="text-gray-400 text-sm">Try selecting a different date or check if there was any voice activity on that day</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-white/10">
+                              <th className="py-3 px-4 text-orange-300 font-semibold">User</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Role</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Daily Joins</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Daily Time</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Channels</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">First Join</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Last Join</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Type</th>
+                              <th className="py-3 px-4 text-orange-300 font-semibold">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortDailyVoiceData(dailyVoiceData).map((activity) => (
+                              <tr key={activity._id} className="border-b border-white/5 hover:bg-white/5">
+                                <td className="py-3 px-4 text-white">
+                                  <div className="flex items-center">
+                                    {activity.avatar && (
+                                      <img
+                                        src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
+                                        alt={activity.username}
+                                        className="w-8 h-8 rounded-full mr-3"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    )}
+                                    <div>
+                                      <div className="font-semibold">{activity.displayName || activity.globalName || activity.username}</div>
+                                      <div className="text-sm text-orange-300">@{activity.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    activity.rank === 'Ace' ? 'bg-yellow-500/20 text-yellow-300' :
+                                    activity.rank === 'Hero' ? 'bg-red-500/20 text-red-300' :
+                                    activity.rank === 'Enigma' ? 'bg-purple-500/20 text-purple-300' :
+                                    activity.rank === 'Warrior' ? 'bg-blue-500/20 text-blue-300' :
+                                    activity.rank === 'Trainee' ? 'bg-green-500/20 text-green-300' :
+                                    'bg-gray-500/20 text-gray-300'
+                                  }`}>
+                                    {activity.rank || 'None'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-orange-200">{activity.dailyJoinCount}</td>
+                                <td className="py-3 px-4 text-green-300 font-semibold">{formatDuration(activity.dailyVoiceTime)}</td>
+                                <td className="py-3 px-4 text-blue-300">
+                                  <div className="flex flex-wrap gap-1">
+                                    {activity.channels.slice(0, 2).map((channel, index) => (
+                                      <span key={index} className="px-1 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs">
+                                        {channel}
+                                      </span>
+                                    ))}
+                                    {activity.channels.length > 2 && (
+                                      <span className="px-1 py-0.5 bg-gray-500/20 text-gray-300 rounded text-xs">
+                                        +{activity.channels.length - 2}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-orange-200">
+                                  {activity.firstJoin ? formatDate(activity.firstJoin) : 'N/A'}
+                                </td>
+                                <td className="py-3 px-4 text-orange-200">
+                                  {activity.lastJoin ? formatDate(activity.lastJoin) : 'N/A'}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    activity.userType === 'real_user' 
+                                      ? 'bg-green-500/20 text-green-300' 
+                                      : 'bg-yellow-500/20 text-yellow-300'
+                                  }`}>
+                                    {activity.userType === 'real_user' ? 'Real User' : 'Suspicious'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => loadUserDetails(activity.userId)}
+                                    className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm transition-colors"
+                                  >
+                                    View Details
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Roles View */}
+                {viewMode === 'roles' && (
+                  <>
+                    {voiceActivitiesByRoles.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">👑</div>
+                        <p className="text-purple-200 text-lg">No voice activity found for the selected role</p>
+                        <p className="text-gray-400 text-sm">Try selecting a different role or user filter</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-white/10">
+                              <th className="py-3 px-4 text-purple-300 font-semibold">User</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Role</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Joins</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Total Time</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Last Join</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Type</th>
+                              <th className="py-3 px-4 text-purple-300 font-semibold">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortVoiceActivities(voiceActivitiesByRoles).map((activity) => (
+                              <tr key={activity._id} className="border-b border-white/5 hover:bg-white/5">
+                                <td className="py-3 px-4 text-white">
+                                  <div className="flex items-center">
+                                    {activity.avatar && (
+                                      <img
+                                        src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
+                                        alt={activity.username}
+                                        className="w-8 h-8 rounded-full mr-3"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    )}
+                                    <div>
+                                      <div className="font-semibold">{activity.displayName || activity.globalName || activity.username}</div>
+                                      <div className="text-sm text-purple-300">@{activity.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    activity.rank === 'Ace' ? 'bg-yellow-500/20 text-yellow-300' :
+                                    activity.rank === 'Hero' ? 'bg-red-500/20 text-red-300' :
+                                    activity.rank === 'Enigma' ? 'bg-purple-500/20 text-purple-300' :
+                                    activity.rank === 'Warrior' ? 'bg-blue-500/20 text-blue-300' :
+                                    activity.rank === 'Trainee' ? 'bg-green-500/20 text-green-300' :
+                                    'bg-gray-500/20 text-gray-300'
+                                  }`}>
+                                    {activity.rank || 'None'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-purple-200">{activity.voiceJoinCount}</td>
+                                <td className="py-3 px-4 text-green-300">{formatDuration(activity.totalVoiceTime)}</td>
+                                <td className="py-3 px-4 text-purple-200">
+                                  {activity.lastVoiceJoin ? formatDate(activity.lastVoiceJoin) : 'Never'}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    activity.userType === 'real_user' 
+                                      ? 'bg-green-500/20 text-green-300' 
+                                      : 'bg-yellow-500/20 text-yellow-300'
+                                  }`}>
+                                    {activity.userType === 'real_user' ? 'Real User' : 'Suspicious'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => loadUserDetails(activity.userId)}
+                                    className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm transition-colors"
+                                  >
+                                    View Details
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
