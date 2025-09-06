@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Leaderboard from '@/components/Leaderboard';
+import HouseLeaderboard from '@/components/HouseLeaderboard';
 import { isAdmin } from '@/lib/admin-config';
 
 import VoiceRewards from '@/components/VoiceRewards';
@@ -13,6 +14,7 @@ export default function HomePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userRank, setUserRank] = useState<string>('None');
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/' });
@@ -28,6 +30,37 @@ export default function HomePage() {
 
   // Check if current user is admin
   const isCurrentUserAdmin = isAdmin((session?.user as any)?.id);
+
+  // Rank priority (higher number = higher rank)
+  const RANK_PRIORITY: { [key: string]: number } = {
+    'Ace': 5,
+    'Hero': 4,
+    'Enigma': 3,
+    'Warrior': 2,
+    'Trainee': 1
+  };
+
+  // Check if user has warrior rank or higher or is admin
+  const hasWarriorRankOrHigher = RANK_PRIORITY[userRank] >= 2;
+  const canSeeHouseLeaderboard = hasWarriorRankOrHigher || isCurrentUserAdmin;
+
+  useEffect(() => {
+    const fetchUserRank = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const rankResponse = await fetch(`/api/users/get-rank?userId=${(session.user as any).id}`);
+        if (rankResponse.ok) {
+          const rankData = await rankResponse.json();
+          setUserRank(rankData.rank);
+        }
+      } catch (error) {
+        console.error('Error fetching user rank:', error);
+      }
+    };
+
+    fetchUserRank();
+  }, [session]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
@@ -217,7 +250,14 @@ export default function HomePage() {
               <VoiceRewards />
             </div>
 
-            {/* Leaderboard Section */}
+            {/* House Leaderboard Section - Only for Warrior rank or higher, or Admins */}
+            {canSeeHouseLeaderboard && (
+              <div className="max-w-2xl mx-auto mb-8">
+                <HouseLeaderboard />
+              </div>
+            )}
+
+            {/* Member Leaderboard Section */}
             <div className="max-w-2xl mx-auto">
               <Leaderboard />
             </div>

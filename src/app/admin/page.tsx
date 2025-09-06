@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/admin-config';
-import HousePointsManager from '@/components/admin/HousePointsManager';
+import HouseManager from '@/components/admin/HouseManager';
 
 interface UserData {
   _id: string;
@@ -89,7 +89,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements' | 'houses'>('users');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -810,6 +810,16 @@ export default function AdminPage() {
             }`}
           >
             🏆 Achievement Management
+          </button>
+          <button
+            onClick={() => setActiveTab('houses')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'houses'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🏠 House Management
           </button>
         </div>
 
@@ -2069,8 +2079,13 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* House Points Manager */}
-            <HousePointsManager />
+          </>
+        )}
+
+        {/* House Management Tab */}
+        {activeTab === 'houses' && (
+          <>
+            <HouseManager />
           </>
         )}
       </div>

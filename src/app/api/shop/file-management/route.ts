@@ -3,12 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 
-// File Storage Schema
+// File Storage Schema - Updated to match upload/download schemas
 const fileStorageSchema = new mongoose.Schema({
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   fileName: { type: String, required: true },
   originalName: { type: String, required: true },
-  fileData: { type: String, required: true },
+  fileData: { type: Buffer, required: true }, // Binary file data - matches upload/download schemas
   fileSize: { type: Number, required: true },
   mimeType: { type: String, required: true },
   uploadedAt: { type: Date, default: Date.now },

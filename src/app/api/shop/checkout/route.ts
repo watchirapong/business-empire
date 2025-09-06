@@ -272,6 +272,7 @@ export async function POST(request: NextRequest) {
         console.log(`Checkout API - User ${userId} has required role for item ${fullItem.name}`);
       } else {
         console.log(`Checkout API - Item ${fullItem?.name} does not require role or role data missing`);
+        console.log(`Checkout API - requiresRole: ${fullItem?.requiresRole}, requiredRoleId: ${fullItem?.requiredRoleId}`);
       }
     }
 

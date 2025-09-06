@@ -41,29 +41,40 @@ export default function HouseLeaderboard() {
     fetchHouseLeaderboard();
   }, []);
 
-  const getHouseColor = (houseName: string) => {
+  const getHouseColor = (houseName: string, index: number) => {
+    // Predefined colors for known houses
     switch (houseName) {
       case 'Selene':
         return 'from-blue-500 to-blue-700';
       case 'Pleiades':
         return 'from-purple-500 to-purple-700';
-      case 'Ophira':
-        return 'from-green-500 to-green-700';
       default:
-        return 'from-gray-500 to-gray-700';
+        // Generate colors for dynamic houses
+        const colors = [
+          'from-green-500 to-green-700',
+          'from-red-500 to-red-700',
+          'from-yellow-500 to-yellow-700',
+          'from-pink-500 to-pink-700',
+          'from-indigo-500 to-indigo-700',
+          'from-teal-500 to-teal-700',
+          'from-orange-500 to-orange-700',
+          'from-cyan-500 to-cyan-700'
+        ];
+        return colors[index % colors.length];
     }
   };
 
-  const getHouseEmoji = (houseName: string) => {
+  const getHouseEmoji = (houseName: string, index: number) => {
+    // Predefined emojis for known houses
     switch (houseName) {
       case 'Selene':
         return '🌙';
       case 'Pleiades':
         return '⭐';
-      case 'Ophira':
-        return '🌿';
       default:
-        return '🏠';
+        // Generate emojis for dynamic houses
+        const emojis = ['🏠', '🏰', '⚔️', '🛡️', '🔥', '❄️', '⚡', '🌟', '🎯', '💎'];
+        return emojis[index % emojis.length];
     }
   };
 
@@ -126,7 +137,7 @@ export default function HouseLeaderboard() {
         {houses.map((house, index) => (
           <div
             key={house._id}
-            className={`bg-gradient-to-r ${getHouseColor(house.houseName)} rounded-xl p-6 border border-white/20 shadow-lg`}
+            className={`bg-gradient-to-r ${getHouseColor(house.houseName, index)} rounded-xl p-6 border border-white/20 shadow-lg`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -134,7 +145,7 @@ export default function HouseLeaderboard() {
                   {getRankIcon(index)}
                 </div>
                 <div className="text-4xl">
-                  {getHouseEmoji(house.houseName)}
+                  {getHouseEmoji(house.houseName, index)}
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-white">
@@ -162,7 +173,7 @@ export default function HouseLeaderboard() {
         <div className="text-center py-8">
           <div className="text-4xl mb-4">🏠</div>
           <h3 className="text-xl font-semibold text-white mb-2">No House Data</h3>
-          <p className="text-gray-400">House points haven't been set up yet.</p>
+                            <p className="text-gray-400">House points haven&apos;t been set up yet.</p>
         </div>
       )}
     </div>

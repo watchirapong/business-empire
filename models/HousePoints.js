@@ -5,7 +5,9 @@ const housePointsSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    enum: ['Selene', 'Pleiades', 'Ophira']
+    trim: true,
+    minlength: 1,
+    maxlength: 50
   },
   points: {
     type: Number,

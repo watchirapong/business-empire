@@ -18,15 +18,19 @@ const purchaseHistorySchema = new mongoose.Schema({
   linkUrl: { type: String }
 });
 
-// File Storage Schema
+// File Storage Schema - Updated to match upload/download schemas
 const fileStorageSchema = new mongoose.Schema({
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   fileName: { type: String, required: true },
   originalName: { type: String, required: true },
-  fileData: { type: String, required: true },
+  fileData: { type: Buffer, required: true }, // Binary file data - matches upload/download schemas
   fileSize: { type: Number, required: true },
   mimeType: { type: String, required: true },
-  uploadedAt: { type: Date, default: Date.now }
+  uploadedAt: { type: Date, default: Date.now },
+  uploadedBy: { type: String, required: true },
+  fileHash: { type: String },
+  isActive: { type: Boolean, default: true },
+  downloadCount: { type: Number, default: 0 }
 });
 
 const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', purchaseHistorySchema);
@@ -84,9 +88,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Download API - File found in database: ${fileRecord.originalName}`);
+    console.log(`Download API - File data type: ${typeof fileRecord.fileData}, isBuffer: ${Buffer.isBuffer(fileRecord.fileData)}`);
 
-    // Convert Base64 back to buffer
-    const fileBuffer = Buffer.from(fileRecord.fileData, 'base64');
+    // Handle file data properly - it might be stored as Buffer or base64 string
+    let fileBuffer: Buffer;
+    if (Buffer.isBuffer(fileRecord.fileData)) {
+      fileBuffer = fileRecord.fileData;
+    } else if (typeof fileRecord.fileData === 'string') {
+      // If it's stored as base64 string, convert it back to buffer
+      fileBuffer = Buffer.from(fileRecord.fileData, 'base64');
+    } else {
+      console.error(`Invalid file data format for item ${purchase.itemId}`);
+      return NextResponse.json({ error: 'File data format error. Please contact support.' }, { status: 500 });
+    }
+
     const fileName = fileRecord.originalName || purchase.fileName || 'download';
     console.log('Download API - Purchase fileName:', purchase.fileName);
     console.log('Download API - Final fileName for download:', fileName);

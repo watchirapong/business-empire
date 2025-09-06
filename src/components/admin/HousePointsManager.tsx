@@ -147,29 +147,40 @@ export default function HousePointsManager() {
     }
   };
 
-  const getHouseColor = (houseName: string) => {
+  const getHouseColor = (houseName: string, index: number) => {
+    // Predefined colors for known houses
     switch (houseName) {
       case 'Selene':
         return 'border-blue-500 bg-blue-500/10';
       case 'Pleiades':
         return 'border-purple-500 bg-purple-500/10';
-      case 'Ophira':
-        return 'border-green-500 bg-green-500/10';
       default:
-        return 'border-gray-500 bg-gray-500/10';
+        // Generate colors for dynamic houses
+        const colors = [
+          'border-green-500 bg-green-500/10',
+          'border-red-500 bg-red-500/10',
+          'border-yellow-500 bg-yellow-500/10',
+          'border-pink-500 bg-pink-500/10',
+          'border-indigo-500 bg-indigo-500/10',
+          'border-teal-500 bg-teal-500/10',
+          'border-orange-500 bg-orange-500/10',
+          'border-cyan-500 bg-cyan-500/10'
+        ];
+        return colors[index % colors.length];
     }
   };
 
-  const getHouseEmoji = (houseName: string) => {
+  const getHouseEmoji = (houseName: string, index: number) => {
+    // Predefined emojis for known houses
     switch (houseName) {
       case 'Selene':
         return '🌙';
       case 'Pleiades':
         return '⭐';
-      case 'Ophira':
-        return '🌿';
       default:
-        return '🏠';
+        // Generate emojis for dynamic houses
+        const emojis = ['🏠', '🏰', '⚔️', '🛡️', '🔥', '❄️', '⚡', '🌟', '🎯', '💎'];
+        return emojis[index % emojis.length];
     }
   };
 
@@ -214,15 +225,15 @@ export default function HousePointsManager() {
       {/* Current House Points Display */}
       <div className="mb-8">
         <h4 className="text-lg font-semibold text-white mb-4">Current House Points</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {houses.map((house) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {houses.map((house, index) => (
             <div
               key={house._id}
-              className={`border-2 ${getHouseColor(house.houseName)} rounded-lg p-4`}
+              className={`border-2 ${getHouseColor(house.houseName, index)} rounded-lg p-4`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
-                  <span className="text-2xl">{getHouseEmoji(house.houseName)}</span>
+                  <span className="text-2xl">{getHouseEmoji(house.houseName, index)}</span>
                   <span className="text-white font-semibold">{house.houseName}</span>
                 </div>
               </div>
@@ -253,9 +264,11 @@ export default function HousePointsManager() {
                 required
               >
                 <option value="">Choose a house</option>
-                <option value="Selene">🌙 Selene</option>
-                <option value="Pleiades">⭐ Pleiades</option>
-                <option value="Ophira">🌿 Ophira</option>
+                {houses.map((house, index) => (
+                  <option key={house._id} value={house.houseName}>
+                    {getHouseEmoji(house.houseName, index)} {house.houseName}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -311,9 +324,11 @@ export default function HousePointsManager() {
                 required
               >
                 <option value="">Choose a house</option>
-                <option value="Selene">🌙 Selene</option>
-                <option value="Pleiades">⭐ Pleiades</option>
-                <option value="Ophira">🌿 Ophira</option>
+                {houses.map((house, index) => (
+                  <option key={house._id} value={house.houseName}>
+                    {getHouseEmoji(house.houseName, index)} {house.houseName}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

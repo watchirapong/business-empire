@@ -69,6 +69,7 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
+// GET - List all houses
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
@@ -107,18 +108,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      houses: houses
+      houses
     });
 
   } catch (error) {
-    console.error('Error fetching house points:', error);
+    console.error('Error fetching houses:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch house points' },
+      { success: false, error: 'Failed to fetch houses' },
       { status: 500 }
     );
   }
 }
 
+// POST - Add new house
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
@@ -150,14 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { houseName, points, updateReason } = body;
-
-    if (!houseName || points === undefined || points < 0) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid data provided' },
-        { status: 400 }
-      );
-    }
+    const { houseName, initialPoints = 0 } = body;
 
     if (!houseName || houseName.trim().length === 0) {
       return NextResponse.json(
@@ -166,35 +161,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (houseName.trim().length > 50) {
+      return NextResponse.json(
+        { success: false, error: 'House name must be 50 characters or less' },
+        { status: 400 }
+      );
+    }
+
+    if (initialPoints < 0) {
+      return NextResponse.json(
+        { success: false, error: 'Initial points cannot be negative' },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
-    // Update or create house points
-    const housePoints = await HousePoints.findOneAndUpdate(
-      { houseName },
-      {
-        points,
-        lastUpdated: new Date(),
-        updatedBy: userId || 'admin',
-        updateReason: updateReason || 'Manual update'
-      },
-      { upsert: true, new: true }
-    );
+    // Check if house already exists
+    const existingHouse = await HousePoints.findOne({ 
+      houseName: houseName.trim() 
+    });
+
+    if (existingHouse) {
+      return NextResponse.json(
+        { success: false, error: 'House already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Create new house
+    const newHouse = new HousePoints({
+      houseName: houseName.trim(),
+      points: initialPoints,
+      lastUpdated: new Date(),
+      updatedBy: userId || 'admin',
+      updateReason: 'House created'
+    });
+
+    await newHouse.save();
 
     return NextResponse.json({
       success: true,
-      house: housePoints
+      message: `House "${houseName.trim()}" created successfully`,
+      house: newHouse
     });
 
   } catch (error) {
-    console.error('Error updating house points:', error);
+    console.error('Error creating house:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update house points' },
+      { success: false, error: 'Failed to create house' },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(request: NextRequest) {
+// DELETE - Remove house
+export async function DELETE(request: NextRequest) {
   try {
     // Check admin authorization
     const session = await getServerSession();
@@ -224,17 +246,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { houseName, pointsToAdd, updateReason } = body;
+    const { searchParams } = new URL(request.url);
+    const houseName = searchParams.get('houseName');
 
-    if (!houseName || pointsToAdd === undefined) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid data provided' },
-        { status: 400 }
-      );
-    }
-
-    if (!houseName || houseName.trim().length === 0) {
+    if (!houseName) {
       return NextResponse.json(
         { success: false, error: 'House name is required' },
         { status: 400 }
@@ -243,27 +258,27 @@ export async function PUT(request: NextRequest) {
 
     await connectDB();
 
-    // Add points to existing house
-    const housePoints = await HousePoints.findOneAndUpdate(
-      { houseName },
-      {
-        $inc: { points: pointsToAdd },
-        lastUpdated: new Date(),
-        updatedBy: userId || 'admin',
-        updateReason: updateReason || 'Points added'
-      },
-      { upsert: true, new: true }
-    );
+    // Check if house exists
+    const house = await HousePoints.findOne({ houseName });
+    if (!house) {
+      return NextResponse.json(
+        { success: false, error: 'House not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the house
+    await HousePoints.deleteOne({ houseName });
 
     return NextResponse.json({
       success: true,
-      house: housePoints
+      message: `House "${houseName}" deleted successfully`
     });
 
   } catch (error) {
-    console.error('Error adding house points:', error);
+    console.error('Error deleting house:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to add house points' },
+      { success: false, error: 'Failed to delete house' },
       { status: 500 }
     );
   }

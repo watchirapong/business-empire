@@ -312,7 +312,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, image, inStock, fileUrl, fileName, hasFile, contentType } = body;
+    const { id, name, description, price, image, inStock, fileUrl, fileName, hasFile, contentType, requiresRole, requiredRoleId, requiredRoleName } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
@@ -331,6 +331,9 @@ export async function PUT(request: NextRequest) {
     if (fileName !== undefined) updateData.fileName = fileName;
     if (hasFile !== undefined) updateData.hasFile = hasFile;
     if (contentType !== undefined) updateData.contentType = contentType;
+    if (requiresRole !== undefined) updateData.requiresRole = requiresRole;
+    if (requiredRoleId !== undefined) updateData.requiredRoleId = requiredRoleId;
+    if (requiredRoleName !== undefined) updateData.requiredRoleName = requiredRoleName;
 
     const updatedItem = await ShopItem.findByIdAndUpdate(
       id,
@@ -353,7 +356,10 @@ export async function PUT(request: NextRequest) {
       fileUrl: updatedItem.fileUrl,
       fileName: updatedItem.fileName,
       hasFile: updatedItem.hasFile,
-      contentType: updatedItem.contentType
+      contentType: updatedItem.contentType,
+      requiresRole: updatedItem.requiresRole,
+      requiredRoleId: updatedItem.requiredRoleId,
+      requiredRoleName: updatedItem.requiredRoleName
     };
 
     return NextResponse.json({ 

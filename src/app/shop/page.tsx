@@ -588,6 +588,11 @@ const HamsterShop: React.FC = () => {
         const errorData = await response.json();
         if (errorData.error === 'Insufficient Hamster Coins') {
           alert(`Insufficient Hamster Coins! You have ${errorData.currentBalance} coins but need ${errorData.requiredAmount} coins.`);
+        } else if (errorData.error && errorData.error.includes('requires the role')) {
+          // Special handling for role requirement errors
+          const roleName = errorData.requiredRole || 'Unknown Role';
+          const itemName = errorData.itemName || 'Item';
+          alert(`❌ Access Denied!\n\nItem "${itemName}" requires the Discord role: ${roleName}\n\nPlease make sure you have this role in the Discord server to purchase this item.`);
         } else {
           alert(errorData.error || 'Checkout failed');
         }
@@ -602,7 +607,25 @@ const HamsterShop: React.FC = () => {
 
     const filteredItems = shopItems;
 
-  const addToCart = (item: ShopItem) => {
+  const addToCart = async (item: ShopItem) => {
+    // Check role requirements before adding to cart
+    if (item.requiresRole && item.requiredRoleId) {
+      try {
+        const response = await fetch(`/api/test-discord-role?roleId=${item.requiredRoleId}`);
+        const data = await response.json();
+        
+        if (!data.hasRole) {
+          const roleName = item.requiredRoleName || item.requiredRoleId;
+          alert(`❌ Cannot add to cart!\n\nThis item requires the Discord role: ${roleName}\n\nPlease make sure you have this role in the Discord server before purchasing.`);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking role requirement:', error);
+        // If we can't check the role, allow adding to cart but warn the user
+        alert('⚠️ Warning: Unable to verify role requirements. You may not be able to complete the purchase if you don\'t have the required role.');
+      }
+    }
+    
     setCart([...cart, item]);
   };
 
@@ -665,6 +688,89 @@ const HamsterShop: React.FC = () => {
                 className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 🗑️ Clear All Items
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/test-discord-role?roleId=1388546120912998554');
+                    const data = await response.json();
+                    console.log('Discord role test result:', data);
+                    alert(`Discord Role Test:\n\nUser ID: ${data.userId}\nRole ID: ${data.roleId}\nHas Role: ${data.hasRole}\n\nEnvironment:\nBot Token: ${data.environment.hasBotToken ? 'Configured' : 'Missing'}\nGuild ID: ${data.environment.guildId}`);
+                  } catch (error) {
+                    console.error('Error testing Discord role:', error);
+                    alert('Error testing Discord role validation');
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                🔍 Test Discord Role
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    // Get the first item that requires a role
+                    const roleItem = shopItems.find(item => item.requiresRole);
+                    if (!roleItem) {
+                      alert('No items with role requirements found in the shop.');
+                      return;
+                    }
+                    
+                    const response = await fetch(`/api/shop/check-item?itemId=${roleItem.id}`);
+                    const data = await response.json();
+                    console.log('Item role check result:', data);
+                    alert(`Item Role Check:\n\nItem: ${data.item.name}\nRequires Role: ${data.item.requiresRole}\nRole ID: ${data.item.requiredRoleId}\nRole Name: ${data.item.requiredRoleName}`);
+                  } catch (error) {
+                    console.error('Error checking item role:', error);
+                    alert('Error checking item role requirements');
+                  }
+                }}
+                className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                🔍 Check Item Role
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    // Find all items that should have role requirements but don't
+                    const itemsToUpdate = shopItems.filter(item => 
+                      item.name.includes('XBOX') || item.name.includes('Game Pass')
+                    );
+                    
+                    if (itemsToUpdate.length === 0) {
+                      alert('No XBOX items found to update.');
+                      return;
+                    }
+                    
+                    let updatedCount = 0;
+                    for (const item of itemsToUpdate) {
+                      const response = await fetch(`/api/shop/items?id=${item.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          ...item,
+                          requiresRole: true,
+                          requiredRoleId: '1388546120912998554',
+                          requiredRoleName: 'Starway'
+                        }),
+                      });
+                      
+                      if (response.ok) {
+                        updatedCount++;
+                      }
+                    }
+                    
+                    alert(`Updated ${updatedCount} items with role requirements.`);
+                    fetchShopItems(); // Refresh the items
+                  } catch (error) {
+                    console.error('Error updating items:', error);
+                    alert('Error updating items with role requirements');
+                  }
+                }}
+                className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                🔧 Fix Item Roles
               </button>
               <button
                 onClick={handleFixFileItems}
@@ -957,7 +1063,10 @@ const HamsterShop: React.FC = () => {
                           </div>
                         )}
                         {item.requiresRole && (
-                          <span className="text-sm px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-600 to-amber-500 text-white font-semibold shadow-lg border border-yellow-400/50 animate-pulse">
+                          <span 
+                            className="text-sm px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-600 to-amber-500 text-white font-semibold shadow-lg border border-yellow-400/50 animate-pulse cursor-help"
+                            title={`This item requires the Discord role: ${item.requiredRoleName || item.requiredRoleId || 'Unknown Role'}`}
+                          >
                             🔒 {item.requiredRoleName || 'Role Required'}
                           </span>
                         )}

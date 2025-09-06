@@ -23,7 +23,9 @@ const housePointsSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    enum: ['Selene', 'Pleiades', 'Ophira']
+    trim: true,
+    minlength: 1,
+    maxlength: 50
   },
   points: {
     type: Number,
@@ -55,33 +57,7 @@ export async function GET(request: NextRequest) {
       .sort({ points: -1 })
       .lean();
 
-    // Ensure all three houses exist in the database
-    const existingHouses = houses.map(h => h.houseName);
-    const allHouses = ['Selene', 'Pleiades', 'Ophira'];
-    const missingHouses = allHouses.filter(house => !existingHouses.includes(house));
-
-    // Create missing houses with 0 points
-    if (missingHouses.length > 0) {
-      const newHouses = missingHouses.map(houseName => ({
-        houseName,
-        points: 0,
-        lastUpdated: new Date(),
-        updatedBy: 'system',
-        updateReason: 'Initial creation'
-      }));
-
-      await HousePoints.insertMany(newHouses);
-      
-      // Fetch updated data
-      const updatedHouses = await HousePoints.find({})
-        .sort({ points: -1 })
-        .lean();
-      
-      return NextResponse.json({
-        success: true,
-        houses: updatedHouses
-      });
-    }
+    // Return existing houses (no auto-creation of default houses)
 
     return NextResponse.json({
       success: true,
