@@ -180,6 +180,7 @@ export default function HomePage() {
         {session && (
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+
               {/* Hamster Shop */}
               <button
                 onClick={() => handleMenuClick('/shop')}
@@ -191,7 +192,7 @@ export default function HomePage() {
                     Hamster Shop
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300">
-                    ระบบสกุลเงินแฮมสเตอร์
+                    ระบบร้านค้าใหม่
                   </p>
                 </div>
               </button>

@@ -99,11 +99,9 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop-analytics'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics'>('users');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [purchaseFilter, setPurchaseFilter] = useState<string>('');
   const [gachaItems, setGachaItems] = useState<any[]>([]);
   const [showGachaForm, setShowGachaForm] = useState(false);
   const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
@@ -119,11 +117,6 @@ export default function AdminPage() {
   // Achievement management states
   const [achievements, setAchievements] = useState<any[]>([]);
   
-  // Shop Analytics states
-  const [shopAnalytics, setShopAnalytics] = useState<any>(null);
-  const [shopAnalyticsLoading, setShopAnalyticsLoading] = useState(false);
-  const [shopTimeRange, setShopTimeRange] = useState('all');
-  const [shopCurrency, setShopCurrency] = useState('all');
   const [showAchievementForm, setShowAchievementForm] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState<any>(null);
   const [newAchievement, setNewAchievement] = useState({
@@ -181,7 +174,6 @@ export default function AdminPage() {
 
     // Load all users when component mounts
     loadAllUsers();
-    loadPurchaseHistory();
     loadGachaItems();
     loadAchievements();
   }, [session, status, router]);
@@ -217,17 +209,6 @@ export default function AdminPage() {
 
   // Removed loadVoiceActivity function since we moved to dedicated dashboard
 
-  const loadPurchaseHistory = async () => {
-    try {
-      const response = await fetch('/api/shop/purchase-history');
-      if (response.ok) {
-        const data = await response.json();
-        setPurchases(data.purchases);
-      }
-    } catch (error) {
-      console.error('Error loading purchase history:', error);
-    }
-  };
 
   const loadGachaItems = async () => {
     try {
@@ -610,23 +591,6 @@ export default function AdminPage() {
     }
   };
 
-  const fetchShopAnalytics = async () => {
-    try {
-      setShopAnalyticsLoading(true);
-      const response = await fetch(`/api/shop/analytics?timeRange=${shopTimeRange}&currency=${shopCurrency}`);
-      if (response.ok) {
-        const data = await response.json();
-        setShopAnalytics(data.analytics);
-      } else {
-        const errorData = await response.json();
-        console.error('Shop analytics error:', errorData.error);
-      }
-    } catch (error) {
-      console.error('Error fetching shop analytics:', error);
-    } finally {
-      setShopAnalyticsLoading(false);
-    }
-  };
 
   const handleSaveAchievement = async () => {
     try {
@@ -827,16 +791,6 @@ export default function AdminPage() {
             🎤 Voice Dashboard
           </button>
           <button
-            onClick={() => setActiveTab('purchases')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-              activeTab === 'purchases'
-                ? 'bg-orange-600 text-white'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
-            }`}
-          >
-            🛒 Purchase History
-          </button>
-          <button
             onClick={() => setActiveTab('gacha')}
             className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
               activeTab === 'gacha'
@@ -885,16 +839,6 @@ export default function AdminPage() {
             }`}
           >
             📊 Analytics Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('shop-analytics')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-              activeTab === 'shop-analytics'
-                ? 'bg-orange-600 text-white'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
-            }`}
-          >
-            🛒 Shop Analytics
           </button>
         </div>
 
@@ -1289,7 +1233,7 @@ export default function AdminPage() {
                           <h4 className="text-lg font-semibold text-white mb-3">Update Currency Balance</h4>
                           <div className="flex gap-4 items-end">
                             <div className="flex-1">
-                              <label className="block text-gray-300 text-sm mb-2">New Balance (Hamster Shop)</label>
+                              <label className="block text-gray-300 text-sm mb-2">New Balance</label>
                               <input
                                 type="number"
                                 min="0"
@@ -1427,105 +1371,6 @@ export default function AdminPage() {
 
 
 
-        {/* Purchase History Tab */}
-        {activeTab === 'purchases' && (
-          <>
-            {/* Purchase History Filter */}
-            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
-              <h2 className="text-2xl font-bold text-white mb-4">🛒 Purchase History Filter</h2>
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  placeholder="Filter by user ID..."
-                  value={purchaseFilter}
-                  onChange={(e) => setPurchaseFilter(e.target.value)}
-                  className="flex-1 bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400"
-                />
-                <button
-                  onClick={() => setPurchaseFilter('')}
-                  className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white px-6 py-2 rounded-lg transition-all duration-300"
-                >
-                  Clear Filter
-                </button>
-              </div>
-            </div>
-
-            {/* Purchase History List */}
-            {purchases.length > 0 && (
-              <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
-                <h3 className="text-xl font-bold text-white mb-4">
-                  🛒 Purchase History ({purchases.filter(p => !purchaseFilter || p.userId.includes(purchaseFilter)).length} purchases)
-                </h3>
-                <div className="grid gap-4 max-h-96 overflow-y-auto">
-                  {purchases
-                    .filter(purchase => !purchaseFilter || purchase.userId.includes(purchaseFilter))
-                    .map((purchase) => (
-                      <div
-                        key={purchase.id}
-                        className="p-4 rounded-lg border bg-blue-600/10 border-blue-500/30 transition-all duration-300"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <div className="text-white font-semibold">
-                              Purchase #{purchase.id.slice(-8)}
-                            </div>
-                            <div className="text-gray-300 text-sm">
-                              User: {getDisplayNameById(purchase.userId)}
-                            </div>
-                            <div className="text-gray-400 text-xs">
-                              {new Date(purchase.purchaseDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-orange-400">
-                              {purchase.totalAmount} 🪙
-                            </div>
-                            <div className={`text-sm px-2 py-1 rounded-full inline-block ${
-                              purchase.status === 'completed' 
-                                ? 'bg-green-500/20 text-green-400' 
-                                : 'bg-yellow-500/20 text-yellow-400'
-                            }`}>
-                              {purchase.status}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {purchase.items.map((item: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-2">
-                              <div className="flex items-center space-x-2">
-                                <div className="text-lg">📦</div>
-                                <div>
-                                  <div className="text-white text-sm font-medium">{item.name}</div>
-                                  <div className="text-gray-400 text-xs">Qty: {item.quantity}</div>
-                                </div>
-                              </div>
-                              <div className="text-orange-400 text-sm font-semibold">
-                                {item.price} 🪙
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {purchases.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📦</div>
-                <h2 className="text-2xl font-bold text-white mb-2">No Purchases Yet</h2>
-                <p className="text-gray-400">No purchases have been made by any users.</p>
-              </div>
-            )}
-          </>
-        )}
 
         {/* Gacha Management Tab */}
         {activeTab === 'gacha' && (
@@ -2178,233 +2023,6 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* Shop Analytics Tab */}
-        {activeTab === 'shop-analytics' && (
-          <>
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
-                  🛒 Shop Analytics
-                </h2>
-                <p className="text-gray-300 text-lg">
-                  Comprehensive purchase analytics and business intelligence
-                </p>
-                
-                {/* Analytics Controls */}
-                <div className="mt-6 flex justify-center space-x-4">
-                  <select
-                    value={shopTimeRange}
-                    onChange={(e) => {
-                      setShopTimeRange(e.target.value);
-                      fetchShopAnalytics();
-                    }}
-                    className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="week">Last Week</option>
-                    <option value="month">Last Month</option>
-                    <option value="year">Last Year</option>
-                  </select>
-                  
-                  <select
-                    value={shopCurrency}
-                    onChange={(e) => {
-                      setShopCurrency(e.target.value);
-                      fetchShopAnalytics();
-                    }}
-                    className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    <option value="all">All Currencies</option>
-                    <option value="hamstercoin">Hamster Coins</option>
-                    <option value="stardustcoin">Stardust Coins</option>
-                  </select>
-                  
-                  <button
-                    onClick={fetchShopAnalytics}
-                    className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition-colors"
-                  >
-                    🔄 Refresh
-                  </button>
-                </div>
-              </div>
-
-              {/* Analytics Content */}
-              {shopAnalyticsLoading ? (
-                <div className="bg-white/10 rounded-xl p-8 border border-white/20 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mx-auto mb-4"></div>
-                  <div className="text-white">Loading shop analytics...</div>
-                </div>
-              ) : shopAnalytics ? (
-                <div className="space-y-6">
-                  {/* Overview Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 border border-green-500/30">
-                      <div className="text-green-400 text-2xl mb-2">💰</div>
-                      <div className="text-white font-bold text-lg">${shopAnalytics.overview.totalRevenue.toFixed(2)}</div>
-                      <div className="text-green-300 text-sm">Total Revenue</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 border border-blue-500/30">
-                      <div className="text-blue-400 text-2xl mb-2">🛒</div>
-                      <div className="text-white font-bold text-lg">{shopAnalytics.overview.totalPurchases}</div>
-                      <div className="text-blue-300 text-sm">Total Purchases</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border border-purple-500/30">
-                      <div className="text-purple-400 text-2xl mb-2">👥</div>
-                      <div className="text-white font-bold text-lg">{shopAnalytics.overview.uniqueBuyers}</div>
-                      <div className="text-purple-300 text-sm">Unique Buyers</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 border border-orange-500/30">
-                      <div className="text-orange-400 text-2xl mb-2">📦</div>
-                      <div className="text-white font-bold text-lg">{shopAnalytics.overview.uniqueItems}</div>
-                      <div className="text-orange-300 text-sm">Unique Items</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl p-4 border border-yellow-500/30">
-                      <div className="text-yellow-400 text-2xl mb-2">📊</div>
-                      <div className="text-white font-bold text-lg">${shopAnalytics.overview.averageOrderValue.toFixed(2)}</div>
-                      <div className="text-yellow-300 text-sm">Avg Order Value</div>
-                    </div>
-                  </div>
-
-                  {/* Top Selling Items */}
-                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                    <h3 className="text-xl font-bold text-white mb-4">🏆 All Shop Items ({shopAnalytics.topSellingItems.length} items)</h3>
-                    <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
-                      {shopAnalytics.topSellingItems.map((item: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-orange-400 font-bold">#{index + 1}</div>
-                            <div>
-                              <div className="text-white font-semibold">{item.item}</div>
-                              <div className="text-gray-400 text-sm">
-                                {item.uniqueBuyers} unique buyers • {item.buyers.slice(0, 3).join(', ')}
-                                {item.buyers.length > 3 && ` +${item.buyers.length - 3} more`}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-green-400 font-bold">${item.revenue.toFixed(2)}</div>
-                            <div className="text-gray-400 text-sm">{item.sales} sales</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Top Spenders */}
-                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                    <h3 className="text-xl font-bold text-white mb-4">💎 Top Spenders</h3>
-                    <div className="space-y-3">
-                      {shopAnalytics.topSpenders.slice(0, 10).map((spender: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-purple-400 font-bold">#{index + 1}</div>
-                            <div>
-                              <div className="text-white font-semibold">{spender.user}</div>
-                              <div className="text-gray-400 text-sm">
-                                {spender.purchases} purchases • {spender.uniqueItems} unique items
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-green-400 font-bold">${spender.spending.toFixed(2)}</div>
-                            <div className="text-gray-400 text-sm">total spent</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Currency Breakdown */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                      <h3 className="text-xl font-bold text-white mb-4">💱 Currency Breakdown</h3>
-                      <div className="space-y-3">
-                        {Object.entries(shopAnalytics.currencyBreakdown).map(([currency, data]: [string, any]) => (
-                          <div key={currency} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                            <div className="text-white font-semibold capitalize">{currency}</div>
-                            <div className="text-right">
-                              <div className="text-green-400 font-bold">${data.revenue.toFixed(2)}</div>
-                              <div className="text-gray-400 text-sm">{data.count} purchases</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                      <h3 className="text-xl font-bold text-white mb-4">📋 Content Type Stats</h3>
-                      <div className="space-y-3">
-                        {Object.entries(shopAnalytics.contentTypeStats).map(([type, data]: [string, any]) => (
-                          <div key={type} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                            <div className="text-white font-semibold capitalize">{type || 'none'}</div>
-                            <div className="text-right">
-                              <div className="text-green-400 font-bold">${data.revenue.toFixed(2)}</div>
-                              <div className="text-gray-400 text-sm">{data.count} items</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Daily Sales Chart */}
-                  {shopAnalytics.dailySales.length > 0 && (
-                    <div className="bg-white/10 rounded-xl p-6 border border-white/20">
-                      <h3 className="text-xl font-bold text-white mb-4">📈 Daily Sales Trend (Last 30 Days)</h3>
-                      <div className="space-y-2">
-                        {shopAnalytics.dailySales.slice(-7).map((day: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                            <div className="text-white font-semibold">
-                              {new Date(day.date).toLocaleDateString()}
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="text-blue-400">{day.count} sales</div>
-                              <div className="text-green-400 font-bold">${day.revenue.toFixed(2)}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Export Button */}
-                  <div className="text-center">
-                    <button
-                      onClick={() => {
-                        const dataStr = JSON.stringify(shopAnalytics, null, 2);
-                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                        const url = URL.createObjectURL(dataBlob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `shop-analytics-${new Date().toISOString().split('T')[0]}.json`;
-                        link.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
-                    >
-                      📥 Export Analytics Data
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white/10 rounded-xl p-8 border border-white/20 text-center">
-                  <div className="text-orange-400 text-6xl mb-4">🛒</div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Shop Analytics</h2>
-                  <p className="text-gray-300 mb-4">
-                    Click &quot;Refresh&quot; to load shop analytics data.
-                  </p>
-                  <button
-                    onClick={fetchShopAnalytics}
-                    className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg transition-colors"
-                  >
-                    📊 Load Analytics
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
