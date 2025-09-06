@@ -28,13 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { taskId, completionImage } = await request.json();
+    const { taskId, completionImage, completionDescription } = await request.json();
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
 
-    if (!completionImage) {
-      return NextResponse.json({ error: 'Completion image is required' }, { status: 400 });
+    if (!completionDescription || !completionDescription.trim()) {
+      return NextResponse.json({ error: 'Completion description is required' }, { status: 400 });
     }
 
     const userId = (session.user as any).id;
@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
 
     // Update the user's completion
     userAcceptance.completedAt = new Date();
-    userAcceptance.completionImage = completionImage;
+    userAcceptance.completionImage = completionImage || null;
+    userAcceptance.completionDescription = completionDescription.trim();
 
     await task.save();
 

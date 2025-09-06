@@ -64,9 +64,14 @@ const purchaseHistorySchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  price: { 
-    type: Number, 
-    required: true 
+  price: {
+    type: Number,
+    required: true
+  },
+  currency: {
+    type: String,
+    default: 'hamstercoin',
+    enum: ['hamstercoin', 'stardustcoin']
   },
   purchaseDate: { 
     type: Date, 
@@ -103,7 +108,21 @@ const purchaseHistorySchema = new mongoose.Schema({
   }
 });
 
+// StardustCoin Schema
+const stardustCoinSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true, index: true },
+  username: { type: String, required: true },
+  globalName: { type: String, default: '' },
+  balance: { type: Number, default: 0, min: 0 },
+  totalEarned: { type: Number, default: 0 },
+  totalSpent: { type: Number, default: 0 },
+  lastUpdated: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 const Currency = mongoose.models.Currency || mongoose.model('Currency', currencySchema);
+const StardustCoin = mongoose.models.StardustCoin || mongoose.model('StardustCoin', stardustCoinSchema);
 const Purchase = mongoose.models.Purchase || mongoose.model('Purchase', purchaseSchema);
 const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', purchaseHistorySchema);
 
@@ -118,7 +137,7 @@ export async function POST(request: NextRequest) {
     const userId = (session.user as any).id;
     const username = (session.user as any).name || 'Unknown User';
     const body = await request.json();
-    const { items, totalAmount } = body;
+    const { items, totalAmount, currency = 'hamstercoin' } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'No items in cart' }, { status: 400 });
@@ -126,33 +145,68 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Get user's currency balance
-    let userCurrency = await Currency.findOne({ userId });
-    
-    if (!userCurrency) {
-      // Create new currency account if it doesn't exist
-      userCurrency = new Currency({
-        userId,
-        hamsterCoins: 1000, // Starting balance
-        totalEarned: 1000,
-        totalSpent: 0
-      });
-    }
+    // Handle currency deduction based on selected currency
+    if (currency === 'stardustcoin') {
+      // Handle StardustCoin payment
+      let stardustAccount = await StardustCoin.findOne({ userId });
+      
+      if (!stardustAccount) {
+        // Create new StardustCoin account if it doesn't exist
+        stardustAccount = new StardustCoin({
+          userId,
+          username,
+          globalName: (session.user as any).globalName || '',
+          balance: 0
+        });
+      }
 
-    // Check if user has enough coins
-    if (userCurrency.hamsterCoins < totalAmount) {
-      return NextResponse.json({ 
-        error: 'Insufficient Hamster Coins',
-        currentBalance: userCurrency.hamsterCoins,
-        requiredAmount: totalAmount
-      }, { status: 400 });
-    }
+      // Check if user has enough StardustCoin
+      if (stardustAccount.balance < totalAmount) {
+        return NextResponse.json({ 
+          error: 'Insufficient StardustCoin',
+          currentBalance: stardustAccount.balance,
+          requiredAmount: totalAmount
+        }, { status: 400 });
+      }
 
-    // Deduct coins from user's balance
-    userCurrency.hamsterCoins -= totalAmount;
-    userCurrency.totalSpent += totalAmount;
-    userCurrency.updatedAt = new Date();
-    await userCurrency.save();
+      // Deduct StardustCoin from user's balance
+      stardustAccount.balance -= totalAmount;
+      stardustAccount.totalSpent += totalAmount;
+      stardustAccount.lastUpdated = new Date();
+      await stardustAccount.save();
+
+      console.log(`Deducted ${totalAmount} StardustCoin from user ${userId} for checkout`);
+    } else {
+      // Handle HamsterCoin payment (default)
+      let userCurrency = await Currency.findOne({ userId });
+      
+      if (!userCurrency) {
+        // Create new currency account if it doesn't exist
+        userCurrency = new Currency({
+          userId,
+          hamsterCoins: 1000, // Starting balance
+          totalEarned: 1000,
+          totalSpent: 0
+        });
+      }
+
+      // Check if user has enough coins
+      if (userCurrency.hamsterCoins < totalAmount) {
+        return NextResponse.json({ 
+          error: 'Insufficient Hamster Coins',
+          currentBalance: userCurrency.hamsterCoins,
+          requiredAmount: totalAmount
+        }, { status: 400 });
+      }
+
+      // Deduct coins from user's balance
+      userCurrency.hamsterCoins -= totalAmount;
+      userCurrency.totalSpent += totalAmount;
+      userCurrency.updatedAt = new Date();
+      await userCurrency.save();
+
+      console.log(`Deducted ${totalAmount} HamsterCoin from user ${userId} for checkout`);
+    }
 
     // Create purchase record
     const purchase = new Purchase({
@@ -295,6 +349,7 @@ export async function POST(request: NextRequest) {
             itemId: fullItem._id,
             itemName: fullItem.name,
             price: fullItem.price,
+            currency: currency,
             hasFile: fullItem.hasFile || false,
             fileUrl: fullItem.fileUrl || '',
             fileName: fullItem.fileName || '',
@@ -325,10 +380,21 @@ export async function POST(request: NextRequest) {
     // Return detailed purchase information for the modal
     const purchases = itemDetails;
 
+    // Get the appropriate balance based on currency used
+    let newBalance = 0;
+    if (currency === 'stardustcoin') {
+      const stardustAccount = await StardustCoin.findOne({ userId });
+      newBalance = stardustAccount?.balance || 0;
+    } else {
+      const hamsterAccount = await Currency.findOne({ userId });
+      newBalance = hamsterAccount?.hamsterCoins || 0;
+    }
+
     return NextResponse.json({ 
       success: true,
       message: 'Purchase completed successfully',
-      newBalance: userCurrency.hamsterCoins,
+      newBalance: newBalance,
+      currency: currency,
       purchaseId: purchase._id,
       purchases: purchases
     });

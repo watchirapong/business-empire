@@ -17,6 +17,25 @@ export function middleware(request: NextRequest) {
     
     return response;
   }
+
+  // Track analytics for page visits (non-API routes)
+  if (request.method === 'GET' && 
+      !request.nextUrl.pathname.startsWith('/api/') && 
+      !request.nextUrl.pathname.startsWith('/_next/') &&
+      !request.nextUrl.pathname.startsWith('/favicon') &&
+      !request.nextUrl.pathname.includes('.')) {
+    
+    // Create a response
+    const response = NextResponse.next();
+    
+    // Add analytics tracking headers that can be read by client-side code
+    response.headers.set('x-analytics-track', 'true');
+    response.headers.set('x-page-path', request.nextUrl.pathname);
+    response.headers.set('x-referrer', request.headers.get('referer') || '');
+    response.headers.set('x-user-agent', request.headers.get('user-agent') || '');
+    
+    return response;
+  }
   
   return NextResponse.next();
 }
@@ -24,5 +43,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/shop/upload-file',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -60,6 +60,11 @@ const taskSchema = new mongoose.Schema({
     completionImage: {
       type: String
     },
+    completionDescription: {
+      type: String,
+      trim: true,
+      maxlength: 1000
+    },
     isWinner: {
       type: Boolean,
       default: false
@@ -76,6 +81,21 @@ const taskSchema = new mongoose.Schema({
       type: Date
     }
   },
+  winners: [{
+    id: {
+      type: String
+    },
+    username: {
+      type: String
+    },
+    selectedAt: {
+      type: Date
+    },
+    reward: {
+      type: Number,
+      min: 0
+    }
+  }],
   createdAt: { 
     type: Date, 
     default: Date.now,

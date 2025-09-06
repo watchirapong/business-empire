@@ -19,6 +19,40 @@ interface Purchase {
   fileUrl?: string;
 }
 
+interface AnalyticsData {
+  overview: {
+    totalRevenue: number;
+    totalPurchases: number;
+    uniqueBuyers: number;
+    uniqueItems: number;
+    averageOrderValue: number;
+  };
+  topSellingItems: Array<{
+    item: string;
+    sales: number;
+    revenue: number;
+    uniqueBuyers: number;
+    buyers: string[];
+  }>;
+  topSpenders: Array<{
+    user: string;
+    spending: number;
+    purchases: number;
+    uniqueItems: number;
+    items: string[];
+  }>;
+  currencyBreakdown: Record<string, { count: number; revenue: number }>;
+  dailySales: Array<{
+    date: string;
+    count: number;
+    revenue: number;
+  }>;
+  contentTypeStats: Record<string, { count: number; revenue: number }>;
+  timeRange: string;
+  currency: string;
+  generatedAt: string;
+}
+
 export default function PurchaseHistoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -26,6 +60,11 @@ export default function PurchaseHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [timeRange, setTimeRange] = useState('all');
+  const [currency, setCurrency] = useState('all');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -57,6 +96,24 @@ export default function PurchaseHistoryPage() {
       setError('Network error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const response = await fetch(`/api/shop/analytics?timeRange=${timeRange}&currency=${currency}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data.analytics);
+      } else {
+        const errorData = await response.json();
+        console.error('Analytics error:', errorData.error);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -197,7 +254,7 @@ export default function PurchaseHistoryPage() {
           </p>
           
           {/* Action Buttons */}
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center space-x-4 mb-4">
             <button
               onClick={handleFixPurchases}
               className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors"
@@ -210,8 +267,223 @@ export default function PurchaseHistoryPage() {
             >
               🔄 Refresh
             </button>
+            <button
+              onClick={() => {
+                setShowAnalytics(!showAnalytics);
+                if (!showAnalytics && !analytics) {
+                  fetchAnalytics();
+                }
+              }}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              {showAnalytics ? '📊 Hide Analytics' : '📊 Show Analytics'}
+            </button>
           </div>
+          
+          {/* Analytics Controls */}
+          {showAnalytics && (
+            <div className="flex justify-center space-x-4">
+              <select
+                value={timeRange}
+                onChange={(e) => {
+                  setTimeRange(e.target.value);
+                  fetchAnalytics();
+                }}
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+              >
+                <option value="all">All Time</option>
+                <option value="week">Last Week</option>
+                <option value="month">Last Month</option>
+                <option value="year">Last Year</option>
+              </select>
+              
+              <select
+                value={currency}
+                onChange={(e) => {
+                  setCurrency(e.target.value);
+                  fetchAnalytics();
+                }}
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+              >
+                <option value="all">All Currencies</option>
+                <option value="hamstercoin">Hamster Coins</option>
+                <option value="stardustcoin">Stardust Coins</option>
+              </select>
+            </div>
+          )}
         </div>
+
+        {/* Analytics Dashboard */}
+        {showAnalytics && (
+          <div className="max-w-7xl mx-auto mb-8">
+            {analyticsLoading ? (
+              <div className="bg-white/10 rounded-xl p-8 border border-white/20 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                <div className="text-white">Loading analytics...</div>
+              </div>
+            ) : analytics ? (
+              <div className="space-y-6">
+                {/* Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 border border-green-500/30">
+                    <div className="text-green-400 text-2xl mb-2">💰</div>
+                    <div className="text-white font-bold text-lg">${analytics.overview.totalRevenue.toFixed(2)}</div>
+                    <div className="text-green-300 text-sm">Total Revenue</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 border border-blue-500/30">
+                    <div className="text-blue-400 text-2xl mb-2">🛒</div>
+                    <div className="text-white font-bold text-lg">{analytics.overview.totalPurchases}</div>
+                    <div className="text-blue-300 text-sm">Total Purchases</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border border-purple-500/30">
+                    <div className="text-purple-400 text-2xl mb-2">👥</div>
+                    <div className="text-white font-bold text-lg">{analytics.overview.uniqueBuyers}</div>
+                    <div className="text-purple-300 text-sm">Unique Buyers</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 border border-orange-500/30">
+                    <div className="text-orange-400 text-2xl mb-2">📦</div>
+                    <div className="text-white font-bold text-lg">{analytics.overview.uniqueItems}</div>
+                    <div className="text-orange-300 text-sm">Unique Items</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl p-4 border border-yellow-500/30">
+                    <div className="text-yellow-400 text-2xl mb-2">📊</div>
+                    <div className="text-white font-bold text-lg">${analytics.overview.averageOrderValue.toFixed(2)}</div>
+                    <div className="text-yellow-300 text-sm">Avg Order Value</div>
+                  </div>
+                </div>
+
+                {/* Top Selling Items */}
+                <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                  <h3 className="text-xl font-bold text-white mb-4">🏆 Top Selling Items</h3>
+                  <div className="space-y-3">
+                    {analytics.topSellingItems.slice(0, 10).map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-orange-400 font-bold">#{index + 1}</div>
+                          <div>
+                            <div className="text-white font-semibold">{item.item}</div>
+                            <div className="text-gray-400 text-sm">
+                              {item.uniqueBuyers} unique buyers • {item.buyers.slice(0, 3).join(', ')}
+                              {item.buyers.length > 3 && ` +${item.buyers.length - 3} more`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-green-400 font-bold">${item.revenue.toFixed(2)}</div>
+                          <div className="text-gray-400 text-sm">{item.sales} sales</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top Spenders */}
+                <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                  <h3 className="text-xl font-bold text-white mb-4">💎 Top Spenders</h3>
+                  <div className="space-y-3">
+                    {analytics.topSpenders.slice(0, 10).map((spender, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-purple-400 font-bold">#{index + 1}</div>
+                          <div>
+                            <div className="text-white font-semibold">{spender.user}</div>
+                            <div className="text-gray-400 text-sm">
+                              {spender.purchases} purchases • {spender.uniqueItems} unique items
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-green-400 font-bold">${spender.spending.toFixed(2)}</div>
+                          <div className="text-gray-400 text-sm">total spent</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Currency Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-xl font-bold text-white mb-4">💱 Currency Breakdown</h3>
+                    <div className="space-y-3">
+                      {Object.entries(analytics.currencyBreakdown).map(([currency, data]) => (
+                        <div key={currency} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                          <div className="text-white font-semibold capitalize">{currency}</div>
+                          <div className="text-right">
+                            <div className="text-green-400 font-bold">${data.revenue.toFixed(2)}</div>
+                            <div className="text-gray-400 text-sm">{data.count} purchases</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-xl font-bold text-white mb-4">📋 Content Type Stats</h3>
+                    <div className="space-y-3">
+                      {Object.entries(analytics.contentTypeStats).map(([type, data]) => (
+                        <div key={type} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                          <div className="text-white font-semibold capitalize">{type || 'none'}</div>
+                          <div className="text-right">
+                            <div className="text-green-400 font-bold">${data.revenue.toFixed(2)}</div>
+                            <div className="text-gray-400 text-sm">{data.count} items</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily Sales Chart */}
+                {analytics.dailySales.length > 0 && (
+                  <div className="bg-white/10 rounded-xl p-6 border border-white/20">
+                    <h3 className="text-xl font-bold text-white mb-4">📈 Daily Sales Trend (Last 30 Days)</h3>
+                    <div className="space-y-2">
+                      {analytics.dailySales.slice(-7).map((day, index) => (
+                        <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                          <div className="text-white font-semibold">
+                            {new Date(day.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-blue-400">{day.count} sales</div>
+                            <div className="text-green-400 font-bold">${day.revenue.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Export Button */}
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      const dataStr = JSON.stringify(analytics, null, 2);
+                      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(dataBlob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `purchase-analytics-${new Date().toISOString().split('T')[0]}.json`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+                  >
+                    📥 Export Analytics Data
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white/10 rounded-xl p-8 border border-white/20 text-center">
+                <div className="text-purple-400 text-6xl mb-4">📊</div>
+                <h2 className="text-2xl font-bold text-white mb-2">Analytics Not Available</h2>
+                <p className="text-gray-300 mb-4">
+                  Analytics data could not be loaded. This feature is only available for administrators.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Purchase History */}
         <div className="max-w-6xl mx-auto">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 interface GachaItem {
   id: string;
@@ -34,6 +35,13 @@ export default function GachaPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const wheelRef = useRef<HTMLDivElement>(null);
+  
+  // Track gacha visits
+  const { trackBehavior } = useBehaviorTracking({
+    behaviorType: 'gacha_play',
+    section: 'gacha',
+    action: 'view_gacha'
+  });
   const [gachaItems, setGachaItems] = useState<GachaItem[]>([]);
   const [userBalance, setUserBalance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
@@ -121,6 +129,22 @@ export default function GachaPage() {
           setWheelRotation(spinRotation);
         }
         
+        // Track gacha spending
+        trackBehavior({
+          behaviorType: 'gacha_spend',
+          section: 'gacha',
+          action: 'pull_gacha',
+          details: {
+            coinsSpent: 10,
+            itemWon: {
+              id: data.item.id,
+              name: data.item.name,
+              rarity: data.item.rarity
+            },
+            newBalance: data.newBalance
+          }
+        });
+
         // Wait for wheel animation to complete (4.5 seconds)
         setTimeout(() => {
         setLastPulledItem(data.item);

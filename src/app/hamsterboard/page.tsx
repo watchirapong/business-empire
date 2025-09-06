@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/admin-config';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 interface Task {
   _id: string;
@@ -22,13 +23,15 @@ interface Task {
     acceptedAt: Date;
     completedAt?: Date;
     completionImage?: string;
+    completionDescription?: string;
     isWinner: boolean;
   }>;
-  winner?: {
+  winners?: Array<{
     id: string;
     username: string;
     selectedAt: Date;
-  };
+    reward: number;
+  }>;
   createdAt: Date;
   completedAt?: Date;
 }
@@ -36,6 +39,13 @@ interface Task {
 const Hamsterboard: React.FC = () => {
   const { data: session } = useSession();
   const router = useRouter();
+  
+  // Track hamsterboard visits
+  const { trackBehavior } = useBehaviorTracking({
+    behaviorType: 'hamsterboard_visit',
+    section: 'hamsterboard',
+    action: 'view_board'
+  });
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
@@ -55,11 +65,14 @@ const Hamsterboard: React.FC = () => {
   const [selectedTaskForCompletion, setSelectedTaskForCompletion] = useState<Task | null>(null);
   const [completionImage, setCompletionImage] = useState<File | null>(null);
   const [completionImagePreview, setCompletionImagePreview] = useState<string>('');
+  const [completionDescription, setCompletionDescription] = useState<string>('');
   const [isUploadingCompletion, setIsUploadingCompletion] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showWinnerSelection, setShowWinnerSelection] = useState(false);
   const [selectedTaskForWinner, setSelectedTaskForWinner] = useState<Task | null>(null);
   const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [selectedWinners, setSelectedWinners] = useState<string[]>([]);
+  const [winnerRewards, setWinnerRewards] = useState<{[key: string]: number}>({});
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [previewImageTitle, setPreviewImageTitle] = useState<string>('');
@@ -268,8 +281,8 @@ const Hamsterboard: React.FC = () => {
   };
 
   const handleSubmitCompletion = async () => {
-    if (!selectedTaskForCompletion || !completionImagePreview) {
-      alert('Please upload a completion image');
+    if (!selectedTaskForCompletion || !completionDescription.trim()) {
+      alert('Please provide a description of your completion');
       return;
     }
 
@@ -282,7 +295,8 @@ const Hamsterboard: React.FC = () => {
         },
         body: JSON.stringify({ 
           taskId: selectedTaskForCompletion._id,
-          completionImage: completionImagePreview
+          completionImage: completionImagePreview || null,
+          completionDescription: completionDescription.trim()
         }),
       });
 
@@ -292,6 +306,7 @@ const Hamsterboard: React.FC = () => {
         setSelectedTaskForCompletion(null);
         setCompletionImage(null);
         setCompletionImagePreview('');
+        setCompletionDescription('');
         fetchTasks();
       } else {
         const errorData = await response.json();
@@ -317,6 +332,85 @@ const Hamsterboard: React.FC = () => {
     setPreviewImageUrl(imageUrl);
     setPreviewImageTitle(title);
     setShowImagePreview(true);
+  };
+
+  const handleConfirmMultipleWinners = async () => {
+    if (!selectedTaskForWinner || selectedWinners.length === 0) return;
+
+    // Validate reward distribution
+    const totalDistributed = selectedWinners.reduce((sum, id) => sum + (winnerRewards[id] || 0), 0);
+    
+    if (totalDistributed === 0) {
+      alert('Please set reward amounts for the selected winners!');
+      return;
+    }
+
+    // Check if user has sufficient balance for over-distribution
+    if (totalDistributed > selectedTaskForWinner.reward) {
+      const extraAmount = totalDistributed - selectedTaskForWinner.reward;
+      
+      try {
+        // Check user's current balance
+        const balanceResponse = await fetch('/api/currency/balance');
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          const userBalance = balanceData.balance || 0;
+          
+          if (userBalance < extraAmount) {
+            alert(`Insufficient balance! You need $${extraAmount.toFixed(2)} extra but only have $${userBalance.toFixed(2)} in your account.`);
+            return;
+          }
+        }
+        
+        const confirmOverDistribution = confirm(
+          `Warning: You are distributing $${totalDistributed.toFixed(2)} but the task reward is only $${selectedTaskForWinner.reward.toFixed(2)}. This means you will pay $${extraAmount.toFixed(2)} extra from your balance. Continue?`
+        );
+        if (!confirmOverDistribution) {
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking balance:', error);
+        alert('Error checking your balance. Please try again.');
+        return;
+      }
+    }
+
+    try {
+      setIsSelectingWinner(true);
+      const response = await fetch('/api/hamsterboard/tasks/select-winners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          taskId: selectedTaskForWinner._id,
+          winners: selectedWinners.map(id => ({
+            id,
+            reward: winnerRewards[id] || 0
+          }))
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const winnerNames = data.winners.map((w: any) => w.username).join(', ');
+        alert(`Winners selected successfully! ${winnerNames} received their rewards. Task has been completed.`);
+        setShowWinnerSelection(false);
+        setSelectedTaskForWinner(null);
+        setSelectedWinners([]);
+        setWinnerRewards({});
+        fetchTasks();
+        fetchUserBalance();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to select winners: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error selecting winners:', error);
+      alert('Failed to select winners');
+    } finally {
+      setIsSelectingWinner(false);
+    }
   };
 
   const handleConfirmWinner = async (winnerId: string) => {
@@ -553,9 +647,9 @@ const Hamsterboard: React.FC = () => {
                       {task.acceptedBy.length} Accepted
                     </span>
                   )}
-                  {task.winner && (
+                  {task.winners && task.winners.length > 0 && (
                     <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-                      🏆 Winner: {task.winner.username}
+                      🏆 Winner{task.winners.length > 1 ? 's' : ''}: {task.winners.map(w => w.username).join(', ')}
                     </span>
                   )}
                   
@@ -744,12 +838,25 @@ const Hamsterboard: React.FC = () => {
             <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white mb-2">Complete Task</h2>
-                <p className="text-gray-300">Upload proof of completion for: {selectedTaskForCompletion.taskName}</p>
+                <p className="text-gray-300">Complete task: {selectedTaskForCompletion.taskName}</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-white text-sm">Completion Proof Image</label>
+                  <label className="text-white text-sm font-semibold">Completion Description *</label>
+                  <textarea
+                    value={completionDescription}
+                    onChange={(e) => setCompletionDescription(e.target.value)}
+                    placeholder="Describe how you completed the task..."
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 resize-none"
+                    rows={4}
+                    required
+                  />
+                  <p className="text-gray-400 text-xs mt-1">* Required - Please describe your completion</p>
+                </div>
+
+                <div>
+                  <label className="text-white text-sm">Completion Proof Image (Optional)</label>
                   <input
                     type="file"
                     onChange={handleCompletionImageChange}
@@ -766,12 +873,13 @@ const Hamsterboard: React.FC = () => {
                       />
                     </div>
                   )}
+                  <p className="text-gray-400 text-xs mt-1">Optional - Upload an image as proof of completion</p>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
                   <button
                     onClick={handleSubmitCompletion}
-                    disabled={isCompleting || !completionImagePreview}
+                    disabled={isCompleting || !completionDescription.trim()}
                     className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                   >
                     {isCompleting ? 'Submitting...' : 'Submit Completion'}
@@ -782,6 +890,7 @@ const Hamsterboard: React.FC = () => {
                       setSelectedTaskForCompletion(null);
                       setCompletionImage(null);
                       setCompletionImagePreview('');
+                      setCompletionDescription('');
                     }}
                     className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                   >
@@ -798,17 +907,44 @@ const Hamsterboard: React.FC = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Select Winner</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">Select Winners</h2>
                 <p className="text-gray-300">Choose who completed the task best: {selectedTaskForWinner.taskName}</p>
-                <p className="text-orange-400 font-semibold mt-2">Reward: ${selectedTaskForWinner.reward.toFixed(2)} 🪙</p>
+                <p className="text-orange-400 font-semibold mt-2">Total Reward: ${selectedTaskForWinner.reward.toFixed(2)} 🪙</p>
+                <p className="text-gray-400 text-sm mt-1">You can select multiple winners and distribute the reward</p>
                 
-                <div className="mt-4">
+                <div className="mt-4 flex justify-center space-x-4">
                   <button
                     onClick={() => setShowFullImages(!showFullImages)}
                     className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
                   >
                     {showFullImages ? '📏 Show Compact Images' : '🖼️ Show Full Images'}
                   </button>
+                  {selectedWinners.length > 0 && (
+                    <button
+                      onClick={() => {
+                        const equalReward = selectedTaskForWinner.reward / selectedWinners.length;
+                        const newRewards: {[key: string]: number} = {};
+                        selectedWinners.forEach(winnerId => {
+                          newRewards[winnerId] = equalReward;
+                        });
+                        setWinnerRewards(newRewards);
+                      }}
+                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
+                    >
+                      ⚖️ Distribute Equally
+                    </button>
+                  )}
+                  {selectedWinners.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedWinners([]);
+                        setWinnerRewards({});
+                      }}
+                      className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
+                    >
+                      🗑️ Clear Selection
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -816,7 +952,11 @@ const Hamsterboard: React.FC = () => {
                 {selectedTaskForWinner.acceptedBy
                   .filter(acceptor => acceptor.completedAt)
                   .map((acceptor, index) => (
-                    <div key={acceptor.id} className="bg-white/10 rounded-lg p-6 border border-white/20">
+                    <div key={acceptor.id} className={`rounded-lg p-6 border transition-all ${
+                      selectedWinners.includes(acceptor.id) 
+                        ? 'bg-yellow-500/20 border-yellow-500/50 ring-2 ring-yellow-500/30' 
+                        : 'bg-white/10 border-white/20 hover:border-white/40'
+                    }`}>
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <span className="text-white font-bold text-lg">{acceptor.username}</span>
@@ -829,9 +969,27 @@ const Hamsterboard: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-yellow-400 font-semibold">Submission #{index + 1}</div>
+                          {selectedWinners.includes(acceptor.id) && (
+                            <div className="text-yellow-300 text-sm mt-1">✅ Selected</div>
+                          )}
                         </div>
                       </div>
                       
+                      {/* Completion Description (Text Content) */}
+                      {acceptor.completionDescription && (
+                        <div className="mb-4">
+                          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600/30">
+                            <h4 className="text-white font-semibold mb-2 flex items-center">
+                              📝 Completion Description:
+                            </h4>
+                            <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                              {acceptor.completionDescription}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Completion Image */}
                       {acceptor.completionImage && (
                         <div className="mb-4">
                           <div className="relative group mb-3">
@@ -868,28 +1026,145 @@ const Hamsterboard: React.FC = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Show message if no content */}
+                      {!acceptor.completionImage && !acceptor.completionDescription && (
+                        <div className="mb-4">
+                          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600/30 text-center">
+                            <div className="text-gray-400 italic">
+                              No completion content provided
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
-                      <button
-                        onClick={() => handleConfirmWinner(acceptor.id)}
-                        disabled={isSelectingWinner}
-                        className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors font-bold text-lg"
-                      >
-                        {isSelectingWinner ? 'Selecting...' : '🏆 Select as Winner'}
-                      </button>
+                      <div className="space-y-3">
+                        {selectedWinners.includes(acceptor.id) ? (
+                          <div className="space-y-2">
+                            <div className="bg-yellow-500/20 rounded-lg p-3 border border-yellow-500/30">
+                              <label className="text-yellow-300 text-sm font-semibold block mb-2">
+                                Reward Amount (${selectedTaskForWinner.reward.toFixed(2)} total):
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={selectedTaskForWinner.reward}
+                                step="0.01"
+                                value={winnerRewards[acceptor.id] || 0}
+                                onChange={(e) => {
+                                  const newAmount = parseFloat(e.target.value) || 0;
+                                  setWinnerRewards(prev => ({
+                                    ...prev,
+                                    [acceptor.id]: newAmount
+                                  }));
+                                }}
+                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                                placeholder="Enter reward amount"
+                              />
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newSelectedWinners = selectedWinners.filter(id => id !== acceptor.id);
+                                setSelectedWinners(newSelectedWinners);
+                                
+                                // Recalculate equal rewards for remaining winners
+                                if (newSelectedWinners.length > 0) {
+                                  const equalReward = selectedTaskForWinner.reward / newSelectedWinners.length;
+                                  const newRewards: {[key: string]: number} = {};
+                                  newSelectedWinners.forEach(winnerId => {
+                                    newRewards[winnerId] = equalReward;
+                                  });
+                                  setWinnerRewards(newRewards);
+                                } else {
+                                  setWinnerRewards({});
+                                }
+                              }}
+                              className="w-full bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg transition-colors font-bold text-lg"
+                            >
+                              ❌ Remove from Winners
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const newSelectedWinners = [...selectedWinners, acceptor.id];
+                              setSelectedWinners(newSelectedWinners);
+                              
+                              // Calculate equal reward for all winners (including new one)
+                              const equalReward = selectedTaskForWinner.reward / newSelectedWinners.length;
+                              
+                              // Update rewards for all winners to be equal
+                              const newRewards: {[key: string]: number} = {};
+                              newSelectedWinners.forEach(winnerId => {
+                                newRewards[winnerId] = equalReward;
+                              });
+                              setWinnerRewards(newRewards);
+                            }}
+                            className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-6 py-3 rounded-lg transition-colors font-bold text-lg"
+                          >
+                            🏆 Select as Winner
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
               </div>
               
-              <div className="mt-6">
-                <button
-                  onClick={() => {
-                    setShowWinnerSelection(false);
-                    setSelectedTaskForWinner(null);
-                  }}
-                  className="w-full bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="mt-6 space-y-4">
+                {/* Reward Summary */}
+                {selectedWinners.length > 0 && (
+                  <div className="bg-blue-500/20 rounded-lg p-4 border border-blue-500/30">
+                    <h3 className="text-blue-300 font-semibold mb-2">Reward Distribution Summary:</h3>
+                    <div className="space-y-1">
+                      {selectedWinners.map(winnerId => {
+                        const acceptor = selectedTaskForWinner.acceptedBy.find(a => a.id === winnerId);
+                        const reward = winnerRewards[winnerId] || 0;
+                        return (
+                          <div key={winnerId} className="flex justify-between text-sm">
+                            <span className="text-gray-300">{acceptor?.username}:</span>
+                            <span className="text-yellow-400">${reward.toFixed(2)}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="border-t border-gray-600 pt-2 mt-2">
+                        <div className="flex justify-between font-semibold">
+                          <span className="text-white">Total Distributed:</span>
+                          <span className="text-orange-400">
+                            ${selectedWinners.reduce((sum, id) => sum + (winnerRewards[id] || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Remaining:</span>
+                          <span className="text-gray-400">
+                            ${(selectedTaskForWinner.reward - selectedWinners.reduce((sum, id) => sum + (winnerRewards[id] || 0), 0)).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => handleConfirmMultipleWinners()}
+                    disabled={isSelectingWinner || selectedWinners.length === 0}
+                    className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    {isSelectingWinner ? 'Processing...' : `🏆 Confirm ${selectedWinners.length} Winner${selectedWinners.length !== 1 ? 's' : ''}`}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowWinnerSelection(false);
+                      setSelectedTaskForWinner(null);
+                      setSelectedWinners([]);
+                      setWinnerRewards({});
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -949,3 +1224,4 @@ const Hamsterboard: React.FC = () => {
 };
 
 export default Hamsterboard;
+

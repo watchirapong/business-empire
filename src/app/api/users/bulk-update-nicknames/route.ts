@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB
@@ -237,17 +238,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-    if (!ADMIN_USER_IDS.includes((session.user as any).id)) {
+    if (!isAdmin((session.user as any).id)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Check if there's already a job running
     const runningJobs = Array.from(backgroundJobs.values()).filter(job => job.status === 'running');
     if (runningJobs.length > 0) {
+      const runningJobId = Object.keys(backgroundJobs).find(key => backgroundJobs.get(key) === runningJobs[0]);
       return NextResponse.json({ 
         error: 'A bulk update is already running. Please wait for it to complete.',
-        jobId: runningJobs[0] ? Object.keys(backgroundJobs).find(key => backgroundJobs.get(key) === runningJobs[0]) : null
+        jobId: runningJobId || null
       }, { status: 409 });
     }
 
@@ -384,8 +385,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
-    if (!ADMIN_USER_IDS.includes((session.user as any).id)) {
+    if (!isAdmin((session.user as any).id)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

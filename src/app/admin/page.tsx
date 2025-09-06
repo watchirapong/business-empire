@@ -5,6 +5,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/admin-config';
 import HouseManager from '@/components/admin/HouseManager';
+import StardustCoinManager from '@/components/admin/StardustCoinManager';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 interface UserData {
   _id: string;
@@ -77,6 +80,13 @@ interface VoiceStats {
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  
+  // Track admin visits
+  const { trackBehavior } = useBehaviorTracking({
+    behaviorType: 'admin_visit',
+    section: 'admin',
+    action: 'view_admin_panel'
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [searchResults, setSearchResults] = useState<UserData[]>([]);
@@ -89,7 +99,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements' | 'houses'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'purchases' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics'>('users');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -464,9 +474,14 @@ export default function AdminPage() {
         if (response.status === 409) {
           // Job already running
           setBulkUpdateMessage(`⏳ ${errorData.error}`);
-          setCurrentJobId(errorData.jobId);
-          // Start polling for status
-          pollJobStatus(errorData.jobId);
+          if (errorData.jobId) {
+            setCurrentJobId(errorData.jobId);
+            // Start polling for status
+            pollJobStatus(errorData.jobId);
+          } else {
+            setBulkUpdateMessage(`⏳ ${errorData.error} (No job ID available)`);
+            setJobStatus('failed');
+          }
         } else {
           throw new Error(errorData.error || 'Failed to start bulk update');
         }
@@ -490,6 +505,12 @@ export default function AdminPage() {
   };
 
   const pollJobStatus = async (jobId: string) => {
+    if (!jobId) {
+      setBulkUpdateMessage('❌ No job ID available for polling');
+      setJobStatus('failed');
+      return;
+    }
+
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/users/bulk-update-nicknames?jobId=${jobId}`);
@@ -820,6 +841,26 @@ export default function AdminPage() {
             }`}
           >
             🏠 House Management
+          </button>
+          <button
+            onClick={() => setActiveTab('stardustcoin')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'stardustcoin'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            ✨ StardustCoin Management
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'analytics'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            📊 Analytics Dashboard
           </button>
         </div>
 
@@ -2086,6 +2127,20 @@ export default function AdminPage() {
         {activeTab === 'houses' && (
           <>
             <HouseManager />
+          </>
+        )}
+
+        {/* StardustCoin Management Tab */}
+        {activeTab === 'stardustcoin' && (
+          <>
+            <StardustCoinManager />
+          </>
+        )}
+
+        {/* Analytics Dashboard Tab */}
+        {activeTab === 'analytics' && (
+          <>
+            <AnalyticsDashboard />
           </>
         )}
       </div>

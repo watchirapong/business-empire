@@ -4,12 +4,21 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
+import StardustCoinBalance from '@/components/StardustCoinBalance';
 import Achievements from '@/components/Achievements';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Track profile visits
+  const { trackBehavior } = useBehaviorTracking({
+    behaviorType: 'profile_visit',
+    section: 'profile',
+    action: 'view_profile'
+  });
   const [currentNickname, setCurrentNickname] = useState<string | null>(null);
   const [userRank, setUserRank] = useState<string>('None');
   const [userHouse, setUserHouse] = useState<string>('None');
@@ -177,8 +186,11 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Hamster Shop Balance */}
-          <HamsterCoinBalance />
+          {/* Currency Balances */}
+          <div className="space-y-4">
+            <HamsterCoinBalance />
+            <StardustCoinBalance />
+          </div>
 
           {/* Leaderboard Rank Display */}
           <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">

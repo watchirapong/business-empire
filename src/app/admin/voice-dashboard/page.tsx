@@ -20,6 +20,13 @@ interface VoiceActivityData {
   roles?: string[];
   rank?: string;
   displayName?: string;
+  // Daily data properties
+  dailyJoinCount?: number;
+  dailyVoiceTime?: number;
+  channels?: string[];
+  firstJoin?: string;
+  lastJoin?: string;
+  sessions?: any[];
 }
 
 interface TodayVoiceData extends VoiceActivityData {
@@ -122,7 +129,7 @@ export default function VoiceDashboardPage() {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [botStatus, setBotStatus] = useState<boolean | null>(null);
   const [botLoading, setBotLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'comprehensive'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'comprehensive' | 'custom-roles'>('all');
   const [sortBy, setSortBy] = useState<'totalTime' | 'todayTime' | 'joins' | 'todayJoins'>('totalTime');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
@@ -130,6 +137,12 @@ export default function VoiceDashboardPage() {
   const [voiceActivitiesByRoles, setVoiceActivitiesByRoles] = useState<VoiceActivityData[]>([]);
   const [roleStats, setRoleStats] = useState<RoleStats[]>([]);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [customRoleId, setCustomRoleId] = useState('');
+  const [customRoleName, setCustomRoleName] = useState('');
+  const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
+  const [customRoles, setCustomRoles] = useState<Array<{id: string, name: string, verified?: boolean, userCount?: number}>>([]);
+  const [verifyingRole, setVerifyingRole] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
   
   // Daily data
   const [dailyVoiceData, setDailyVoiceData] = useState<DailyVoiceData[]>([]);
@@ -164,7 +177,7 @@ export default function VoiceDashboardPage() {
         }
       }
     }
-  }, [isAdmin, filter, limit, roleFilter, selectedDate, activeTab, viewMode]);
+  }, [isAdmin, filter, limit, roleFilter, selectedDate, activeTab, viewMode, customRoles]);
 
   // Reset sort when switching tabs
   useEffect(() => {
@@ -233,12 +246,28 @@ export default function VoiceDashboardPage() {
 
   const loadVoiceActivitiesByRoles = async () => {
     try {
-      const response = await fetch(`/api/admin/voice-activity-by-roles?filter=${filter}&limit=${limit}&roleFilter=${roleFilter}`);
+      const params = new URLSearchParams();
+      if (filter !== 'all') params.append('filter', filter);
+      if (roleFilter !== 'all') params.append('roleFilter', roleFilter);
+      // Check if roleFilter is a custom role ID
+      const isCustomRole = customRoles.some(role => role.id === roleFilter);
+      if (isCustomRole) {
+        params.append('customRoleId', roleFilter);
+      }
+      
+      if (selectedDate && viewMode === 'roles') params.append('dateFilter', selectedDate);
+      
+      const response = await fetch(`/api/admin/voice-activity-enhanced-roles?${params}`);
       const data = await response.json();
 
       if (response.ok && data.success) {
         setVoiceActivitiesByRoles(data.data.voiceActivities);
         setRoleStats(data.data.roleStats);
+        
+        // Update daily stats if available
+        if (data.data.dailyData) {
+          setDailyStats(data.data.dailyData);
+        }
       } else {
         console.error('Failed to load voice activities by roles:', data.error);
       }
@@ -338,6 +367,29 @@ export default function VoiceDashboardPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const verifyRole = async (roleId: string) => {
+    setVerifyingRole(true);
+    try {
+      const response = await fetch(`/api/admin/verify-role?roleId=${roleId}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setVerificationResult(data.data);
+        return data.data;
+      } else {
+        console.error('Failed to verify role:', data.error);
+        setVerificationResult(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error verifying role:', error);
+      setVerificationResult(null);
+      return null;
+    } finally {
+      setVerifyingRole(false);
+    }
   };
 
   // Sort function for voice activities
@@ -695,6 +747,11 @@ export default function VoiceDashboardPage() {
                     <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
                       <span className="mr-2">👑</span>
                       Voice Activity by Role
+                      {customRoles.some(role => role.id === roleFilter) && (
+                        <span className="ml-3 text-sm bg-purple-500/20 text-purple-300 px-2 py-1 rounded">
+                          Custom Role: {customRoles.find(role => role.id === roleFilter)?.name}
+                        </span>
+                      )}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {roleStats.map((roleStat) => (
@@ -806,6 +863,16 @@ export default function VoiceDashboardPage() {
                   >
                     🎯 Comprehensive View
                   </button>
+                  <button
+                    onClick={() => setActiveTab('custom-roles')}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                      activeTab === 'custom-roles'
+                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                        : 'bg-white/10 text-gray-200 hover:bg-white/20'
+                    }`}
+                  >
+                    ⚙️ Custom Roles
+                  </button>
                 </div>
                 
                 <div className="flex flex-wrap gap-4 items-center">
@@ -835,7 +902,7 @@ export default function VoiceDashboardPage() {
                           onChange={(e) => setViewMode(e.target.value as 'today' | 'daily' | 'roles')}
                           className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-indigo-500"
                         >
-                          <option value="today">📅 Today's Activity</option>
+                          <option value="today">📅 Today&apos;s Activity</option>
                           <option value="daily">📆 Daily View</option>
                           <option value="roles">👑 By Role</option>
                         </select>
@@ -854,22 +921,38 @@ export default function VoiceDashboardPage() {
                       )}
                       
                       {viewMode === 'roles' && (
-                        <div>
-                          <label className="block text-sm font-bold text-purple-300 mb-2">Role Filter</label>
-                          <select
-                            value={roleFilter}
-                            onChange={(e) => setRoleFilter(e.target.value)}
-                            className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
-                          >
-                            <option value="all">All Roles</option>
-                            <option value="Ace">Ace</option>
-                            <option value="Hero">Hero</option>
-                            <option value="Enigma">Enigma</option>
-                            <option value="Warrior">Warrior</option>
-                            <option value="Trainee">Trainee</option>
-                            <option value="None">No Role</option>
-                          </select>
-                        </div>
+                        <>
+                          <div>
+                            <label className="block text-sm font-bold text-purple-300 mb-2">Role Filter</label>
+                            <select
+                              value={roleFilter}
+                              onChange={(e) => setRoleFilter(e.target.value)}
+                              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                            >
+                              <option value="all">All Roles</option>
+                              <option value="Ace">Ace</option>
+                              <option value="Hero">Hero</option>
+                              <option value="Enigma">Enigma</option>
+                              <option value="Warrior">Warrior</option>
+                              <option value="Trainee">Trainee</option>
+                              <option value="None">No Role</option>
+                              {customRoles.map((role) => (
+                                <option key={role.id} value={role.id}>{role.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          
+                          <div>
+                            <label className="block text-sm font-bold text-orange-300 mb-2">Date Filter (Optional)</label>
+                            <input
+                              type="date"
+                              value={selectedDate}
+                              onChange={(e) => setSelectedDate(e.target.value)}
+                              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                        </>
                       )}
                       
                       <div>
@@ -1011,7 +1094,7 @@ export default function VoiceDashboardPage() {
             {activeTab === 'comprehensive' && (
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  {viewMode === 'today' && '📅 Today\'s Voice Activity'}
+                  {viewMode === 'today' && '📅 Today&apos;s Voice Activity'}
                   {viewMode === 'daily' && `📅 Daily Voice Activity - ${new Date(selectedDate).toLocaleDateString()}`}
                   {viewMode === 'roles' && '👑 Voice Activity by Role'}
                 </h2>
@@ -1032,8 +1115,8 @@ export default function VoiceDashboardPage() {
                             <tr className="border-b border-white/10">
                               <th className="py-3 px-4 text-green-300 font-semibold">User</th>
                               <th className="py-3 px-4 text-green-300 font-semibold">Role</th>
-                              <th className="py-3 px-4 text-green-300 font-semibold">Today's Joins</th>
-                              <th className="py-3 px-4 text-green-300 font-semibold">Today's Time</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Today&apos;s Joins</th>
+                              <th className="py-3 px-4 text-green-300 font-semibold">Today&apos;s Time</th>
                               <th className="py-3 px-4 text-green-300 font-semibold">Total Time</th>
                               <th className="py-3 px-4 text-green-300 font-semibold">Type</th>
                               <th className="py-3 px-4 text-green-300 font-semibold">Actions</th>
@@ -1207,14 +1290,25 @@ export default function VoiceDashboardPage() {
                   </>
                 )}
 
+
                 {/* Roles View */}
                 {viewMode === 'roles' && (
                   <>
                     {voiceActivitiesByRoles.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="text-4xl mb-4">👑</div>
-                        <p className="text-purple-200 text-lg">No voice activity found for the selected role</p>
-                        <p className="text-gray-400 text-sm">Try selecting a different role or user filter</p>
+                        <p className="text-purple-200 text-lg">
+                          {customRoles.some(role => role.id === roleFilter) ? 
+                            `No users found with role: ${customRoles.find(role => role.id === roleFilter)?.name}` : 
+                            'No voice activity found for the selected role'
+                          }
+                        </p>
+                        <p className="text-gray-400 text-sm">
+                          {customRoles.some(role => role.id === roleFilter) ? 
+                            'Make sure the role ID is correct and users with this role have voice activity' :
+                            'Try selecting a different role or user filter'
+                          }
+                        </p>
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
@@ -1223,9 +1317,19 @@ export default function VoiceDashboardPage() {
                             <tr className="border-b border-white/10">
                               <th className="py-3 px-4 text-purple-300 font-semibold">User</th>
                               <th className="py-3 px-4 text-purple-300 font-semibold">Role</th>
-                              <th className="py-3 px-4 text-purple-300 font-semibold">Joins</th>
-                              <th className="py-3 px-4 text-purple-300 font-semibold">Total Time</th>
-                              <th className="py-3 px-4 text-purple-300 font-semibold">Last Join</th>
+                              {selectedDate ? (
+                                <>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Daily Joins</th>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Daily Time</th>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Channels</th>
+                                </>
+                              ) : (
+                                <>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Total Joins</th>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Total Time</th>
+                                  <th className="py-3 px-4 text-purple-300 font-semibold">Last Join</th>
+                                </>
+                              )}
                               <th className="py-3 px-4 text-purple-300 font-semibold">Type</th>
                               <th className="py-3 px-4 text-purple-300 font-semibold">Actions</th>
                             </tr>
@@ -1260,14 +1364,37 @@ export default function VoiceDashboardPage() {
                                     activity.rank === 'Trainee' ? 'bg-green-500/20 text-green-300' :
                                     'bg-gray-500/20 text-gray-300'
                                   }`}>
-                                    {activity.rank || 'None'}
+                                    {customRoleId ? `Custom Role` : (activity.rank || 'None')}
                                   </span>
                                 </td>
-                                <td className="py-3 px-4 text-purple-200">{activity.voiceJoinCount}</td>
-                                <td className="py-3 px-4 text-green-300">{formatDuration(activity.totalVoiceTime)}</td>
-                                <td className="py-3 px-4 text-purple-200">
-                                  {activity.lastVoiceJoin ? formatDate(activity.lastVoiceJoin) : 'Never'}
-                                </td>
+                                {selectedDate ? (
+                                  <>
+                                    <td className="py-3 px-4 text-purple-200">{activity.dailyJoinCount || 0}</td>
+                                    <td className="py-3 px-4 text-green-300 font-semibold">{formatDuration(activity.dailyVoiceTime || 0)}</td>
+                                    <td className="py-3 px-4 text-blue-300">
+                                      <div className="flex flex-wrap gap-1">
+                                        {(activity.channels || []).slice(0, 2).map((channel: string, index: number) => (
+                                          <span key={index} className="px-1 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs">
+                                            {channel}
+                                          </span>
+                                        ))}
+                                        {(activity.channels || []).length > 2 && (
+                                          <span className="px-1 py-0.5 bg-gray-500/20 text-gray-300 rounded text-xs">
+                                            +{(activity.channels || []).length - 2}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td className="py-3 px-4 text-purple-200">{activity.voiceJoinCount}</td>
+                                    <td className="py-3 px-4 text-green-300">{formatDuration(activity.totalVoiceTime)}</td>
+                                    <td className="py-3 px-4 text-purple-200">
+                                      {activity.lastVoiceJoin ? formatDate(activity.lastVoiceJoin) : 'Never'}
+                                    </td>
+                                  </>
+                                )}
                                 <td className="py-3 px-4">
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     activity.userType === 'real_user' 
@@ -1293,6 +1420,245 @@ export default function VoiceDashboardPage() {
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Custom Roles Tab */}
+            {activeTab === 'custom-roles' && (
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <span className="mr-2">⚙️</span>
+                  Custom Role Management
+                </h2>
+                
+                {/* Add Custom Role Section */}
+                <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-500/20 mb-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Add Custom Role</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-orange-300 mb-2">Role ID</label>
+                      <input
+                        type="text"
+                        value={customRoleId}
+                        onChange={(e) => setCustomRoleId(e.target.value)}
+                        placeholder="Enter Discord Role ID"
+                        className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-orange-500 w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-orange-300 mb-2">Role Name</label>
+                      <input
+                        type="text"
+                        value={customRoleName}
+                        onChange={(e) => setCustomRoleName(e.target.value)}
+                        placeholder="Enter custom role name"
+                        className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-orange-500 w-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex space-x-3 mt-4">
+                    <button
+                      onClick={async () => {
+                        if (customRoleId && customRoleName) {
+                          // Verify the role first
+                          const verification = await verifyRole(customRoleId);
+                          if (verification) {
+                            setCustomRoles([...customRoles, { 
+                              id: customRoleId, 
+                              name: customRoleName,
+                              verified: true,
+                              userCount: verification.usersWithRole
+                            }]);
+                            setCustomRoleId('');
+                            setCustomRoleName('');
+                          }
+                        }
+                      }}
+                      disabled={!customRoleId || !customRoleName || verifyingRole}
+                      className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {verifyingRole ? 'Verifying...' : 'Add & Verify Role'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (customRoleId) {
+                          verifyRole(customRoleId);
+                        }
+                      }}
+                      disabled={!customRoleId || verifyingRole}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {verifyingRole ? 'Verifying...' : 'Verify Only'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Verification Results */}
+                {verificationResult && (
+                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/20 mb-6">
+                    <h3 className="text-xl font-bold text-white mb-4">Role Verification Results</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-300 mb-1">
+                          {verificationResult.roleExists ? '✅' : '❌'}
+                        </div>
+                        <div className="text-green-200">Role Exists</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-300 mb-1">
+                          {verificationResult.usersWithRole}
+                        </div>
+                        <div className="text-blue-200">Users with Role</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-300 mb-1">
+                          {verificationResult.totalServerMembers}
+                        </div>
+                        <div className="text-purple-200">Total Server Members</div>
+                      </div>
+                    </div>
+                    
+                    {verificationResult.usersWithRole > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-lg font-semibold text-white mb-2">Users with this role:</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {verificationResult.usersWithRoleDetails.map((user: any, index: number) => (
+                            <div key={index} className="flex items-center space-x-3 bg-white/5 rounded-lg p-3">
+                              {user.avatar && (
+                                <img 
+                                  src={user.avatar} 
+                                  alt={user.username}
+                                  className="w-8 h-8 rounded-full"
+                                />
+                              )}
+                              <div>
+                                <div className="text-white font-semibold">{user.globalName}</div>
+                                <div className="text-blue-200 text-sm">@{user.username}</div>
+                              </div>
+                            </div>
+                          ))}
+                          {verificationResult.hasMoreUsers && (
+                            <div className="text-center text-blue-200 text-sm">
+                              ... and {verificationResult.usersWithRole - 10} more users
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {verificationResult.usersWithRole === 0 && verificationResult.roleExists && (
+                      <div className="mt-4 text-center">
+                        <p className="text-orange-200">
+                          ⚠️ Role exists in the server but no users currently have it assigned.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {!verificationResult.roleExists && (
+                      <div className="mt-4 text-center">
+                        <p className="text-red-200">
+                          ❌ Role ID not found in any server member data. Please check if the role ID is correct.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Roles List */}
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl p-6 border border-blue-500/20 mb-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Custom Roles ({customRoles.length})</h3>
+                  {customRoles.length === 0 ? (
+                    <p className="text-blue-200 text-center py-4">No custom roles added yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {customRoles.map((role, index) => (
+                        <div key={role.id} className="flex items-center justify-between bg-white/5 rounded-lg p-4">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-3 h-3 rounded-full ${
+                              role.verified 
+                                ? (role.userCount && role.userCount > 0 ? 'bg-green-500' : 'bg-orange-500')
+                                : 'bg-gray-500'
+                            }`}></div>
+                            <div>
+                              <div className="text-white font-semibold flex items-center space-x-2">
+                                <span>{role.name}</span>
+                                {role.verified && (
+                                  <span className="text-xs">
+                                    {role.userCount && role.userCount > 0 ? 
+                                      `(${role.userCount} users)` : 
+                                      '(0 users)'
+                                    }
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-blue-200 text-sm">ID: {role.id}</div>
+                              {role.verified && (
+                                <div className="text-xs text-green-300">✅ Verified</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => {
+                                setRoleFilter(role.id);
+                                setActiveTab('comprehensive');
+                                setViewMode('roles');
+                              }}
+                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                            >
+                              Use in Filter
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const verification = await verifyRole(role.id);
+                                if (verification) {
+                                  const updatedRoles = [...customRoles];
+                                  updatedRoles[index] = {
+                                    ...role,
+                                    verified: true,
+                                    userCount: verification.usersWithRole
+                                  };
+                                  setCustomRoles(updatedRoles);
+                                }
+                              }}
+                              disabled={verifyingRole}
+                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                              {verifyingRole ? 'Verifying...' : 'Re-verify'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCustomRoles(customRoles.filter((_, i) => i !== index));
+                              }}
+                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                  <div className="flex items-start">
+                    <div className="text-blue-300 text-xl mr-3">💡</div>
+                    <div>
+                      <h3 className="text-blue-300 font-semibold mb-2">How to find Discord Role ID:</h3>
+                      <ol className="text-blue-200 text-sm space-y-1 list-decimal list-inside">
+                        <li>Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode)</li>
+                        <li>Right-click on any role in your server</li>
+                        <li>Click &quot;Copy ID&quot; to get the role ID</li>
+                        <li>Paste the ID in the Role ID field above</li>
+                      </ol>
+                      <p className="text-blue-200 text-sm mt-2">
+                        <strong>Note:</strong> Custom roles will appear in the Role Filter dropdown in the Comprehensive View tab.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

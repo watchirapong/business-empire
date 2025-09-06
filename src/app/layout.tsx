@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
+import AnalyticsProvider from "../components/AnalyticsProvider";
 import "../lib/auto-start-bot"; // Initialize auto-start
 
 const notoSansThai = Noto_Sans_Thai({
@@ -30,7 +31,9 @@ export default function RootLayout({
         className={`${notoSansThai.variable} font-thai antialiased`}
       >
         <AuthProvider>
-          {children}
+          <AnalyticsProvider>
+            {children}
+          </AnalyticsProvider>
         </AuthProvider>
       </body>
     </html>

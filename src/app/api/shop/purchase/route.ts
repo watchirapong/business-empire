@@ -98,9 +98,14 @@ const purchaseHistorySchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  price: { 
-    type: Number, 
-    required: true 
+  price: {
+    type: Number,
+    required: true
+  },
+  currency: {
+    type: String,
+    default: 'hamstercoin',
+    enum: ['hamstercoin', 'stardustcoin']
   },
   purchaseDate: { 
     type: Date, 
@@ -137,8 +142,22 @@ const purchaseHistorySchema = new mongoose.Schema({
   }
 });
 
+// StardustCoin Schema
+const stardustCoinSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true, index: true },
+  username: { type: String, required: true },
+  globalName: { type: String, default: '' },
+  balance: { type: Number, default: 0, min: 0 },
+  totalEarned: { type: Number, default: 0 },
+  totalSpent: { type: Number, default: 0 },
+  lastUpdated: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', shopItemSchema);
 const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', purchaseHistorySchema);
+const StardustCoin = mongoose.models.StardustCoin || mongoose.model('StardustCoin', stardustCoinSchema);
 
 // POST - Purchase an item
 export async function POST(request: NextRequest) {
@@ -151,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const { itemId } = await request.json();
+    const { itemId, currency = 'hamstercoin' } = await request.json();
     const userId = (session.user as any).id;
     const username = (session.user as any).name || 'Unknown User';
 
@@ -193,6 +212,41 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Handle currency deduction
+    if (currency === 'stardustcoin') {
+      // Get or create StardustCoin account
+      let stardustAccount = await StardustCoin.findOne({ userId });
+      if (!stardustAccount) {
+        stardustAccount = new StardustCoin({
+          userId,
+          username,
+          globalName: (session.user as any).globalName || '',
+          balance: 0
+        });
+      }
+
+      // Check if user has enough StardustCoin
+      if (stardustAccount.balance < item.price) {
+        return NextResponse.json({ 
+          error: 'Insufficient StardustCoin balance',
+          required: item.price,
+          current: stardustAccount.balance
+        }, { status: 400 });
+      }
+
+      // Deduct StardustCoin
+      stardustAccount.balance -= item.price;
+      stardustAccount.totalSpent += item.price;
+      stardustAccount.lastUpdated = new Date();
+      await stardustAccount.save();
+
+      console.log(`Deducted ${item.price} StardustCoin from user ${userId} for item ${item.name}`);
+    } else {
+      // Handle HamsterCoin deduction (existing logic would go here)
+      // For now, we'll assume HamsterCoin deduction is handled elsewhere
+      console.log(`Purchase with HamsterCoin for item ${item.name} - currency deduction handled elsewhere`);
+    }
+
     // Create purchase record
     const purchase = new PurchaseHistory({
       userId,
@@ -200,6 +254,7 @@ export async function POST(request: NextRequest) {
       itemId,
       itemName: item.name,
       price: item.price,
+      currency: currency,
       hasFile: item.hasFile,
       fileUrl: item.fileUrl,
       fileName: item.fileName,

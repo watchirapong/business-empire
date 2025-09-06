@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { isAdmin as checkIsAdmin } from '@/lib/admin-config';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 interface ShopItem {
   id: string;
@@ -27,6 +28,13 @@ interface ShopItem {
 const HamsterShop: React.FC = () => {
   const { data: session } = useSession();
   const router = useRouter();
+  
+  // Track shop visits
+  const { trackBehavior } = useBehaviorTracking({
+    behaviorType: 'shop_visit',
+    section: 'shop',
+    action: 'view_shop'
+  });
 
   const [cart, setCart] = useState<ShopItem[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
@@ -57,8 +65,11 @@ const HamsterShop: React.FC = () => {
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
   const [hamsterCoinBalance, setHamsterCoinBalance] = useState<number>(0);
+  const [stardustCoinBalance, setStardustCoinBalance] = useState<number>(0);
+  const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin' | 'stardustcoin'>('hamstercoin');
   const [fileUploadError, setFileUploadError] = useState<string>('');
   const [fileUploadSuccess, setFileUploadSuccess] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
 
 
@@ -76,10 +87,18 @@ const HamsterShop: React.FC = () => {
 
   const fetchBalance = async () => {
     try {
-      const response = await fetch('/api/currency/balance');
-      const data = await response.json();
-      if (data.balance !== undefined) {
-        setHamsterCoinBalance(data.balance);
+      // Fetch HamsterCoin balance
+      const hamsterResponse = await fetch('/api/currency/balance');
+      const hamsterData = await hamsterResponse.json();
+      if (hamsterData.balance !== undefined) {
+        setHamsterCoinBalance(hamsterData.balance);
+      }
+
+      // Fetch StardustCoin balance
+      const stardustResponse = await fetch('/api/stardustcoin/balance');
+      const stardustData = await stardustResponse.json();
+      if (stardustData.success && stardustData.data.balance !== undefined) {
+        setStardustCoinBalance(stardustData.data.balance);
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
@@ -363,7 +382,10 @@ const HamsterShop: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ itemId }),
+        body: JSON.stringify({ 
+          itemId,
+          currency: selectedCurrency
+        }),
       });
 
       if (response.ok) {
@@ -543,7 +565,8 @@ const HamsterShop: React.FC = () => {
         },
         body: JSON.stringify({
           items: cart,
-          totalAmount: getTotalPrice()
+          totalAmount: getTotalPrice(),
+          currency: selectedCurrency
         }),
       });
 
@@ -581,6 +604,19 @@ const HamsterShop: React.FC = () => {
           alert(`Purchase completed successfully! Your new balance: ${data.newBalance} Hamster Coins`);
         }
         
+        // Track purchase behavior
+        trackBehavior({
+          behaviorType: 'purchase',
+          section: 'shop',
+          action: 'make_purchase',
+          details: {
+            totalAmount: getTotalPrice(),
+            currency: selectedCurrency,
+            itemCount: cart.length,
+            items: cart.map(item => ({ id: item.id, name: item.name, price: item.price }))
+          }
+        });
+
         // Refresh balance and purchase history after successful checkout
         fetchBalance();
         fetchPurchaseHistory();
@@ -605,7 +641,11 @@ const HamsterShop: React.FC = () => {
     }
   };
 
-    const filteredItems = shopItems;
+  // Filter items based on search query
+  const filteredItems = shopItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const addToCart = async (item: ShopItem) => {
     // Check role requirements before adding to cart
@@ -639,7 +679,7 @@ const HamsterShop: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-32">
         {/* Back Button */}
         <div className="mb-6">
           <button
@@ -655,12 +695,54 @@ const HamsterShop: React.FC = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">🛒 Hamster Shop</h1>
           <p className="text-gray-300 text-lg">ระบบร้านค้าแฮมสเตอร์ - จัดการสินค้าและเหรียญในร้านค้า</p>
           
-          {/* HamsterCoin Balance */}
-          <div className="mt-4 mb-4">
-            <div className="inline-flex items-center bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3">
+          {/* Currency Balances */}
+          <div className="mt-4 mb-4 flex flex-wrap justify-center gap-4">
+            {/* HamsterCoin Balance */}
+            <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
+              selectedCurrency === 'hamstercoin' 
+                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50 ring-2 ring-yellow-500/30' 
+                : 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+            }`}>
               <span className="text-2xl mr-2">🪙</span>
               <span className="text-yellow-400 font-bold text-xl">{hamsterCoinBalance.toLocaleString()}</span>
               <span className="text-yellow-300 ml-1">Hamster Coins</span>
+            </div>
+            
+            {/* StardustCoin Balance */}
+            <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
+              selectedCurrency === 'stardustcoin' 
+                ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50 ring-2 ring-purple-500/30' 
+                : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30'
+            }`}>
+              <span className="text-2xl mr-2">✨</span>
+              <span className="text-purple-400 font-bold text-xl">{stardustCoinBalance.toLocaleString()}</span>
+              <span className="text-purple-300 ml-1">StardustCoin</span>
+            </div>
+          </div>
+          
+          {/* Currency Selector */}
+          <div className="mt-4 mb-6 flex justify-center">
+            <div className="bg-white/10 rounded-lg p-2 flex space-x-2">
+              <button
+                onClick={() => setSelectedCurrency('hamstercoin')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  selectedCurrency === 'hamstercoin'
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-white/10 text-yellow-300 hover:bg-white/20'
+                }`}
+              >
+                🪙 Pay with HamsterCoin
+              </button>
+              <button
+                onClick={() => setSelectedCurrency('stardustcoin')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  selectedCurrency === 'stardustcoin'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-white/10 text-purple-300 hover:bg-white/20'
+                }`}
+              >
+                ✨ Pay with StardustCoin
+              </button>
             </div>
           </div>
           
@@ -672,6 +754,36 @@ const HamsterShop: React.FC = () => {
             >
               📦 View Purchase History
             </button>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="mt-6 max-w-md mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="🔍 Search items by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 pl-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
+              />
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                🔍
+              </div>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-center text-gray-400 text-sm mt-2">
+                Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} matching &quot;{searchQuery}&quot;
+              </p>
+            )}
           </div>
           
           {/* Admin Controls */}
@@ -981,13 +1093,13 @@ const HamsterShop: React.FC = () => {
 
 
 
-        {/* Cart Summary */}
+        {/* Sticky Cart Summary - Bottom Center */}
         {cart.length > 0 && (
-          <div className="bg-white/10 rounded-xl p-4 mb-6 border border-white/20">
-            <div className="flex items-center justify-between">
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg min-w-[400px] max-w-[600px]">
+            <div className="flex items-center justify-between mb-4">
               <div className="text-white">
-                <span className="font-semibold">Cart ({cart.length} items)</span>
-                <span className="ml-4 text-orange-400 font-bold">${getTotalPrice().toFixed(2)}</span>
+                <span className="font-semibold text-lg">Cart ({cart.length} items)</span>
+                <span className="ml-4 text-orange-400 font-bold text-xl">${getTotalPrice().toFixed(2)}</span>
               </div>
               <button 
                 onClick={() => setCart([])}
@@ -996,6 +1108,13 @@ const HamsterShop: React.FC = () => {
                 Clear Cart
               </button>
             </div>
+            <button 
+              onClick={handleCheckout}
+              disabled={isCheckingOut}
+              className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-4 rounded-lg font-semibold transition-colors text-lg"
+            >
+              {isCheckingOut ? 'Processing...' : '🛒 Checkout Now'}
+            </button>
           </div>
         )}
 
@@ -1098,10 +1217,10 @@ const HamsterShop: React.FC = () => {
           </div>
         </div>
 
-        {/* Cart Items */}
+        {/* Cart Items - Detailed View */}
         {cart.length > 0 && (
           <div className="mt-8 bg-white/10 rounded-xl p-6 border border-white/20">
-            <h2 className="text-2xl font-bold text-white mb-4">Your Cart</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Your Cart Details</h2>
             <div className="space-y-3">
               {cart.map((item, index) => (
                 <div key={`${item.id}-${index}`} className="flex items-center justify-between bg-white/5 rounded-lg p-4">
@@ -1136,13 +1255,9 @@ const HamsterShop: React.FC = () => {
                 <span className="text-xl text-white font-semibold">Total:</span>
                 <span className="text-2xl text-orange-400 font-bold">${getTotalPrice().toFixed(2)}</span>
               </div>
-              <button 
-                onClick={handleCheckout}
-                disabled={isCheckingOut}
-                className="w-full mt-4 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
-              >
-                {isCheckingOut ? 'Processing...' : '🛒 Checkout'}
-              </button>
+              <p className="text-gray-400 text-sm mt-2 text-center">
+                💡 Use the sticky checkout button in the top-right corner for quick checkout
+              </p>
             </div>
           </div>
         )}
