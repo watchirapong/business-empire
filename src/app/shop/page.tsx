@@ -62,6 +62,8 @@ interface ShopItem {
   requiredRoleName?: string;
   // File management
   hasFile?: boolean;
+  // For form handling
+  imageFile?: File;
   // Analytics
   purchaseCount?: number;
   totalRevenue?: number;
@@ -311,7 +313,8 @@ export default function ShopPage() {
                     hasFile: false,
                     requiresRole: false,
                     requiredRoleId: '',
-                    requiredRoleName: ''
+                    requiredRoleName: '',
+                    imageFile: undefined
                   });
                   setShowEditForm(true);
                 }}
@@ -631,13 +634,24 @@ export default function ShopPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Image</label>
                     <input
-                      type="text"
-                      value={editFormData.image || ''}
-                      onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setEditFormData({...editFormData, imageFile: file, image: ''});
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Upload an image file (JPG, PNG, GIF, etc.) for the item.</p>
+                    {editFormData.imageFile && (
+                      <p className="text-sm text-green-600 mt-1">
+                        📁 Selected: {editFormData.imageFile.name}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -765,19 +779,44 @@ export default function ShopPage() {
                         const method = isEditing ? 'PUT' : 'POST';
                         const successMessage = isEditing ? 'Item updated successfully!' : 'Item created successfully!';
 
-                        // Prepare form data with proper hasFile flag
-                        const formDataToSubmit = {
-                          ...editFormData,
-                          hasFile: editFormData.contentType === 'file'
-                        };
+                        // Handle file upload if image is selected
+                        let response;
+                        if (editFormData.imageFile) {
+                          // Use FormData for file upload
+                          const formData = new FormData();
 
-                        const response = await fetch('/api/shop/items', {
-                          method: method,
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify(formDataToSubmit),
-                        });
+                          // Add all form fields
+                          Object.keys(editFormData).forEach(key => {
+                            if (key !== 'imageFile' && editFormData[key] !== undefined && editFormData[key] !== null) {
+                              formData.append(key, editFormData[key]);
+                            }
+                          });
+
+                          // Add file
+                          formData.append('imageFile', editFormData.imageFile);
+
+                          // Set hasFile flag
+                          formData.set('hasFile', (editFormData.contentType === 'file').toString());
+
+                          response = await fetch('/api/shop/items', {
+                            method: method,
+                            body: formData,
+                          });
+                        } else {
+                          // Regular JSON submission without file
+                          const formDataToSubmit = {
+                            ...editFormData,
+                            hasFile: editFormData.contentType === 'file'
+                          };
+
+                          response = await fetch('/api/shop/items', {
+                            method: method,
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formDataToSubmit),
+                          });
+                        }
 
                         if (response.ok) {
                           // Refresh items

@@ -192,8 +192,53 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as any).id;
 
-    // Check if this is an admin creating an item or a user making a purchase
-    const body = await request.json();
+    // Check if request contains FormData (file upload) or JSON
+    let body: any = {};
+    let uploadedImageUrl = '';
+
+    if (request.headers.get('content-type')?.includes('multipart/form-data')) {
+      // Handle FormData with file upload
+      const formData = await request.formData();
+
+      // Extract all form fields
+      for (const [key, value] of formData.entries()) {
+        if (key === 'imageFile' && value instanceof File) {
+          // Handle file upload
+          const bytes = await value.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+
+          // Create uploads directory if it doesn't exist
+          const fs = require('fs');
+          const path = require('path');
+          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-images');
+
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          // Generate unique filename
+          const fileName = `${Date.now()}-${value.name}`;
+          const filePath = path.join(uploadsDir, fileName);
+
+          // Save file
+          fs.writeFileSync(filePath, buffer);
+
+          // Set image URL for database
+          uploadedImageUrl = `/uploads/shop-images/${fileName}`;
+        } else {
+          // Handle regular form fields
+          body[key] = value;
+        }
+      }
+
+      // Override image field if file was uploaded
+      if (uploadedImageUrl) {
+        body.image = uploadedImageUrl;
+      }
+    } else {
+      // Handle regular JSON request
+      body = await request.json();
+    }
 
     // If it has itemId, it's a purchase request
     if (body.itemId) {
@@ -297,7 +342,54 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const body = await request.json();
+    // Check if request contains FormData (file upload) or JSON
+    let body: any = {};
+    let uploadedImageUrl = '';
+
+    if (request.headers.get('content-type')?.includes('multipart/form-data')) {
+      // Handle FormData with file upload
+      const formData = await request.formData();
+
+      // Extract all form fields
+      for (const [key, value] of formData.entries()) {
+        if (key === 'imageFile' && value instanceof File) {
+          // Handle file upload
+          const bytes = await value.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+
+          // Create uploads directory if it doesn't exist
+          const fs = require('fs');
+          const path = require('path');
+          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-images');
+
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          // Generate unique filename
+          const fileName = `${Date.now()}-${value.name}`;
+          const filePath = path.join(uploadsDir, fileName);
+
+          // Save file
+          fs.writeFileSync(filePath, buffer);
+
+          // Set image URL for database
+          uploadedImageUrl = `/uploads/shop-images/${fileName}`;
+        } else {
+          // Handle regular form fields
+          body[key] = value;
+        }
+      }
+
+      // Override image field if file was uploaded
+      if (uploadedImageUrl) {
+        body.image = uploadedImageUrl;
+      }
+    } else {
+      // Handle regular JSON request
+      body = await request.json();
+    }
+
     const { id, ...updateData } = body;
 
     if (!id) {
