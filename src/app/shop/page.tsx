@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { isAdmin } from '@/lib/admin-config';
 
 // Utility function to extract YouTube video ID from URL
 const extractYouTubeVideoId = (url: string | undefined): string | null => {
@@ -83,6 +84,7 @@ export default function ShopPage() {
   const [youtubeTitles, setYoutubeTitles] = useState<Record<string, string>>({});
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<any>(null);
+  const [isShopAdmin, setIsShopAdmin] = useState(false);
 
   // Fetch shop items
   useEffect(() => {
@@ -125,12 +127,17 @@ export default function ShopPage() {
     fetchItems();
   }, []);
 
-  // Redirect if not logged in
+  // Redirect if not logged in and check admin status
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) {
       router.push('/auth/signin');
+      return;
     }
+
+    // Check if user is admin
+    const userId = (session.user as any).id;
+    setIsShopAdmin(isAdmin(userId));
   }, [session, status, router]);
 
   const filteredItems = items.filter(item => {
@@ -474,13 +481,28 @@ export default function ShopPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => addToCart(item)}
-                disabled={!item.inStock}
-                className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
-              >
-                Add to Cart
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => addToCart(item)}
+                  disabled={!item.inStock}
+                  className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Add to Cart
+                </button>
+
+                {isShopAdmin && (
+                  <button
+                    onClick={() => {
+                      // Admin edit functionality would go here
+                      alert(`Edit item: ${item.name}`);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
+                    title="Edit Item (Admin)"
+                  >
+                    ✏️
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

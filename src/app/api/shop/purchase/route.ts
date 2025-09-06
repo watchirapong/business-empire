@@ -1,58 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import mongoose from 'mongoose';
 
-// Mock purchase history
-let purchaseHistory: any[] = [];
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      return;
+    }
+    await mongoose.connect(process.env.MONGODB_URI!);
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    await connectDB();
+
     const body = await request.json();
     const { itemId, currency } = body;
 
-    if (!itemId || !currency) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!itemId) {
+      return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
     }
 
-    // Mock item lookup (in real app, this would be from database)
-    const mockItems = [
-      { id: '1', name: 'Premium Avatar Frame', price: 500 },
-      { id: '2', name: 'VIP Badge', price: 1000 },
-      { id: '3', name: 'Extra Lives Pack', price: 200 },
-      { id: '4', name: 'Lucky Charm', price: 300 },
-      { id: '5', name: 'Game Pass Ultimate', price: 2500 }
-    ];
+    // Get item from database
+    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
+      name: String,
+      description: String,
+      price: Number,
+      image: String,
+      inStock: Boolean,
+      category: String,
+      contentType: String,
+      textContent: String,
+      linkUrl: String,
+      fileUrl: String,
+      fileName: String,
+      hasFile: Boolean,
+      requiresRole: Boolean,
+      requiredRoleId: String,
+      requiredRoleName: String
+    }));
 
-    const item = mockItems.find(item => item.id === itemId);
+    const item = await ShopItem.findById(itemId);
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    // Create purchase record
-    const purchase = {
-      id: Date.now().toString(),
+    if (!item.inStock) {
+      return NextResponse.json({ error: 'Item is out of stock' }, { status: 400 });
+    }
+
+    // Create purchase record using existing PurchaseHistory model
+    const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', new mongoose.Schema({
+      userId: String,
+      username: String,
+      itemId: mongoose.Schema.Types.ObjectId,
+      itemName: String,
+      price: Number,
+      purchaseDate: { type: Date, default: Date.now },
+      downloadCount: { type: Number, default: 0 },
+      lastDownloadDate: Date,
+      hasFile: { type: Boolean, default: false },
+      fileUrl: String,
+      fileName: String
+    }));
+
+    const purchase = new PurchaseHistory({
       userId: (session.user as any).id,
       username: session.user.name || 'Unknown',
-      itemId: item.id,
+      itemId: item._id,
       itemName: item.name,
       price: item.price,
-      currency: currency,
-      purchaseDate: new Date().toISOString(),
-      status: 'completed'
-    };
+      hasFile: item.hasFile || false,
+      fileUrl: item.fileUrl || '',
+      fileName: item.fileName || ''
+    });
 
-    purchaseHistory.push(purchase);
+    await purchase.save();
+
+    // Update item analytics
+    item.purchaseCount = (item.purchaseCount || 0) + 1;
+    item.totalRevenue = (item.totalRevenue || 0) + item.price;
+    await item.save();
 
     return NextResponse.json({
       success: true,
       message: 'Purchase successful',
-      purchase: purchase
+      purchase: {
+        id: purchase._id.toString(),
+        itemName: purchase.itemName,
+        price: purchase.price,
+        purchaseDate: purchase.purchaseDate
+      }
     });
   } catch (error) {
     console.error('Purchase error:', error);
@@ -63,16 +113,30 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Return user's purchase history
-    const userId = (session.user as any).id;
-    const userPurchases = purchaseHistory.filter(purchase => purchase.userId === userId);
+    await connectDB();
 
-    return NextResponse.json({ purchases: userPurchases });
+    // Return user's purchase history
+    const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory');
+    const userId = (session.user as any).id;
+    const userPurchases = await PurchaseHistory.find({ userId }).sort({ purchaseDate: -1 });
+
+    const purchases = userPurchases.map(purchase => ({
+      id: purchase._id.toString(),
+      itemName: purchase.itemName,
+      price: purchase.price,
+      purchaseDate: purchase.purchaseDate.toISOString(),
+      downloadCount: purchase.downloadCount || 0,
+      hasFile: purchase.hasFile || false,
+      fileName: purchase.fileName || '',
+      status: 'completed'
+    }));
+
+    return NextResponse.json({ purchases });
   } catch (error) {
     console.error('Error fetching purchase history:', error);
     return NextResponse.json({ error: 'Failed to fetch purchase history' }, { status: 500 });
