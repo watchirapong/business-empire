@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
+import ShopItem from '@/models/ShopItem';
 import fs from 'fs';
 import path from 'path';
 
@@ -125,29 +126,7 @@ export async function GET() {
     await connectDB();
 
     // Fetch items from MongoDB instead of using hardcoded array
-    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
-      name: String,
-      description: String,
-      price: Number,
-      image: String,
-      inStock: Boolean,
-      category: String,
-      contentType: String,
-      textContent: String,
-      linkUrl: String,
-      fileUrl: String,
-      fileName: String,
-      hasFile: Boolean,
-      requiresRole: Boolean,
-      requiredRoleId: String,
-      requiredRoleName: String,
-      allowMultiplePurchases: Boolean,
-      youtubeUrl: String,
-      purchaseCount: Number,
-      totalRevenue: Number,
-      createdAt: Date,
-      updatedAt: Date
-    }));
+    // Use imported ShopItem model
 
     const items = await ShopItem.find().sort({ createdAt: -1 });
 
@@ -186,13 +165,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/shop/items - Starting request processing');
+
     const session = await getServerSession(authOptions);
+    console.log('Session check:', session?.user ? 'User authenticated' : 'No session');
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = (session.user as any).id;
+    console.log('User ID:', userId);
 
     // Check if request contains FormData (file upload) or JSON
     let body: any = {};
@@ -285,10 +268,25 @@ export async function POST(request: NextRequest) {
       requiredRoleName
     } = body;
 
+    console.log('Parsed request body:', {
+      name,
+      description,
+      price,
+      image,
+      category,
+      contentType,
+      hasTextContent: !!textContent,
+      hasLinkUrl: !!linkUrl,
+      hasYoutubeUrl: !!youtubeUrl
+    });
+
     // Validate required fields
     if (!name || !description || !price || !image || !category) {
+      console.error('Missing required fields validation failed');
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    console.log('Validation passed, proceeding with item creation');
 
     // Create new item
     const newItem = {
@@ -316,32 +314,12 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     };
 
+    console.log('Connecting to database...');
     await connectDB();
+    console.log('Database connected successfully');
 
-    // Save to MongoDB
-    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
-      name: String,
-      description: String,
-      price: Number,
-      image: String,
-      inStock: Boolean,
-      category: String,
-      contentType: String,
-      textContent: String,
-      linkUrl: String,
-      fileUrl: String,
-      fileName: String,
-      hasFile: Boolean,
-      requiresRole: Boolean,
-      requiredRoleId: String,
-      requiredRoleName: String,
-      allowMultiplePurchases: Boolean,
-      youtubeUrl: String,
-      purchaseCount: Number,
-      totalRevenue: Number,
-      createdAt: Date,
-      updatedAt: Date
-    }));
+    // Save to MongoDB using imported model
+    console.log('Creating ShopItem instance...');
 
     const savedItem = new ShopItem({
       name,
@@ -365,7 +343,13 @@ export async function POST(request: NextRequest) {
       totalRevenue: 0
     });
 
+    console.log('ShopItem created:', savedItem);
+
+    console.log('Saving item to database:', savedItem);
+
     await savedItem.save();
+
+    console.log('Item saved successfully:', savedItem._id);
 
     return NextResponse.json({
       success: true,
@@ -397,7 +381,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error processing request:', error);
-    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : { message: 'Unknown error' };
+
+    console.error('Error details:', errorDetails);
+
+    // Return more detailed error for debugging
+    return NextResponse.json({
+      error: 'Failed to process request',
+      details: process.env.NODE_ENV === 'development' ? errorDetails.message : 'Internal server error'
+    }, { status: 500 });
   }
 }
 
@@ -469,29 +465,7 @@ export async function PUT(request: NextRequest) {
     await connectDB();
 
     // Find and update item in MongoDB
-    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
-      name: String,
-      description: String,
-      price: Number,
-      image: String,
-      inStock: Boolean,
-      category: String,
-      contentType: String,
-      textContent: String,
-      linkUrl: String,
-      fileUrl: String,
-      fileName: String,
-      hasFile: Boolean,
-      requiresRole: Boolean,
-      requiredRoleId: String,
-      requiredRoleName: String,
-      allowMultiplePurchases: Boolean,
-      youtubeUrl: String,
-      purchaseCount: Number,
-      totalRevenue: Number,
-      createdAt: Date,
-      updatedAt: Date
-    }));
+    // Use imported ShopItem model
 
     const updatedItem = await ShopItem.findByIdAndUpdate(
       id,
@@ -559,29 +533,7 @@ export async function DELETE(request: NextRequest) {
     await connectDB();
 
     // Find and delete item from MongoDB
-    const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', new mongoose.Schema({
-      name: String,
-      description: String,
-      price: Number,
-      image: String,
-      inStock: Boolean,
-      category: String,
-      contentType: String,
-      textContent: String,
-      linkUrl: String,
-      fileUrl: String,
-      fileName: String,
-      hasFile: Boolean,
-      requiresRole: Boolean,
-      requiredRoleId: String,
-      requiredRoleName: String,
-      allowMultiplePurchases: Boolean,
-      youtubeUrl: String,
-      purchaseCount: Number,
-      totalRevenue: Number,
-      createdAt: Date,
-      updatedAt: Date
-    }));
+    // Use imported ShopItem model
 
     const deletedItem = await ShopItem.findByIdAndDelete(id);
 
