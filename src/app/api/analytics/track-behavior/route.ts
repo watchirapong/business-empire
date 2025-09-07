@@ -20,15 +20,15 @@ const UserBehaviorSchema = new mongoose.Schema({
   username: { type: String, required: true },
   globalName: { type: String },
   avatar: { type: String },
-  behaviorType: { 
-    type: String, 
+  behaviorType: {
+    type: String,
     required: true,
-    enum: ['shop_visit', 'gacha_play', 'university_visit', 'hamsterboard_visit', 'profile_visit', 'admin_visit', 'purchase', 'gacha_win', 'gacha_spend']
+    enum: ['shop_visit', 'gacha_play', 'university_visit', 'hamsterboard_visit', 'profile_visit', 'admin_visit', 'purchase', 'gacha_win', 'gacha_spend', 'game_space_visit', 'game_post', 'game_like', 'game_comment']
   },
-  section: { 
-    type: String, 
+  section: {
+    type: String,
     required: true,
-    enum: ['shop', 'gacha', 'university', 'hamsterboard', 'profile', 'admin', 'home']
+    enum: ['shop', 'gacha', 'university', 'hamsterboard', 'profile', 'admin', 'home', 'game-space']
   },
   action: { type: String, required: true }, // e.g., 'view_items', 'make_purchase', 'play_gacha', 'view_board'
   details: { type: mongoose.Schema.Types.Mixed }, // Additional data like item purchased, coins spent, etc.
@@ -115,8 +115,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error tracking behavior:', error);
+    console.error('Error details:', error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : 'Unknown error');
     return NextResponse.json(
-      { error: 'Failed to track behavior' },
+      { error: 'Failed to track behavior', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { userId: targetUserId, hamsterCoins } = body;
+    const { userId: targetUserId, hamsterCoins, operation = 'set' } = body; // operation: 'add', 'set', or 'decrease'
 
     if (!targetUserId || typeof hamsterCoins !== 'number') {
       return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
@@ -86,22 +86,32 @@ export async function POST(request: NextRequest) {
     let currency = await Currency.findOne({ userId: targetUserId });
     
     if (!currency) {
+      // For new users, set totalEarned based on operation
+      const totalEarnedValue = operation === 'add' ? hamsterCoins : 0;
       currency = new Currency({
         userId: targetUserId,
         hamsterCoins,
-        totalEarned: hamsterCoins
+        totalEarned: totalEarnedValue
       });
     } else {
-      // Calculate the difference to update totalEarned properly
-      const difference = hamsterCoins - currency.hamsterCoins;
-      
-      if (difference > 0) {
-        // If increasing balance, add to totalEarned
-        currency.totalEarned += difference;
+      if (operation === 'add') {
+        // Add operation: increase balance and add to totalEarned
+        currency.hamsterCoins += hamsterCoins;
+        currency.totalEarned += hamsterCoins;
+      } else if (operation === 'set') {
+        // Set operation: set exact balance, don't modify totalEarned
+        currency.hamsterCoins = hamsterCoins;
+        // totalEarned remains unchanged
+      } else if (operation === 'decrease') {
+        // Decrease operation: reduce balance (minimum 0), don't modify totalEarned
+        currency.hamsterCoins = Math.max(0, currency.hamsterCoins - hamsterCoins);
+        // totalEarned remains unchanged
+      } else {
+        // Default to set operation
+        currency.hamsterCoins = hamsterCoins;
+        // totalEarned remains unchanged
       }
-      // Note: If decreasing balance, we don't change totalEarned (it represents lifetime earnings)
-      
-      currency.hamsterCoins = hamsterCoins;
+
       currency.updatedAt = new Date();
     }
     

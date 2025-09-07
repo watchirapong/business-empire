@@ -33,8 +33,8 @@ export const authConfig = {
         try {
           // Save basic user data to MongoDB
           const basicUserData = {
-            id: (profile as any).id,
-            username: (profile as any).username,
+            id: (profile as any).id || user.id,
+            username: (profile as any).username || user.name,
             email: user.email,
             avatar: (profile as any).avatar,
             discriminator: (profile as any).discriminator,

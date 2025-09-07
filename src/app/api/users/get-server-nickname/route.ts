@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import mongoose from 'mongoose';
+
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      return;
+    }
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
+    console.log('MongoDB Connected: localhost');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
+// Using direct collection access instead of Mongoose model
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await connectDB();
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -16,12 +28,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // For now, return the user's Discord username as the server nickname
-    // In a real implementation, you would fetch this from Discord API
-    const user = session.user as any;
-    
-    return NextResponse.json({ 
-      nickname: user.name || user.username || 'Unknown User',
+    // Fetch server member data using direct collection access
+    if (!mongoose.connection.db) {
+      throw new Error('Database connection not established');
+    }
+    const serverMemberDatas = mongoose.connection.db.collection('servermemberdatas');
+
+    const serverData = await serverMemberDatas.findOne({
+      userId: userId,
+      serverId: '699984143542517801' // Default server ID
+    });
+
+    let nickname = null;
+    if (serverData) {
+      // The nickname is directly in serverData.nick based on the actual data structure
+      nickname = serverData.serverData?.nick;
+    }
+
+    return NextResponse.json({
+      nickname: nickname,
       userId: userId
     });
 

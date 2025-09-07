@@ -20,15 +20,15 @@ const UserBehaviorSchema = new mongoose.Schema({
   username: { type: String, required: true },
   globalName: { type: String },
   avatar: { type: String },
-  behaviorType: { 
-    type: String, 
+  behaviorType: {
+    type: String,
     required: true,
-    enum: ['shop_visit', 'gacha_play', 'university_visit', 'hamsterboard_visit', 'profile_visit', 'admin_visit', 'purchase', 'gacha_win', 'gacha_spend']
+    enum: ['shop_visit', 'gacha_play', 'university_visit', 'hamsterboard_visit', 'profile_visit', 'admin_visit', 'purchase', 'gacha_win', 'gacha_spend', 'game_space_visit', 'game_post', 'game_like', 'game_comment']
   },
-  section: { 
-    type: String, 
+  section: {
+    type: String,
     required: true,
-    enum: ['shop', 'gacha', 'university', 'hamsterboard', 'profile', 'admin', 'home']
+    enum: ['shop', 'gacha', 'university', 'hamsterboard', 'profile', 'admin', 'home', 'game-space']
   },
   action: { type: String, required: true },
   details: { type: mongoose.Schema.Types.Mixed },

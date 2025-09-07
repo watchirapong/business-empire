@@ -10,11 +10,10 @@ const purchaseHistorySchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  itemId: { 
-    type: mongoose.Schema.Types.ObjectId, 
+  itemId: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'ShopItem',
-    required: true,
-    index: true
+    required: true
   },
   itemName: {
     type: String,

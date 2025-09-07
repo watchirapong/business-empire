@@ -43,4 +43,4 @@ gameSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Game', gameSchema);
+module.exports = mongoose.model('MultiplayerGame', gameSchema);

@@ -5,8 +5,8 @@ import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
 interface TrackBehaviorOptions {
-  behaviorType: 'shop_visit' | 'gacha_play' | 'university_visit' | 'hamsterboard_visit' | 'profile_visit' | 'admin_visit' | 'purchase' | 'gacha_win' | 'gacha_spend';
-  section: 'shop' | 'gacha' | 'university' | 'hamsterboard' | 'profile' | 'admin' | 'home';
+  behaviorType: 'shop_visit' | 'gacha_play' | 'university_visit' | 'hamsterboard_visit' | 'profile_visit' | 'admin_visit' | 'purchase' | 'gacha_win' | 'gacha_spend' | 'game_space_visit' | 'game_post' | 'game_like' | 'game_comment';
+  section: 'shop' | 'gacha' | 'university' | 'hamsterboard' | 'profile' | 'admin' | 'home' | 'game-space';
   action: string;
   details?: any;
 }

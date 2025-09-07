@@ -1,4 +1,37 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Business Games Hub',
+  description: 'Play business simulation games including stock trading, forex trading, crypto trading, and investment games. Real-time trading simulators with NASDAQ data and competitive leaderboards.',
+  keywords: [
+    'business games',
+    'stock trading simulator',
+    'forex trading game',
+    'crypto trading simulator',
+    'investment games',
+    'NASDAQ simulator',
+    'trading competition',
+    'business simulation',
+    'financial games'
+  ],
+  openGraph: {
+    title: 'Business Games Hub - Trading & Investment Simulators',
+    description: 'Experience realistic trading with our stock, forex, and crypto simulators. Compete with other players and build your financial empire.',
+    images: [
+      {
+        url: '/hamsterhub-logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Business Games Hub - Trading Simulators',
+      },
+    ],
+  },
+  twitter: {
+    title: 'Business Games Hub - Trading & Investment Simulators',
+    description: 'Experience realistic trading with our stock, forex, and crypto simulators. Compete with other players and build your financial empire.',
+  },
+};
 
 export default function GamesPage() {
   return (

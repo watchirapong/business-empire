@@ -167,7 +167,7 @@ export default function HomePage() {
                     <div className="p-4 space-y-2">
                       {/* Profile Button */}
                       <button
-                        onClick={() => router.push('/profile')}
+                        onClick={() => router.push(`/profile/${(session.user as any).id}`)}
                         className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg font-medium flex items-center justify-center space-x-2"
                       >
                         <span className="text-lg">👤</span>
@@ -221,7 +221,7 @@ export default function HomePage() {
         {/* Menu Section - Only show when logged in */}
         {session && (
           <div className="max-w-4xl mx-auto space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
 
               {/* Hamster Shop */}
               <button
@@ -283,6 +283,22 @@ export default function HomePage() {
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-blue-200 transition-colors duration-300 text-center leading-relaxed">
                     ค้นหามหาวิทยาลัย
+                  </p>
+                </div>
+              </button>
+
+              {/* Game Space */}
+              <button
+                onClick={() => handleMenuClick('/game-space')}
+                className="group bg-gradient-to-br from-pink-900/50 to-rose-900/50 backdrop-blur-sm rounded-2xl border border-pink-500/20 p-8 hover:border-pink-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-pink-500/20 w-full flex flex-col items-center justify-center"
+              >
+                <div className="text-center w-full flex flex-col items-center justify-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 flex justify-center">🎮</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-pink-300 transition-colors duration-300 text-center leading-tight">
+                    Game Space
+                  </h3>
+                  <p className="text-gray-400 text-sm group-hover:text-pink-200 transition-colors duration-300 text-center leading-relaxed">
+                    แชร์เกม itch.io
                   </p>
                 </div>
               </button>

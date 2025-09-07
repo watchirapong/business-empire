@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
 import StardustCoinBalance from '@/components/StardustCoinBalance';
 import Achievements from '@/components/Achievements';
@@ -19,6 +19,7 @@ export default function ProfilePage() {
     section: 'profile',
     action: 'view_profile'
   });
+
   const [currentNickname, setCurrentNickname] = useState<string | null>(null);
   const [userRank, setUserRank] = useState<string>('None');
   const [userHouse, setUserHouse] = useState<string>('None');
@@ -26,11 +27,58 @@ export default function ProfilePage() {
   const [houseRank, setHouseRank] = useState<number>(0);
   const [totalMembers, setTotalMembers] = useState<number>(0);
   const [houseMembers, setHouseMembers] = useState<number>(0);
+  const [userGames, setUserGames] = useState<any[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
+  const [userStats, setUserStats] = useState({
+    programming: 85,
+    artist: 72,
+    creative: 68,
+    leadership: 91,
+    communication: 76,
+    selfLearning: 83
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const handleLogout = () => {
     setIsLoading(true);
     signOut({ callbackUrl: '/' });
   };
+
+  const loadUserStats = useCallback(async () => {
+    if (!session?.user) return;
+
+    try {
+      setStatsLoading(true);
+      const response = await fetch('/api/users/stats');
+      const data = await response.json();
+
+      if (data.success) {
+        setUserStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Failed to load user stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [session?.user]);
+
+  const loadUserGames = useCallback(async () => {
+    if (!session?.user) return;
+
+    try {
+      setGamesLoading(true);
+      const response = await fetch(`/api/games?userId=${(session.user as any).id || session.user.email}&limit=6`);
+      const data = await response.json();
+
+      if (data.success) {
+        setUserGames(data.games);
+      }
+    } catch (error) {
+      console.error('Failed to load user games:', error);
+    } finally {
+      setGamesLoading(false);
+    }
+  }, [session?.user]);
 
   const getDiscordAvatarUrl = (userId: string, avatar: string) => {
     return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
@@ -82,10 +130,19 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [session]);
+    loadUserStats();
+    loadUserGames();
+  }, [session, loadUserStats, loadUserGames]);
 
   if (!session) {
     router.push('/');
+    return null;
+  }
+
+  // Redirect to user's specific profile URL
+  const userId = (session.user as any).id;
+  if (userId) {
+    router.replace(`/profile/${userId}`);
     return null;
   }
 
@@ -192,6 +249,136 @@ export default function ProfilePage() {
             <StardustCoinBalance />
           </div>
 
+          {/* Stats Section */}
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-cyan-500/20 p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">📊 My Stats</h2>
+              <p className="text-gray-400">Track your skill development and achievements</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Programming */}
+              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 rounded-xl border border-blue-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">💻</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Programming</h3>
+                      <p className="text-blue-300 text-sm">Code & Development</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-400">{userStats.programming}</div>
+                    <div className="text-blue-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-blue-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full" style={{ width: `${userStats.programming}%` }}></div>
+                </div>
+              </div>
+
+              {/* Artist */}
+              <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 rounded-xl border border-purple-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">🎨</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Artist</h3>
+                      <p className="text-purple-300 text-sm">Design & Creativity</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-purple-400">{userStats.artist}</div>
+                    <div className="text-purple-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-purple-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-purple-500 to-purple-400 h-3 rounded-full" style={{ width: `${userStats.artist}%` }}></div>
+                </div>
+              </div>
+
+              {/* Creative */}
+              <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-xl border border-green-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">💡</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Creative</h3>
+                      <p className="text-green-300 text-sm">Innovation & Ideas</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-400">{userStats.creative}</div>
+                    <div className="text-green-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-green-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-green-500 to-green-400 h-3 rounded-full" style={{ width: `${userStats.creative}%` }}></div>
+                </div>
+              </div>
+
+              {/* Leadership */}
+              <div className="bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 rounded-xl border border-yellow-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">👑</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Leadership</h3>
+                      <p className="text-yellow-300 text-sm">Team Management</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-yellow-400">{userStats.leadership}</div>
+                    <div className="text-yellow-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-yellow-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-400 h-3 rounded-full" style={{ width: `${userStats.leadership}%` }}></div>
+                </div>
+              </div>
+
+              {/* Communication */}
+              <div className="bg-gradient-to-br from-pink-900/30 to-pink-800/20 rounded-xl border border-pink-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">💬</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Communication</h3>
+                      <p className="text-pink-300 text-sm">Social & Presentation</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-pink-400">{userStats.communication}</div>
+                    <div className="text-pink-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-pink-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-pink-500 to-pink-400 h-3 rounded-full" style={{ width: `${userStats.communication}%` }}></div>
+                </div>
+              </div>
+
+              {/* Self Learning */}
+              <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 rounded-xl border border-indigo-500/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">📚</div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Self Learning</h3>
+                      <p className="text-indigo-300 text-sm">Continuous Growth</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-indigo-400">{userStats.selfLearning}</div>
+                    <div className="text-indigo-300 text-sm">Level</div>
+                  </div>
+                </div>
+                <div className="w-full bg-indigo-900/30 rounded-full h-3">
+                  <div className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-3 rounded-full" style={{ width: `${userStats.selfLearning}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Leaderboard Rank Display */}
           <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
             <div className="text-center mb-6">
@@ -224,6 +411,96 @@ export default function ProfilePage() {
 
           {/* Achievements */}
           <Achievements />
+
+          {/* My Games */}
+          <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-purple-500/20 p-8">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">🎮 My Games</h2>
+                <p className="text-gray-400">Games you&apos;ve shared on Game Space</p>
+              </div>
+              <button
+                onClick={() => router.push('/game-space')}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 font-semibold"
+              >
+                View All Games
+              </button>
+            </div>
+
+            {gamesLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading your games...</p>
+              </div>
+            ) : userGames.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">🎮</div>
+                <h3 className="text-xl font-bold text-white mb-2">No Games Yet</h3>
+                <p className="text-gray-400 mb-4">Share your itch.io games with the community!</p>
+                <button
+                  onClick={() => router.push('/game-space')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 font-semibold"
+                >
+                  Post Your First Game
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {userGames.slice(0, 6).map((game) => (
+                  <div key={game._id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4 hover:border-purple-400/40 transition-all duration-300">
+                    {/* Game Thumbnail */}
+                    {game.thumbnailUrl && (
+                      <img
+                        src={game.thumbnailUrl}
+                        alt={game.title}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                      />
+                    )}
+
+                    {/* Game Info */}
+                    <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{game.title}</h3>
+                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{game.description}</p>
+
+                    {/* Game Stats */}
+                    <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
+                      <span>❤️ {game.likes.length}</span>
+                      <span>💬 {game.comments.length}</span>
+                      <span>👁️ {game.views}</span>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {game.genre && (
+                        <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full text-xs">
+                          {game.genre}
+                        </span>
+                      )}
+                      {game.tags.slice(0, 2).map((tag: string, index: number) => (
+                        <span key={index} className="bg-gray-600/50 text-gray-300 px-2 py-1 rounded-full text-xs">
+                          #{tag}
+                        </span>
+                      ))}
+                      {game.tags.length > 2 && (
+                        <span className="bg-gray-600/50 text-gray-300 px-2 py-1 rounded-full text-xs">
+                          +{game.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Play Button */}
+                    <a
+                      href={game.itchIoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 text-center block font-semibold"
+                    >
+                      🎮 Play on itch.io
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

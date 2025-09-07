@@ -1,75 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import fs from 'fs';
+import path from 'path';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   try {
-    const resolvedParams = await params;
-    const filePath = join(process.cwd(), 'public', 'uploads', ...resolvedParams.path);
-    
-    if (!existsSync(filePath)) {
-      return new NextResponse('File not found', { status: 404 });
+    const { path: filePath } = await params;
+
+    if (!filePath || filePath.length === 0) {
+      return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
     }
 
-    const fileBuffer = await readFile(filePath);
-    const fileName = resolvedParams.path[resolvedParams.path.length - 1];
-    
-    // Set content type based on file extension
-    const ext = fileName.split('.').pop()?.toLowerCase();
+    // Construct the full file path
+    const fullPath = path.join(process.cwd(), 'public', 'uploads', ...filePath);
+
+    // Security check: ensure the file is within the uploads directory
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fullPath.startsWith(uploadsDir)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    }
+
+    // Get file stats
+    const stat = fs.statSync(fullPath);
+
+    // Read file
+    const fileBuffer = fs.readFileSync(fullPath);
+
+    // Determine content type based on file extension
+    const ext = path.extname(fullPath).toLowerCase();
     let contentType = 'application/octet-stream';
-    
-    if (ext) {
-      const mimeTypes: { [key: string]: string } = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml',
-        'pdf': 'application/pdf',
-        'zip': 'application/zip',
-        'rar': 'application/vnd.rar',
-        '7z': 'application/x-7z-compressed',
-        'txt': 'text/plain',
-        'json': 'application/json',
-        'xml': 'application/xml',
-        'html': 'text/html',
-        'css': 'text/css',
-        'js': 'application/javascript',
-        'mp3': 'audio/mpeg',
-        'wav': 'audio/wav',
-        'mp4': 'video/mp4',
-        'avi': 'video/x-msvideo',
-        'blend': 'application/octet-stream',
-        'unitypackage': 'application/octet-stream',
-        'fbx': 'application/octet-stream',
-        'obj': 'text/plain',
-        'mtl': 'text/plain',
-        'gltf': 'model/gltf+json',
-        'glb': 'model/gltf-binary'
-      };
-      contentType = mimeTypes[ext] || 'application/octet-stream';
+
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        contentType = 'image/jpeg';
+        break;
+      case '.png':
+        contentType = 'image/png';
+        break;
+      case '.gif':
+        contentType = 'image/gif';
+        break;
+      case '.webp':
+        contentType = 'image/webp';
+        break;
+      case '.svg':
+        contentType = 'image/svg+xml';
+        break;
+      case '.zip':
+        contentType = 'application/zip';
+        break;
+      case '.pdf':
+        contentType = 'application/pdf';
+        break;
+      default:
+        contentType = 'application/octet-stream';
     }
 
-    // Set headers
-    const headers: Record<string, string> = {
-      'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=31536000'
-    };
+    // Return the file
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': stat.size.toString(),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
 
-    // Force download for certain file types
-    if (['application/pdf', 'application/zip', 'application/octet-stream'].includes(contentType)) {
-      headers['Content-Disposition'] = `attachment; filename="${fileName}"`;
-    }
-
-    return new NextResponse(fileBuffer as any, { headers });
-    
   } catch (error) {
-    console.error('File serving error:', error);
-    return new NextResponse('Internal server error', { status: 500 });
+    console.error('Error serving file:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

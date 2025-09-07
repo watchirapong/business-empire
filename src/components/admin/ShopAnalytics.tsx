@@ -19,6 +19,20 @@ interface ShopAnalyticsData {
     uniqueBuyers: number;
     buyers: string[];
   }>;
+  allItems: Array<{
+    id: string;
+    item: string;
+    sales: number;
+    revenue: number;
+    uniqueBuyers: number;
+    buyers: string[];
+    buyerDetails: Array<{
+      userId: string;
+      username: string;
+      purchaseCount: number;
+      totalSpent: number;
+    }>;
+  }>;
   topSpenders: Array<{
     userId: string;
     user: string;
@@ -76,66 +90,54 @@ export default function ShopAnalytics() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [activeView, setActiveView] = useState<'overview' | 'items' | 'users' | 'trends'>('overview');
 
-  const exportAnalytics = (format: 'csv' | 'json') => {
+  const exportAnalytics = async (format: 'csv' | 'json') => {
     if (!analyticsData) return;
 
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `shop-analytics-${timestamp}`;
+    try {
+      const params = new URLSearchParams();
+      if (timeRange !== 'all') params.append('timeRange', timeRange);
+      if (currency !== 'all') params.append('currency', currency);
+      if (category !== 'all') params.append('category', category);
+      if (contentType !== 'all') params.append('contentType', contentType);
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      params.append('export', format);
 
-    if (format === 'json') {
-      const dataStr = JSON.stringify(analyticsData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      const response = await fetch(`/api/shop/analytics?${params.toString()}`);
 
-      const exportFileDefaultName = `${filename}.json`;
+      if (!response.ok) {
+        throw new Error('Failed to export analytics');
+      }
 
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-    } else if (format === 'csv') {
-      let csvContent = 'Section,Metric,Value\n';
-
-      // Overview stats
-      csvContent += `Overview,Total Revenue,${analyticsData.overview.totalRevenue}\n`;
-      csvContent += `Overview,Total Purchases,${analyticsData.overview.totalPurchases}\n`;
-      csvContent += `Overview,Unique Buyers,${analyticsData.overview.uniqueBuyers}\n`;
-      csvContent += `Overview,Unique Items,${analyticsData.overview.uniqueItems}\n`;
-      csvContent += `Overview,Average Order Value,${analyticsData.overview.averageOrderValue}\n`;
-
-      // Top selling items
-      analyticsData.topSellingItems.forEach((item, index) => {
-        csvContent += `Top Items ${index + 1},Name,${item.item}\n`;
-        csvContent += `Top Items ${index + 1},Sales,${item.sales}\n`;
-        csvContent += `Top Items ${index + 1},Revenue,${item.revenue}\n`;
-        csvContent += `Top Items ${index + 1},Unique Buyers,${item.uniqueBuyers}\n`;
-      });
-
-      // Top spenders
-      analyticsData.topSpenders.forEach((user, index) => {
-        csvContent += `Top Spenders ${index + 1},User,${user.user}\n`;
-        csvContent += `Top Spenders ${index + 1},Total Spent,${user.spending}\n`;
-        csvContent += `Top Spenders ${index + 1},Purchases,${user.purchases}\n`;
-        csvContent += `Top Spenders ${index + 1},Unique Items,${user.uniqueItems}\n`;
-      });
-
-      // Currency breakdown
-      csvContent += `Currency,HamsterCoin Count,${analyticsData.currencyBreakdown.hamstercoin.count}\n`;
-      csvContent += `Currency,HamsterCoin Revenue,${analyticsData.currencyBreakdown.hamstercoin.revenue}\n`;
-      csvContent += `Currency,StardustCoin Count,${analyticsData.currencyBreakdown.stardustcoin.count}\n`;
-      csvContent += `Currency,StardustCoin Revenue,${analyticsData.currencyBreakdown.stardustcoin.revenue}\n`;
-
-      // Daily sales
-      analyticsData.dailySales.forEach(day => {
-        csvContent += `Daily Sales,${day.date},${day.count},${day.revenue}\n`;
-      });
-
-      const dataUri = 'data:text/csv;charset=utf-8,'+ encodeURIComponent(csvContent);
-      const exportFileDefaultName = `${filename}.csv`;
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
 
       const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.href = url;
+
+      // Get filename from response headers or generate one
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `shop-analytics-${new Date().toISOString().split('T')[0]}.${format}`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      linkElement.download = filename;
+      document.body.appendChild(linkElement);
       linkElement.click();
+      document.body.removeChild(linkElement);
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(`Failed to export ${format.toUpperCase()}. Please try again.`);
     }
   };
 

@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
       // Extract all form fields
       for (const [key, value] of formData.entries()) {
-        if (key === 'imageFile' && value instanceof File) {
+        if (key === 'imageFile' && value && typeof value === 'object' && 'size' in value && 'type' in value) {
           // Handle file upload
           const bytes = await value.arrayBuffer();
           const buffer = Buffer.from(bytes);
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
           fs.writeFileSync(filePath, buffer);
 
           // Set image URL for database
-          uploadedImageUrl = `/uploads/shop-images/${fileName}`;
+          uploadedImageUrl = `/api/uploads/shop-images/${fileName}`;
         } else {
           // Handle regular form fields
           body[key] = value;
@@ -420,7 +420,7 @@ export async function PUT(request: NextRequest) {
 
       // Extract all form fields
       for (const [key, value] of formData.entries()) {
-        if (key === 'imageFile' && value instanceof File) {
+        if (key === 'imageFile' && value && typeof value === 'object' && 'size' in value && 'type' in value) {
           // Handle file upload
           const bytes = await value.arrayBuffer();
           const buffer = Buffer.from(bytes);
@@ -440,7 +440,7 @@ export async function PUT(request: NextRequest) {
           fs.writeFileSync(filePath, buffer);
 
           // Set image URL for database
-          uploadedImageUrl = `/uploads/shop-images/${fileName}`;
+          uploadedImageUrl = `/api/uploads/shop-images/${fileName}`;
         } else {
           // Handle regular form fields
           body[key] = value;

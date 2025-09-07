@@ -340,42 +340,39 @@ const Hamsterboard: React.FC = () => {
   const handleConfirmMultipleWinners = async () => {
     if (!selectedTaskForWinner || selectedWinners.length === 0) return;
 
-    // Validate reward distribution
-    const totalDistributed = selectedWinners.reduce((sum, id) => sum + (winnerRewards[id] || 0), 0);
-    
-    if (totalDistributed === 0) {
+    // Calculate total cost: each winner gets the full reward amount
+    const totalCost = selectedTaskForWinner.reward * selectedWinners.length;
+
+    if (totalCost === 0) {
       alert('Please set reward amounts for the selected winners!');
       return;
     }
 
-    // Check if user has sufficient balance for over-distribution
-    if (totalDistributed > selectedTaskForWinner.reward) {
-      const extraAmount = totalDistributed - selectedTaskForWinner.reward;
-      
-      try {
-        // Check user's current balance
-        const balanceResponse = await fetch('/api/currency/balance');
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          const userBalance = balanceData.balance || 0;
-          
-          if (userBalance < extraAmount) {
-            alert(`Insufficient balance! You need $${extraAmount.toFixed(2)} extra but only have $${userBalance.toFixed(2)} in your account.`);
-            return;
-          }
-        }
-        
-        const confirmOverDistribution = confirm(
-          `Warning: You are distributing $${totalDistributed.toFixed(2)} but the task reward is only $${selectedTaskForWinner.reward.toFixed(2)}. This means you will pay $${extraAmount.toFixed(2)} extra from your balance. Continue?`
-        );
-        if (!confirmOverDistribution) {
+    // Check if user has sufficient balance for the total reward cost
+    try {
+      // Check user's current balance
+      const balanceResponse = await fetch('/api/currency/balance');
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        const userBalance = balanceData.success && balanceData.balance ? balanceData.balance.hamstercoin || 0 : 0;
+
+        if (userBalance < totalCost) {
+          alert(`Insufficient balance! You need $${totalCost.toFixed(2)} total (${selectedWinners.length} winner${selectedWinners.length !== 1 ? 's' : ''} × $${selectedTaskForWinner.reward.toFixed(2)} each) but only have $${userBalance.toFixed(2)} in your account.`);
           return;
         }
-      } catch (error) {
-        console.error('Error checking balance:', error);
-        alert('Error checking your balance. Please try again.');
+      } else {
+        alert('Unable to check your balance. Please try again.');
         return;
       }
+
+      const confirmMessage = `Confirm winners: ${selectedWinners.length} winner${selectedWinners.length !== 1 ? 's' : ''} × $${selectedTaskForWinner.reward.toFixed(2)} = Total: $${totalCost.toFixed(2)}\n\nContinue?`;
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      alert('Error checking your balance. Please try again.');
+      return;
     }
 
     try {
@@ -925,21 +922,6 @@ const Hamsterboard: React.FC = () => {
                   {selectedWinners.length > 0 && (
                     <button
                       onClick={() => {
-                        const equalReward = selectedTaskForWinner.reward / selectedWinners.length;
-                        const newRewards: {[key: string]: number} = {};
-                        selectedWinners.forEach(winnerId => {
-                          newRewards[winnerId] = equalReward;
-                        });
-                        setWinnerRewards(newRewards);
-                      }}
-                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors font-semibold"
-                    >
-                      ⚖️ Distribute Equally
-                    </button>
-                  )}
-                  {selectedWinners.length > 0 && (
-                    <button
-                      onClick={() => {
                         setSelectedWinners([]);
                         setWinnerRewards({});
                       }}
@@ -1046,36 +1028,35 @@ const Hamsterboard: React.FC = () => {
                           <div className="space-y-2">
                             <div className="bg-yellow-500/20 rounded-lg p-3 border border-yellow-500/30">
                               <label className="text-yellow-300 text-sm font-semibold block mb-2">
-                                Reward Amount (${selectedTaskForWinner.reward.toFixed(2)} total):
+                                Reward Amount (Full: ${selectedTaskForWinner.reward.toFixed(2)} each):
                               </label>
                               <input
                                 type="number"
-                                min="0"
+                                min={selectedTaskForWinner.reward}
                                 max={selectedTaskForWinner.reward}
                                 step="0.01"
-                                value={winnerRewards[acceptor.id] || 0}
+                                value={winnerRewards[acceptor.id] || selectedTaskForWinner.reward}
                                 onChange={(e) => {
-                                  const newAmount = parseFloat(e.target.value) || 0;
+                                  const newAmount = parseFloat(e.target.value) || selectedTaskForWinner.reward;
                                   setWinnerRewards(prev => ({
                                     ...prev,
                                     [acceptor.id]: newAmount
                                   }));
                                 }}
                                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                                placeholder="Enter reward amount"
+                                placeholder="Full reward amount"
                               />
                             </div>
                             <button
                               onClick={() => {
                                 const newSelectedWinners = selectedWinners.filter(id => id !== acceptor.id);
                                 setSelectedWinners(newSelectedWinners);
-                                
-                                // Recalculate equal rewards for remaining winners
+
+                                // Update rewards for remaining winners (each gets full reward)
                                 if (newSelectedWinners.length > 0) {
-                                  const equalReward = selectedTaskForWinner.reward / newSelectedWinners.length;
                                   const newRewards: {[key: string]: number} = {};
                                   newSelectedWinners.forEach(winnerId => {
-                                    newRewards[winnerId] = equalReward;
+                                    newRewards[winnerId] = selectedTaskForWinner.reward;
                                   });
                                   setWinnerRewards(newRewards);
                                 } else {
@@ -1092,14 +1073,11 @@ const Hamsterboard: React.FC = () => {
                             onClick={() => {
                               const newSelectedWinners = [...selectedWinners, acceptor.id];
                               setSelectedWinners(newSelectedWinners);
-                              
-                              // Calculate equal reward for all winners (including new one)
-                              const equalReward = selectedTaskForWinner.reward / newSelectedWinners.length;
-                              
-                              // Update rewards for all winners to be equal
+
+                              // Each winner gets the full reward amount (not divided)
                               const newRewards: {[key: string]: number} = {};
                               newSelectedWinners.forEach(winnerId => {
-                                newRewards[winnerId] = equalReward;
+                                newRewards[winnerId] = selectedTaskForWinner.reward;
                               });
                               setWinnerRewards(newRewards);
                             }}
@@ -1137,9 +1115,9 @@ const Hamsterboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Remaining:</span>
+                          <span className="text-gray-400">Cost per winner:</span>
                           <span className="text-gray-400">
-                            ${(selectedTaskForWinner.reward - selectedWinners.reduce((sum, id) => sum + (winnerRewards[id] || 0), 0)).toFixed(2)}
+                            ${selectedTaskForWinner.reward.toFixed(2)}
                           </span>
                         </div>
                       </div>

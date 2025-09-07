@@ -23,7 +23,10 @@ export default function BusinessEmpirePage() {
 
     try {
       // Connect to the Socket.IO server
-      const newSocket = io('https://hamsterhub.fun:3001');
+      const socketUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:3000'
+        : 'https://hamsterhub.fun';
+      const newSocket = io(socketUrl);
       
       newSocket.on('connect', () => {
         console.log('Connected to server');

@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 interface BalanceData {
-  hamsterCoins: number;
-  totalEarned: number;
-  totalSpent: number;
+  hamstercoin: number;
+  stardustcoin: number;
 }
 
 export default function HamsterCoinBalance() {
@@ -34,7 +33,11 @@ export default function HamsterCoinBalance() {
       }
 
       const data = await response.json();
-      setBalance(data.data);
+      if (data.success && data.balance) {
+        setBalance(data.balance);
+      } else {
+        setError('Invalid response format');
+      }
     } catch (err) {
       setError('Failed to fetch balance');
     } finally {
@@ -86,24 +89,34 @@ export default function HamsterCoinBalance() {
           {/* Main Balance */}
           <div className="text-center">
             <div className="text-4xl font-bold text-orange-400 mb-2">
-              {balance.hamsterCoins.toLocaleString()}
+              {balance.hamstercoin.toLocaleString()}
             </div>
-            <div className="text-gray-400 text-sm">Available Coins</div>
+            <div className="text-gray-400 text-sm">Hamster Coins</div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Currency Breakdown */}
+          <div className="space-y-3">
             <div className="bg-white/5 rounded-lg p-4 border border-orange-500/20">
-              <div className="text-lg font-bold text-orange-400">
-                {balance.totalEarned.toLocaleString()}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">🪙</span>
+                  <span className="text-white font-medium">Hamster Coins</span>
+                </div>
+                <div className="text-lg font-bold text-orange-400">
+                  {balance.hamstercoin.toLocaleString()}
+                </div>
               </div>
-              <div className="text-gray-400 text-sm">Total Earned</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-orange-500/20">
-              <div className="text-lg font-bold text-orange-400">
-                {balance.totalSpent.toLocaleString()}
+            <div className="bg-white/5 rounded-lg p-4 border border-purple-500/20">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">✨</span>
+                  <span className="text-white font-medium">Stardust Coins</span>
+                </div>
+                <div className="text-lg font-bold text-purple-400">
+                  {balance.stardustcoin.toLocaleString()}
+                </div>
               </div>
-              <div className="text-gray-400 text-sm">Total Spent</div>
             </div>
           </div>
         </div>

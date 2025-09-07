@@ -41,13 +41,21 @@ const userSchema = new mongoose.Schema({
     type: Boolean, 
     default: true 
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  stats: {
+    programming: { type: Number, default: 1, min: 1, max: 100 },
+    artist: { type: Number, default: 1, min: 1, max: 100 },
+    creative: { type: Number, default: 1, min: 1, max: 100 },
+    leadership: { type: Number, default: 1, min: 1, max: 100 },
+    communication: { type: Number, default: 1, min: 1, max: 100 },
+    selfLearning: { type: Number, default: 1, min: 1, max: 100 }
   },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

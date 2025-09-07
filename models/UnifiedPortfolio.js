@@ -136,8 +136,7 @@ const unifiedPortfolioSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for better performance
-unifiedPortfolioSchema.index({ discordId: 1 });
+// Indexes for better performance (discordId already has unique index)
 unifiedPortfolioSchema.index({ updatedAt: -1 });
 unifiedPortfolioSchema.index({ totalGainLossPercent: -1 });
 

@@ -161,6 +161,9 @@ export default function AdminPage() {
   const [bulkUpdateDetails, setBulkUpdateDetails] = useState<any>(null);
   const [userNicknames, setUserNicknames] = useState<{[key: string]: string}>({});
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [addCoinsAmount, setAddCoinsAmount] = useState<number>(0);
+  const [setCoinsAmount, setSetCoinsAmount] = useState<number>(0);
+  const [decreaseCoinsAmount, setDecreaseCoinsAmount] = useState<number>(0);
 
   // Using centralized admin config
 
@@ -361,7 +364,7 @@ export default function AdminPage() {
   const updateUserCurrency = async (userId: string, newBalance: number) => {
     setIsLoading(true);
     setMessage('');
-    
+
     try {
       const response = await fetch('/api/admin/update-currency', {
         method: 'POST',
@@ -373,20 +376,129 @@ export default function AdminPage() {
           hamsterCoins: newBalance
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update currency');
       }
-      
+
       const data = await response.json();
       setUserCurrency(data.currency);
       setMessage('Currency updated successfully!');
-      
+
       // Refresh the currency data
       await getUserCurrency(userId);
     } catch (error) {
       setMessage('Error updating currency. Please try again.');
       console.error('Update error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addUserCoins = async (userId: string, amountToAdd: number) => {
+    if (!userCurrency) return;
+
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/admin/update-currency', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          hamsterCoins: amountToAdd,
+          operation: 'add'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add coins');
+      }
+
+      const data = await response.json();
+      setUserCurrency(data.currency);
+      setMessage(`Successfully added ${amountToAdd.toLocaleString()} coins!`);
+
+      // Refresh the currency data
+      await getUserCurrency(userId);
+    } catch (error) {
+      setMessage('Error adding coins. Please try again.');
+      console.error('Add coins error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const decreaseUserCoins = async (userId: string, amountToDecrease: number) => {
+    if (!userCurrency) return;
+
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/admin/update-currency', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          hamsterCoins: amountToDecrease,
+          operation: 'decrease'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to decrease coins');
+      }
+
+      const data = await response.json();
+      setUserCurrency(data.currency);
+      setMessage(`Successfully decreased ${amountToDecrease.toLocaleString()} coins!`);
+
+      // Refresh the currency data
+      await getUserCurrency(userId);
+    } catch (error) {
+      setMessage('Error decreasing coins. Please try again.');
+      console.error('Decrease coins error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setUserCoins = async (userId: string, exactAmount: number) => {
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/admin/update-currency', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          hamsterCoins: exactAmount,
+          operation: 'set'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to set coins');
+      }
+
+      const data = await response.json();
+      setUserCurrency(data.currency);
+      setMessage(`Successfully set balance to ${exactAmount.toLocaleString()} coins!`);
+
+      // Refresh the currency data
+      await getUserCurrency(userId);
+    } catch (error) {
+      setMessage('Error setting coins. Please try again.');
+      console.error('Set coins error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -399,6 +511,10 @@ export default function AdminPage() {
     // Auto-expand sections when user is selected
     setIsCurrencyManagementExpanded(true);
     setIsVoiceActivityExpanded(true);
+    // Reset coin management input values
+    setAddCoinsAmount(0);
+    setSetCoinsAmount(0);
+    setDecreaseCoinsAmount(0);
   };
 
   const toggleUserExpansion = (userId: string) => {
@@ -1297,6 +1413,84 @@ export default function AdminPage() {
                             >
                               {isLoading ? 'Updating...' : 'Update Balance'}
                             </button>
+                          </div>
+                        </div>
+
+                        {/* Coin Management Actions */}
+                        <div className="bg-gray-800/30 rounded-lg p-4">
+                          <h4 className="text-lg font-semibold text-white mb-3">Coin Management Actions</h4>
+
+                          {/* Add Coins */}
+                          <div className="mb-4">
+                            <label className="block text-gray-300 text-sm mb-2">Add Coins</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="Amount to add"
+                                value={addCoinsAmount || ''}
+                                onChange={(e) => setAddCoinsAmount(parseInt(e.target.value) || 0)}
+                                className="flex-1 bg-gray-700/50 border border-green-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-green-400"
+                              />
+                              <button
+                                onClick={() => addUserCoins(selectedUser.discordId, addCoinsAmount)}
+                                disabled={isLoading || addCoinsAmount <= 0}
+                                className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-300 font-medium"
+                              >
+                                {isLoading ? '...' : '➕ Add'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Set Coins */}
+                          <div className="mb-4">
+                            <label className="block text-gray-300 text-sm mb-2">Set Coins (Exact Amount)</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="New balance"
+                                value={setCoinsAmount || ''}
+                                onChange={(e) => setSetCoinsAmount(parseInt(e.target.value) || 0)}
+                                className="flex-1 bg-gray-700/50 border border-blue-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400"
+                              />
+                              <button
+                                onClick={() => setUserCoins(selectedUser.discordId, setCoinsAmount)}
+                                disabled={isLoading || setCoinsAmount < 0}
+                                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-300 font-medium"
+                              >
+                                {isLoading ? '...' : '🎯 Set'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Decrease Coins */}
+                          <div className="mb-4">
+                            <label className="block text-gray-300 text-sm mb-2">Decrease Coins</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="Amount to decrease"
+                                value={decreaseCoinsAmount || ''}
+                                onChange={(e) => setDecreaseCoinsAmount(parseInt(e.target.value) || 0)}
+                                className="flex-1 bg-gray-700/50 border border-red-500/30 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-red-400"
+                              />
+                              <button
+                                onClick={() => decreaseUserCoins(selectedUser.discordId, decreaseCoinsAmount)}
+                                disabled={isLoading || decreaseCoinsAmount <= 0}
+                                className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-300 font-medium"
+                              >
+                                {isLoading ? '...' : '➖ Decrease'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Current Balance Display */}
+                          <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                            <div className="text-orange-300 text-sm font-medium">
+                              Current Balance: {userCurrency?.hamsterCoins.toLocaleString() || 0} 🪙
+                            </div>
                           </div>
                         </div>
                       </div>
