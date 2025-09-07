@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/admin-config';
@@ -86,6 +86,33 @@ const Hamsterboard: React.FC = () => {
     return adminStatus;
   };
 
+  const fetchUserBalance = useCallback(async () => {
+    try {
+      const response = await fetch('/api/currency/balance');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.balance) {
+          // Use hamstercoin balance for task posting
+          setUserBalance(data.balance.hamstercoin || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/hamsterboard/tasks?filter=${filter}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTasks(data.tasks);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error);
+    }
+  }, [filter]);
+
   // Check if user is logged in
   useEffect(() => {
     if (!session?.user) {
@@ -101,36 +128,12 @@ const Hamsterboard: React.FC = () => {
     if (session?.user) {
       fetchUserBalance();
     }
-  }, [session]);
+  }, [session, fetchUserBalance]);
 
   // Fetch tasks
   useEffect(() => {
     fetchTasks();
-  }, [filter]);
-
-  const fetchUserBalance = async () => {
-    try {
-      const response = await fetch('/api/currency/balance');
-      if (response.ok) {
-        const data = await response.json();
-        setUserBalance(data.balance);
-      }
-    } catch (error) {
-      console.error('Failed to fetch balance:', error);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const response = await fetch(`/api/hamsterboard/tasks?filter=${filter}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data.tasks);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-    }
-  };
+  }, [filter, fetchTasks]);
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -138,21 +141,21 @@ const Hamsterboard: React.FC = () => {
       const formData = new FormData();
       formData.append('image', file);
 
-                        const response = await fetch('/api/hamsterboard/upload-image', {
+      const response = await fetch('/api/hamsterboard/upload-image', {
         method: 'POST',
         body: formData,
       });
 
-                        if (response.ok) {
-                    const data = await response.json();
-                    setNewTask({ ...newTask, image: data.imageUrl });
-                    setImagePreview(data.imageUrl);
-                    setImageFile(null);
-                  } else {
-                    const errorData = await response.json();
-                    console.error('Failed to upload image:', errorData.error);
-                    alert(`Failed to upload image: ${errorData.error}`);
-                  }
+      if (response.ok) {
+        const data = await response.json();
+        setNewTask({ ...newTask, image: data.imageUrl });
+        setImagePreview(data.imageUrl);
+        setImageFile(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to upload image:', errorData.error);
+        alert(`Failed to upload image: ${errorData.error}`);
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
     } finally {

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -208,8 +210,6 @@ export async function POST(request: NextRequest) {
           const buffer = Buffer.from(bytes);
 
           // Create uploads directory if it doesn't exist
-          const fs = require('fs');
-          const path = require('path');
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-images');
 
           if (!fs.existsSync(uploadsDir)) {
@@ -431,8 +431,6 @@ export async function PUT(request: NextRequest) {
           const buffer = Buffer.from(bytes);
 
           // Create uploads directory if it doesn't exist
-          const fs = require('fs');
-          const path = require('path');
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'shop-images');
 
           if (!fs.existsSync(uploadsDir)) {

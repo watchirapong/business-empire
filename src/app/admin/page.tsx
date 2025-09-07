@@ -7,6 +7,8 @@ import { isAdmin } from '@/lib/admin-config';
 import HouseManager from '@/components/admin/HouseManager';
 import StardustCoinManager from '@/components/admin/StardustCoinManager';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import ShopAnalytics from '@/components/admin/ShopAnalytics';
+import UserPurchaseAnalytics from '@/components/admin/UserPurchaseAnalytics';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 interface UserData {
@@ -99,7 +101,9 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics'>('users');
+  const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
+  const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
   // Removed unused voice activity states since we moved to dedicated dashboard
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
   const [gachaItems, setGachaItems] = useState<any[]>([]);
@@ -869,7 +873,17 @@ export default function AdminPage() {
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            🛒 Shop Management
+            🛒 Shop
+          </button>
+          <button
+            onClick={() => setActiveTab('shop-analytics')}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              activeTab === 'shop-analytics'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            📊 Shop Analytics
           </button>
         </div>
 
@@ -2426,6 +2440,33 @@ export default function AdminPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </>
+        )}
+
+        {/* Shop Analytics Tab */}
+        {activeTab === 'shop-analytics' && (
+          <>
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  📊 Shop Analytics Dashboard
+                </h2>
+                <p className="text-gray-300 text-lg">
+                  Comprehensive analytics for shop performance and user behavior
+                </p>
+              </div>
+
+              {/* Shop Analytics Component */}
+              <ShopAnalytics />
+
+              {/* User Purchase Analytics */}
+              {shopAnalyticsData?.userPurchases && shopAnalyticsData.userPurchases.length > 0 && (
+                <div className="mt-8">
+                  <UserPurchaseAnalytics userPurchases={shopAnalyticsData.userPurchases} />
+                </div>
+              )}
             </div>
           </>
         )}

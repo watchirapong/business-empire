@@ -98,31 +98,36 @@ export default function ShopPage() {
         // Fetch shop items
         const itemsResponse = await fetch('/api/shop/items');
         const itemsData = await itemsResponse.json();
-        if (itemsData.items) {
+        if (itemsData.success !== false && itemsData.items && Array.isArray(itemsData.items)) {
           setItems(itemsData.items);
+        } else {
+          // If API fails or returns unexpected data, set empty array
+          setItems([]);
+        }
 
           // Fetch YouTube video titles for items with YouTube URLs
           const titles: Record<string, string> = {};
-          const titlePromises = itemsData.items
-            .filter((item: ShopItem) => item.youtubeUrl && item.youtubeUrl.trim() !== '')
-            .map(async (item: ShopItem) => {
-              if (item.youtubeUrl) {
-                const videoId = extractYouTubeVideoId(item.youtubeUrl);
-                if (videoId) {
-                  try {
-                    const title = await fetchYouTubeVideoTitle(videoId);
-                    titles[item.id] = title;
-                  } catch (error) {
-                    console.error(`Failed to fetch title for video ${videoId}:`, error);
-                    titles[item.id] = 'YouTube Video';
+          if (itemsData.items && Array.isArray(itemsData.items)) {
+            const titlePromises = itemsData.items
+              .filter((item: ShopItem) => item.youtubeUrl && item.youtubeUrl.trim() !== '')
+              .map(async (item: ShopItem) => {
+                if (item.youtubeUrl) {
+                  const videoId = extractYouTubeVideoId(item.youtubeUrl);
+                  if (videoId) {
+                    try {
+                      const title = await fetchYouTubeVideoTitle(videoId);
+                      titles[item.id] = title;
+                    } catch (error) {
+                      console.error(`Failed to fetch title for video ${videoId}:`, error);
+                      titles[item.id] = 'YouTube Video';
+                    }
                   }
                 }
-              }
-            });
+              });
 
-          await Promise.all(titlePromises);
+            await Promise.all(titlePromises);
+          }
           setYoutubeTitles(titles);
-        }
 
         // Fetch currency balance
         const balanceResponse = await fetch('/api/currency/balance');
@@ -155,17 +160,22 @@ export default function ShopPage() {
     setIsShopAdmin(isAdmin(userId));
   }, [session, status, router]);
 
-  const filteredItems = items.filter(item => {
-    // Category filter
-    const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
+  const filteredItems = React.useMemo(() => {
+    const safeItems = Array.isArray(items) ? items : [];
+    return safeItems.filter(item => {
+      if (!item || typeof item !== 'object') return false;
 
-    // Search filter
-    const searchMatch = !searchQuery ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase());
+      // Category filter
+      const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
 
-    return categoryMatch && searchMatch;
-  });
+      // Search filter
+      const searchMatch = !searchQuery ||
+        (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return categoryMatch && searchMatch;
+    });
+  }, [items, selectedCategory, searchQuery]);
 
   const addToCart = async (item: ShopItem) => {
     if (!item.inStock) return;
@@ -492,51 +502,22 @@ export default function ShopPage() {
                 }`}>{item.name}</h3>
                 <p className="text-gray-300 text-sm mb-4">{item.description}</p>
 
-                {/* YouTube Video Preview */}
+                {/* YouTube Link */}
                 {item.youtubeUrl && item.youtubeUrl.trim() !== '' && (
                   <div className="mb-4">
-                    <div className="relative group">
-                      <a
-                        href={item.youtubeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block relative overflow-hidden rounded-lg border border-red-500/30 hover:border-red-400/50 transition-all duration-300"
-                        title={`Watch: ${youtubeTitles[item.id] || 'YouTube Video'}`}
-                      >
-                        {/* YouTube Thumbnail */}
-                        <div className="relative bg-gradient-to-br from-red-500/20 to-red-600/20 p-3">
-                          <div className="aspect-video bg-gray-800 rounded flex items-center justify-center relative overflow-hidden">
-                            {/* YouTube Play Button Overlay */}
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                              <div className="bg-red-600 rounded-full p-3 shadow-lg">
-                                <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M8 5v10l8-5-8-5z"/>
-                                </svg>
-                              </div>
-                            </div>
-
-                            {/* Video Title Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                              <p className="text-white text-sm font-semibold truncate">
-                                {youtubeTitles[item.id] || 'Loading YouTube title...'}
-                              </p>
-                              <p className="text-red-300 text-xs flex items-center">
-                                <span className="mr-1">🎬</span>
-                                Click to watch
-                              </p>
-                            </div>
-
-                            {/* Fallback for when thumbnail doesn't load */}
-                            <div className="text-red-400 text-4xl opacity-50">
-                              📺
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Hover Effect */}
-                        <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
-                      </a>
-                    </div>
+                    <a
+                      href={item.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-red-400 hover:text-red-300 transition-colors text-sm font-medium"
+                      title={`Watch: ${youtubeTitles[item.id] || 'YouTube Video'}`}
+                    >
+                      <span className="mr-2">🎬</span>
+                      <span>{youtubeTitles[item.id] || 'YouTube Video'}</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
                   </div>
                 )}
 
@@ -581,17 +562,46 @@ export default function ShopPage() {
                 </button>
 
                 {isShopAdmin && (
-                  <button
-                    onClick={() => {
-                      setEditingShopItem(item);
-                      setEditFormData({...item});
-                      setShowEditForm(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
-                    title="Edit Item (Admin)"
-                  >
-                    ✏️
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingShopItem(item);
+                        setEditFormData({...item});
+                        setShowEditForm(true);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
+                      title="Edit Item (Admin)"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
+                          try {
+                            const response = await fetch(`/api/shop/items/${item.id}`, {
+                              method: 'DELETE',
+                            });
+
+                            if (response.ok) {
+                              // Remove item from local state
+                              setItems(prevItems => prevItems.filter(i => i.id !== item.id));
+                              alert('Item deleted successfully!');
+                            } else {
+                              const error = await response.json();
+                              alert(`Failed to delete item: ${error.error}`);
+                            }
+                          } catch (error) {
+                            console.error('Delete error:', error);
+                            alert('Failed to delete item. Please try again.');
+                          }
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
+                      title="Delete Item (Admin)"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -782,6 +792,47 @@ export default function ShopPage() {
                     />
                     <label htmlFor="allowMultiple" className="text-sm font-medium text-gray-700">Allow Multiple Purchases</label>
                   </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="requiresRole"
+                      checked={editFormData.requiresRole || false}
+                      onChange={(e) => setEditFormData({...editFormData, requiresRole: e.target.checked})}
+                      className="rounded"
+                    />
+                    <label htmlFor="requiresRole" className="text-sm font-medium text-gray-700">Require Discord Role</label>
+                  </div>
+
+                  {editFormData.requiresRole && (
+                    <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h4 className="text-sm font-semibold text-yellow-800">Discord Role Requirements</h4>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Role ID</label>
+                        <input
+                          type="text"
+                          value={editFormData.requiredRoleId || ''}
+                          onChange={(e) => setEditFormData({...editFormData, requiredRoleId: e.target.value})}
+                          placeholder="1234567890123456789"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">The Discord role ID that users must have to purchase this item.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Role Name (Optional)</label>
+                        <input
+                          type="text"
+                          value={editFormData.requiredRoleName || ''}
+                          onChange={(e) => setEditFormData({...editFormData, requiredRoleName: e.target.value})}
+                          placeholder="VIP Member"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Display name for the role (optional, will use Role ID if not provided).</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 mt-6">

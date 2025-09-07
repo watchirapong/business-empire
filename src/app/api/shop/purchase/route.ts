@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-
-// Connect to MongoDB
+import PurchaseHistory from '@/models/PurchaseHistory';
 const connectDB = async () => {
   try {
     if (mongoose.connection.readyState === 1) {
@@ -67,20 +66,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item is out of stock' }, { status: 400 });
     }
 
-    // Create purchase record using existing PurchaseHistory model
-    const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', new mongoose.Schema({
-      userId: String,
-      username: String,
-      itemId: mongoose.Schema.Types.ObjectId,
-      itemName: String,
-      price: Number,
-      purchaseDate: { type: Date, default: Date.now },
-      downloadCount: { type: Number, default: 0 },
-      lastDownloadDate: Date,
-      hasFile: { type: Boolean, default: false },
-      fileUrl: String,
-      fileName: String
-    }));
+    // Create purchase record using PurchaseHistory model
 
     const purchase = new PurchaseHistory({
       userId: (session.user as any).id,
@@ -90,7 +76,11 @@ export async function POST(request: NextRequest) {
       price: item.price,
       hasFile: item.hasFile || false,
       fileUrl: item.fileUrl || '',
-      fileName: item.fileName || ''
+      fileName: item.fileName || '',
+      contentType: item.contentType || 'none',
+      textContent: item.textContent || '',
+      linkUrl: item.linkUrl || '',
+      youtubeUrl: item.youtubeUrl || ''
     });
 
     await purchase.save();
@@ -102,6 +92,9 @@ export async function POST(request: NextRequest) {
 
     // Deduct from user's currency balance
     const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const userId = (session.user as any).id;
 
     if (currency === 'hamstercoin') {
@@ -148,7 +141,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -158,25 +151,80 @@ export async function GET() {
 
     await connectDB();
 
-    // Return user's purchase history
-    const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory');
     const userId = (session.user as any).id;
-    const userPurchases = await PurchaseHistory.find({ userId }).sort({ purchaseDate: -1 });
 
-    const purchases = userPurchases.map(purchase => ({
-      id: purchase._id.toString(),
-      itemName: purchase.itemName,
-      price: purchase.price,
-      purchaseDate: purchase.purchaseDate.toISOString(),
-      downloadCount: purchase.downloadCount || 0,
-      hasFile: purchase.hasFile || false,
-      fileName: purchase.fileName || '',
-      status: 'completed'
-    }));
+    // Get user's purchase history
 
-    return NextResponse.json({ purchases });
+    const purchases = await PurchaseHistory.find({ userId })
+      .sort({ purchaseDate: -1 })
+      .lean();
+
+    console.log(`Found ${purchases.length} purchases for user ${userId}`);
+
+    // Update existing purchases that have content but missing contentType
+    for (const purchase of purchases) {
+      let needsUpdate = false;
+      let newContentType = purchase.contentType || 'none';
+
+      if (!purchase.contentType || purchase.contentType === 'none') {
+        if (purchase.textContent && purchase.textContent.trim()) {
+          newContentType = 'text';
+          needsUpdate = true;
+        } else if (purchase.linkUrl && purchase.linkUrl.trim()) {
+          newContentType = 'link';
+          needsUpdate = true;
+        } else if (purchase.youtubeUrl && purchase.youtubeUrl.trim()) {
+          newContentType = 'youtube';
+          needsUpdate = true;
+        } else if (purchase.hasFile && purchase.fileUrl) {
+          newContentType = 'file';
+          needsUpdate = true;
+        }
+      }
+
+      if (needsUpdate) {
+        console.log(`Updating purchase ${purchase._id}: contentType from '${purchase.contentType}' to '${newContentType}'`);
+        await PurchaseHistory.updateOne(
+          { _id: purchase._id },
+          { $set: { contentType: newContentType } }
+        );
+        purchase.contentType = newContentType; // Update in memory
+      }
+    }
+
+    const formattedPurchases = purchases.map((purchase: any) => {
+      const formatted = {
+        id: purchase._id.toString(),
+        itemName: purchase.itemName,
+        price: purchase.price,
+        purchaseDate: purchase.purchaseDate.toISOString(),
+        status: 'completed',
+        downloadCount: purchase.downloadCount || 0,
+        hasFile: purchase.hasFile || false,
+        fileName: purchase.fileName,
+        contentType: purchase.contentType || 'none',
+        textContent: purchase.textContent,
+        linkUrl: purchase.linkUrl,
+        youtubeUrl: purchase.youtubeUrl,
+        fileUrl: purchase.fileUrl
+      };
+
+      // Debug logging for content
+      if (purchase.contentType && purchase.contentType !== 'none') {
+        console.log(`Purchase ${purchase._id}: contentType=${purchase.contentType}, hasContent=${!!(purchase.textContent || purchase.linkUrl || purchase.youtubeUrl || purchase.hasFile)}`);
+      }
+
+      return formatted;
+    });
+
+    return NextResponse.json({
+      success: true,
+      purchases: formattedPurchases
+    });
+
   } catch (error) {
     console.error('Error fetching purchase history:', error);
     return NextResponse.json({ error: 'Failed to fetch purchase history' }, { status: 500 });
   }
 }
+

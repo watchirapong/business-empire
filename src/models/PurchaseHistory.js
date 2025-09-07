@@ -44,6 +44,19 @@ const purchaseHistorySchema = new mongoose.Schema({
   },
   fileName: {
     type: String
+  },
+  contentType: {
+    type: String,
+    default: 'none'
+  },
+  textContent: {
+    type: String
+  },
+  linkUrl: {
+    type: String
+  },
+  youtubeUrl: {
+    type: String
   }
 });
 

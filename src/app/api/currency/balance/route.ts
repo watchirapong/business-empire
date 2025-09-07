@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
     const userId = (session.user as any).id;
     const db = mongoose.connection.db;
 
+    if (!db) {
+      return NextResponse.json({ error: 'Database connection not available' }, { status: 500 });
+    }
+
     // Get HamsterCoin balance from currencies collection
     const currencies = db.collection('currencies');
     const currencyData = await currencies.findOne({ userId });

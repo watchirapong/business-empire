@@ -11,7 +11,7 @@ const hostname = 'localhost';
 const port = process.env.PORT || 3000;
 
 // Configure for large file uploads
-process.env.NODE_OPTIONS = process.env.NODE_OPTIONS || '--max-http-header-size=65536';
+// Note: NODE_OPTIONS handled by PM2 config
 
 // Prepare the Next.js app
 const app = next({ dev, hostname, port });

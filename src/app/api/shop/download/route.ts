@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import fs from 'fs';
-import path from 'path';
+import mongoose from 'mongoose';
+import PurchaseHistory from '@/models/PurchaseHistory';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,36 +13,59 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const itemId = searchParams.get('itemId');
+    const purchaseId = searchParams.get('purchaseId') || searchParams.get('itemId');
 
-    if (!itemId) {
-      return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
+    if (!purchaseId) {
+      return NextResponse.json({ error: 'Purchase ID is required' }, { status: 400 });
     }
 
-    // In a real implementation, you would:
-    // 1. Check if the user has purchased this item
-    // 2. Verify the purchase is still valid
-    // 3. Track download count
-    // 4. Serve the actual file
+    // Connect to database
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(process.env.MONGODB_URI!);
+    }
 
-    // For now, return a mock response
-    const mockFiles: Record<string, { filename: string, content: string }> = {
-      '3': { filename: 'extra-lives-pack.zip', content: 'Mock file content for extra lives pack' },
-      '5': { filename: 'game-pass-ultimate.exe', content: 'Mock file content for game pass ultimate' }
-    };
+    const userId = (session.user as any).id;
 
-    const fileData = mockFiles[itemId];
-    if (!fileData) {
+    // Find the purchase record
+
+    const purchase = await PurchaseHistory.findOne({
+      $or: [
+        { _id: purchaseId },
+        { itemId: purchaseId }
+      ],
+      userId: userId,
+      hasFile: true
+    });
+
+    if (!purchase) {
+      return NextResponse.json({ error: 'Purchase not found or no file available' }, { status: 404 });
+    }
+
+    // Check if file exists
+    if (!purchase.fileUrl) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    // Create a mock file response
-    const buffer = Buffer.from(fileData.content, 'utf-8');
+    // Update download count
+    await PurchaseHistory.updateOne(
+      { _id: purchase._id },
+      {
+        $inc: { downloadCount: 1 },
+        $set: { lastDownloadDate: new Date() }
+      }
+    );
+
+    // For now, return a mock file since we don't have actual file storage
+    // In production, you would serve the actual file from the fileUrl
+    const mockFileContent = `Mock file content for: ${purchase.fileName || purchase.itemName}\nDownloaded on: ${new Date().toISOString()}\nPurchase ID: ${purchase._id}`;
+
+    const buffer = Buffer.from(mockFileContent, 'utf-8');
+    const filename = purchase.fileName || `${purchase.itemName}.txt`;
 
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${fileData.filename}"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': buffer.length.toString(),
       },
     });
