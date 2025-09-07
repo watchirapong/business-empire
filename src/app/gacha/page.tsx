@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
@@ -64,10 +64,14 @@ export default function GachaPage() {
       const response = await fetch('/api/gacha/items');
       if (response.ok) {
         const data = await response.json();
-        setGachaItems(data.items);
+        setGachaItems(data.items || []);
+      } else {
+        console.error('Failed to fetch gacha items:', response.status);
+        setGachaItems([]);
       }
     } catch (error) {
       console.error('Error fetching gacha items:', error);
+      setGachaItems([]);
     } finally {
       setLoading(false);
     }
@@ -78,14 +82,27 @@ export default function GachaPage() {
       const response = await fetch('/api/currency/balance');
       if (response.ok) {
         const data = await response.json();
-        setUserBalance(data.balance || 0);
+        if (data.success && data.balance) {
+          // Use hamstercoin balance for gacha pulls
+          setUserBalance(data.balance.hamstercoin || 0);
+        }
+      } else {
+        console.error('Failed to fetch balance:', response.status);
+        setUserBalance(0);
       }
     } catch (error) {
       console.error('Error fetching user balance:', error);
+      setUserBalance(0);
     }
   };
 
   const handleGachaPull = async () => {
+    // Comprehensive validation
+    if (!session?.user) {
+      alert('You must be logged in to pull from gacha!');
+      return;
+    }
+
     if (userBalance < 10) {
       alert('You need at least 10 Hamster Shop coins to pull!');
       return;
@@ -93,6 +110,11 @@ export default function GachaPage() {
 
     if (gachaItems.length === 0) {
       alert('No gacha items available! Please contact an admin to add items.');
+      return;
+    }
+
+    if (isPulling) {
+      console.warn('Gacha pull already in progress');
       return;
     }
 
@@ -111,22 +133,40 @@ export default function GachaPage() {
         
         // Calculate the correct final position for the winning item
         const winningItem = data.item;
+
+        if (wheelSegments.length === 0) {
+          console.error('No wheel segments available for gacha animation');
+          // Fallback: just show the result without animation
+          setLastPulledItem(winningItem);
+          setShowResult(true);
+          setUserBalance(data.newBalance);
+          setIsPulling(false);
+          return;
+        }
+
         const winningSegment = wheelSegments.find(segment => segment.id === winningItem.id);
-        
+
         if (winningSegment) {
           // Calculate the center angle of the winning segment
           const segmentCenterAngle = (winningSegment.startAngle + winningSegment.endAngle) / 2;
-          
+
           // The arrow points to the top (270 degrees), so we need to rotate the wheel
           // so that the winning segment center is at the top
           const targetAngle = 270 - segmentCenterAngle;
-          
+
           // Add multiple rotations plus the target angle
           const baseRotations = 8 + Math.random() * 4; // 8-12 full rotations
           const spinRotation = wheelRotation + (baseRotations * 360) + targetAngle;
-          
+
           // Start the spinning animation
           setWheelRotation(spinRotation);
+        } else {
+          console.warn('Winning item not found in wheel segments, using fallback');
+          // Fallback: just show the result without animation
+          setLastPulledItem(winningItem);
+          setShowResult(true);
+          setUserBalance(data.newBalance);
+          setIsPulling(false);
         }
         
         // Track gacha spending
@@ -175,13 +215,13 @@ export default function GachaPage() {
   };
 
   // Create wheel segments based on gacha items
-  const createWheelSegments = () => {
+  const wheelSegments = useMemo(() => {
     if (gachaItems.length === 0) return [];
-    
+
     const segments: Array<GachaItem & { startAngle: number; endAngle: number; color: string }> = [];
     let currentAngle = 0;
     const totalDropRate = gachaItems.reduce((sum, item) => sum + item.dropRate, 0);
-    
+
     gachaItems.forEach((item) => {
       const segmentAngle = (item.dropRate / totalDropRate) * 360;
       segments.push({
@@ -192,11 +232,9 @@ export default function GachaPage() {
       });
       currentAngle += segmentAngle;
     });
-    
-    return segments;
-  };
 
-  const wheelSegments = createWheelSegments();
+    return segments;
+  }, [gachaItems]);
 
   if (loading) {
     return (

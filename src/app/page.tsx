@@ -184,14 +184,14 @@ export default function HomePage() {
               {/* Hamster Shop */}
               <button
                 onClick={() => handleMenuClick('/shop')}
-                className="group bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 hover:border-orange-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
+                className="group bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8 hover:border-orange-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20 w-full flex flex-col items-center justify-center"
               >
-                <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🛒</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300">
+                <div className="text-center w-full flex flex-col items-center justify-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 flex justify-center">🛒</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300 text-center leading-tight">
                     Hamster Shop
                   </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300">
+                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300 text-center leading-relaxed">
                     ระบบร้านค้าใหม่
                   </p>
                 </div>
@@ -200,14 +200,14 @@ export default function HomePage() {
               {/* Gacha */}
               <button
                 onClick={() => handleMenuClick('/gacha')}
-                className="group bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm rounded-2xl border border-purple-500/20 p-8 hover:border-purple-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
+                className="group bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm rounded-2xl border border-purple-500/20 p-8 hover:border-purple-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 w-full flex flex-col items-center justify-center"
               >
-                <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🎰</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300">
+                <div className="text-center w-full flex flex-col items-center justify-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 flex justify-center">🎰</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300 text-center leading-tight">
                     Gacha
                   </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-purple-200 transition-colors duration-300">
+                  <p className="text-gray-400 text-sm group-hover:text-purple-200 transition-colors duration-300 text-center leading-relaxed">
                     ลุ้นรางวัลสุดพิเศษ
                   </p>
                 </div>
@@ -216,14 +216,14 @@ export default function HomePage() {
               {/* Hamsterboard */}
               <button
                 onClick={() => handleMenuClick('/hamsterboard')}
-                className="group bg-gradient-to-br from-green-900/50 to-emerald-900/50 backdrop-blur-sm rounded-2xl border border-green-500/20 p-8 hover:border-green-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20"
+                className="group bg-gradient-to-br from-green-900/50 to-emerald-900/50 backdrop-blur-sm rounded-2xl border border-green-500/20 p-8 hover:border-green-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20 w-full flex flex-col items-center justify-center"
               >
-                <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🐹</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-300 transition-colors duration-300">
+                <div className="text-center w-full flex flex-col items-center justify-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 flex justify-center">🐹</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-300 transition-colors duration-300 text-center leading-tight">
                     Hamsterboard
                   </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-green-200 transition-colors duration-300">
+                  <p className="text-gray-400 text-sm group-hover:text-green-200 transition-colors duration-300 text-center leading-relaxed">
                     ทำภารกิจ รับรางวัล
                   </p>
                 </div>
@@ -232,14 +232,14 @@ export default function HomePage() {
               {/* University Search */}
               <button
                 onClick={() => handleMenuClick('/university-search')}
-                className="group bg-gradient-to-br from-blue-900/50 to-indigo-900/50 backdrop-blur-sm rounded-2xl border border-blue-500/20 p-8 hover:border-blue-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20"
+                className="group bg-gradient-to-br from-blue-900/50 to-indigo-900/50 backdrop-blur-sm rounded-2xl border border-blue-500/20 p-8 hover:border-blue-400/40 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 w-full flex flex-col items-center justify-center"
               >
-                <div className="text-center">
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">🏫</div>
-                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors duration-300">
+                <div className="text-center w-full flex flex-col items-center justify-center">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 flex justify-center">🏫</div>
+                  <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors duration-300 text-center leading-tight">
                     University Search
                   </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-blue-200 transition-colors duration-300">
+                  <p className="text-gray-400 text-sm group-hover:text-blue-200 transition-colors duration-300 text-center leading-relaxed">
                     ค้นหามหาวิทยาลัย
                   </p>
                 </div>
