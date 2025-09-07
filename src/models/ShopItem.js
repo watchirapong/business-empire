@@ -17,34 +17,82 @@ const shopItemSchema = new mongoose.Schema({
     min: 0
   },
 
-  image: { 
-    type: String, 
+  image: {
+    type: String,
     required: true,
     trim: true
   },
-  fileUrl: { 
-    type: String, 
+  category: {
+    type: String,
+    required: true,
     trim: true
   },
-  fileName: { 
-    type: String, 
+  contentType: {
+    type: String,
+    enum: ['none', 'text', 'link', 'youtube', 'file'],
+    default: 'none'
+  },
+  textContent: {
+    type: String,
     trim: true
   },
-  hasFile: { 
-    type: Boolean, 
+  linkUrl: {
+    type: String,
+    trim: true
+  },
+  youtubeUrl: {
+    type: String,
+    trim: true
+  },
+  fileUrl: {
+    type: String,
+    trim: true
+  },
+  fileName: {
+    type: String,
+    trim: true
+  },
+  hasFile: {
+    type: Boolean,
     default: false
   },
-  inStock: { 
-    type: Boolean, 
+  inStock: {
+    type: Boolean,
     default: true
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  allowMultiplePurchases: {
+    type: Boolean,
+    default: false
   },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
+  requiresRole: {
+    type: Boolean,
+    default: false
+  },
+  requiredRoleId: {
+    type: String,
+    trim: true
+  },
+  requiredRoleName: {
+    type: String,
+    trim: true
+  },
+  purchaseCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  totalRevenue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

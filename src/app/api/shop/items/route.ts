@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
     const savedItem = new ShopItem({
       name,
       description,
-      price: parseFloat(price),
+      price: Number(price),
       image,
       category,
       contentType: contentType || 'none',
@@ -354,22 +354,21 @@ export async function POST(request: NextRequest) {
       linkUrl: linkUrl || '',
       youtubeUrl: youtubeUrl || '',
       inStock: inStock !== undefined ? inStock : true,
-      allowMultiplePurchases: allowMultiplePurchases || false,
-      requiresRole: requiresRole || false,
+      allowMultiplePurchases: allowMultiplePurchases !== undefined ? allowMultiplePurchases : false,
+      requiresRole: requiresRole !== undefined ? requiresRole : false,
       requiredRoleId: requiredRoleId || '',
       requiredRoleName: requiredRoleName || '',
       hasFile: false,
       fileUrl: '',
       fileName: '',
       purchaseCount: 0,
-      totalRevenue: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      totalRevenue: 0
     });
 
     await savedItem.save();
 
     return NextResponse.json({
+      success: true,
       message: 'Item created successfully',
       item: {
         id: savedItem._id.toString(),
