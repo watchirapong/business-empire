@@ -16,6 +16,37 @@ export default function HomePage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userRank, setUserRank] = useState<string>('None');
 
+  // Debug URL display issues
+  useEffect(() => {
+    console.log('Current URL:', window.location.href);
+    console.log('Expected URL:', 'https://hamsterhub.fun/');
+
+    // Check for any URL manipulation
+    if (window.location.href.includes('@')) {
+      console.warn('URL contains @ symbol - this might be caused by browser extensions');
+    }
+
+    // Check for common browser extensions that might interfere
+    const checkForExtensions = () => {
+      const extensions = [
+        'uBlock Origin',
+        'AdBlock',
+        'Privacy Badger',
+        'HTTPS Everywhere',
+        'NoScript'
+      ];
+
+      extensions.forEach(ext => {
+        if (navigator.userAgent.includes(ext) || document.querySelector(`[data-extension="${ext}"]`)) {
+          console.warn(`Detected browser extension: ${ext} - this might be causing URL display issues`);
+        }
+      });
+    };
+
+    // Small delay to let extensions load
+    setTimeout(checkForExtensions, 1000);
+  }, []);
+
   const handleLogout = () => {
     signOut({ callbackUrl: '/' });
   };
@@ -77,9 +108,9 @@ export default function HomePage() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12">
-              <img 
-                src="/hamsterhub-logo.png" 
-                alt="HamsterHub Logo" 
+              <img
+                src="/hamsterhub-logo.png"
+                alt="HamsterHub Logo"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -87,6 +118,17 @@ export default function HomePage() {
               HamsterHub
             </div>
           </div>
+
+          {/* Debug URL Display - Only show in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="fixed top-4 right-4 bg-black/80 text-white p-2 rounded text-xs z-50 max-w-xs">
+              <div className="font-bold">URL Debug:</div>
+              <div className="break-all">{typeof window !== 'undefined' ? window.location.href : 'Loading...'}</div>
+              {typeof window !== 'undefined' && window.location.href.includes('@') && (
+                <div className="text-red-400 font-bold mt-1">⚠️ @ symbol detected!</div>
+              )}
+            </div>
+          )}
           <div className="flex items-center space-x-4">
             {session ? (
               <div className="relative group">
