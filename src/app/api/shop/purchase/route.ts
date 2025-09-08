@@ -90,18 +90,41 @@ export async function POST(request: NextRequest) {
     item.totalRevenue = (item.totalRevenue || 0) + item.price;
     await item.save();
 
-    // Deduct from user's currency balance
+    // Check user's currency balance before purchase
     const db = mongoose.connection.db;
     if (!db) {
       throw new Error('Database connection not available');
     }
     const userId = (session.user as any).id;
 
+    let currentBalance = 0;
+    let updateResult;
+
     if (currency === 'hamstercoin') {
-      // Update HamsterCoin balance in currencies collection
+      // Check HamsterCoin balance first
       const currencies = db.collection('currencies');
-      await currencies.updateOne(
-        { userId },
+      const userCurrency = await currencies.findOne({ userId });
+      
+      if (!userCurrency) {
+        return NextResponse.json({ error: 'Currency account not found' }, { status: 400 });
+      }
+      
+      currentBalance = userCurrency.hamsterCoins || 0;
+      
+      if (currentBalance < item.price) {
+        return NextResponse.json({ 
+          error: 'Insufficient HamsterCoins', 
+          required: item.price, 
+          available: currentBalance 
+        }, { status: 400 });
+      }
+      
+      // Update balance with atomic operation to prevent race conditions
+      updateResult = await currencies.updateOne(
+        { 
+          userId, 
+          hamsterCoins: { $gte: item.price } // Ensure sufficient balance at update time
+        },
         {
           $inc: {
             hamsterCoins: -item.price,
@@ -110,11 +133,38 @@ export async function POST(request: NextRequest) {
           $set: { updatedAt: new Date() }
         }
       );
+      
+      if (updateResult.modifiedCount === 0) {
+        return NextResponse.json({ 
+          error: 'Purchase failed - insufficient balance or concurrent transaction' 
+        }, { status: 400 });
+      }
+      
     } else if (currency === 'stardustcoin') {
-      // Update StardustCoin balance in stardustcoins collection
+      // Check StardustCoin balance first
       const stardustCoins = db.collection('stardustcoins');
-      await stardustCoins.updateOne(
-        { userId },
+      const userStardust = await stardustCoins.findOne({ userId });
+      
+      if (!userStardust) {
+        return NextResponse.json({ error: 'StardustCoin account not found' }, { status: 400 });
+      }
+      
+      currentBalance = userStardust.balance || 0;
+      
+      if (currentBalance < item.price) {
+        return NextResponse.json({ 
+          error: 'Insufficient StardustCoins', 
+          required: item.price, 
+          available: currentBalance 
+        }, { status: 400 });
+      }
+      
+      // Update balance with atomic operation to prevent race conditions
+      updateResult = await stardustCoins.updateOne(
+        { 
+          userId, 
+          balance: { $gte: item.price } // Ensure sufficient balance at update time
+        },
         {
           $inc: {
             balance: -item.price,
@@ -123,6 +173,14 @@ export async function POST(request: NextRequest) {
           $set: { lastUpdated: new Date(), updatedAt: new Date() }
         }
       );
+      
+      if (updateResult.modifiedCount === 0) {
+        return NextResponse.json({ 
+          error: 'Purchase failed - insufficient balance or concurrent transaction' 
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: 'Invalid currency type' }, { status: 400 });
     }
 
     return NextResponse.json({

@@ -16,51 +16,58 @@ const connectDB = async () => {
   }
 };
 
-// User schema
+// User schema (removed sensitive token fields for security)
 const userSchema = new mongoose.Schema({
   discordId: { 
     type: String, 
     required: true, 
-    unique: true 
+    unique: true,
+    index: true
   },
   username: { 
     type: String, 
-    required: true 
+    required: true,
+    maxlength: 100
   },
   email: { 
     type: String, 
-    required: true 
+    required: true,
+    lowercase: true,
+    index: true
   },
   avatar: { 
-    type: String 
+    type: String,
+    maxlength: 500
   },
   discriminator: { 
-    type: String 
+    type: String,
+    maxlength: 10
   },
   globalName: { 
-    type: String 
+    type: String,
+    maxlength: 100
   },
-  accessToken: { 
-    type: String 
-  },
-  refreshToken: { 
-    type: String 
-  },
+  // Removed accessToken and refreshToken fields for security
+  // These should only be stored in session/JWT, not in database
   lastLogin: { 
     type: Date, 
-    default: Date.now 
+    default: Date.now,
+    index: true
   },
   loginCount: { 
     type: Number, 
-    default: 1 
+    default: 1,
+    min: 0
   },
   isActive: { 
     type: Boolean, 
-    default: true 
+    default: true,
+    index: true
   },
   createdAt: { 
     type: Date, 
-    default: Date.now 
+    default: Date.now,
+    index: true
   },
   updatedAt: { 
     type: Date, 
@@ -79,44 +86,55 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
 // User service functions
 const createOrUpdateUser = async (discordData) => {
   try {
-    const { id, username, email, avatar, discriminator, globalName, accessToken, refreshToken } = discordData;
+    const { id, username, email, avatar, discriminator, globalName } = discordData;
+    
+    // Input validation
+    if (!id || !username || !email) {
+      throw new Error('Missing required user data: id, username, or email');
+    }
+    
+    // Sanitize inputs
+    const sanitizedData = {
+      id: String(id).trim(),
+      username: String(username).trim().substring(0, 100),
+      email: String(email).trim().toLowerCase(),
+      avatar: avatar ? String(avatar).trim() : null,
+      discriminator: discriminator ? String(discriminator).trim() : null,
+      globalName: globalName ? String(globalName).trim().substring(0, 100) : null
+    };
     
     // Check if user already exists
-    let user = await User.findOne({ discordId: id });
+    let user = await User.findOne({ discordId: sanitizedData.id });
     
     if (user) {
-      // Update existing user
-      user.username = username;
-      user.email = email;
-      user.avatar = avatar;
-      user.discriminator = discriminator;
-      user.globalName = globalName;
-      user.accessToken = accessToken;
-      user.refreshToken = refreshToken;
+      // Update existing user (excluding sensitive tokens)
+      user.username = sanitizedData.username;
+      user.email = sanitizedData.email;
+      user.avatar = sanitizedData.avatar;
+      user.discriminator = sanitizedData.discriminator;
+      user.globalName = sanitizedData.globalName;
       user.lastLogin = new Date();
       user.loginCount += 1;
       user.isActive = true;
       
       await user.save();
-      console.log(`Updated existing user: ${username} (${id})`);
+      console.log(`Updated existing user: ${sanitizedData.username} (${sanitizedData.id})`);
     } else {
-      // Create new user
+      // Create new user (excluding sensitive tokens)
       user = new User({
-        discordId: id,
-        username,
-        email,
-        avatar,
-        discriminator,
-        globalName,
-        accessToken,
-        refreshToken,
+        discordId: sanitizedData.id,
+        username: sanitizedData.username,
+        email: sanitizedData.email,
+        avatar: sanitizedData.avatar,
+        discriminator: sanitizedData.discriminator,
+        globalName: sanitizedData.globalName,
         lastLogin: new Date(),
         loginCount: 1,
         isActive: true
       });
       
       await user.save();
-      console.log(`Created new user: ${username} (${id})`);
+      console.log(`Created new user: ${sanitizedData.username} (${sanitizedData.id})`);
     }
     
     return user;
