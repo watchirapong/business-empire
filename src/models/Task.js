@@ -23,15 +23,15 @@ const taskSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  postedBy: { 
-    id: { 
-      type: String, 
+  postedBy: {
+    id: {
+      type: String,
       required: true,
       index: true
     },
-    username: { 
-      type: String, 
-      required: true 
+    nickname: {
+      type: String,
+      required: true
     }
   },
   status: { 
@@ -42,13 +42,13 @@ const taskSchema = new mongoose.Schema({
     index: true
   },
   // Multiple acceptances
-  acceptedBy: [{ 
-    id: { 
+  acceptedBy: [{
+    id: {
       type: String,
       index: true
     },
-    username: { 
-      type: String 
+    nickname: {
+      type: String
     },
     acceptedAt: {
       type: Date,
@@ -74,7 +74,7 @@ const taskSchema = new mongoose.Schema({
     id: {
       type: String
     },
-    username: {
+    nickname: {
       type: String
     },
     selectedAt: {
@@ -85,7 +85,7 @@ const taskSchema = new mongoose.Schema({
     id: {
       type: String
     },
-    username: {
+    nickname: {
       type: String
     },
     selectedAt: {

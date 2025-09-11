@@ -278,7 +278,9 @@ class DiscordBot {
       
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       const DAILY_VOICE_REQUIREMENT = 15; // 15 minutes
-      const REWARD_AMOUNT = 10; // 10 HamsterCoins
+      const TICKET_REWARD = 1; // 1 gacha ticket per day
+      const COIN_REWARD = 10; // 10 coins per day (after 3-day streak)
+      const STREAK_REQUIREMENT = 3; // 3 consecutive days for coins
 
       // Find or create daily voice reward record
       let dailyReward = await DailyVoiceReward.findOne({ userId, date: today });
@@ -299,14 +301,39 @@ class DiscordBot {
       
       // Check if user has reached the daily requirement and hasn't claimed reward yet
       if (dailyReward.voiceTimeMinutes >= DAILY_VOICE_REQUIREMENT && !dailyReward.rewardClaimed) {
-        // Award the coins
-        await this.awardCoins(userId, REWARD_AMOUNT, 'Daily voice activity reward (15+ minutes)');
+        // Calculate current streak to determine coin eligibility
+        const recentRewards = await DailyVoiceReward.find({ userId })
+          .sort({ date: -1 })
+          .limit(10); // Get last 10 days to calculate streak
+        
+        let currentStreak = 0;
+        for (const reward of recentRewards) {
+          if (reward.voiceTimeMinutes >= DAILY_VOICE_REQUIREMENT) {
+            currentStreak++;
+          } else {
+            break; // Streak broken
+          }
+        }
+
+        const isEligibleForCoins = currentStreak >= STREAK_REQUIREMENT;
+
+        // Award ticket (always given)
+        await this.awardTickets(userId, TICKET_REWARD, 'Daily voice activity reward (15+ minutes)');
+        
+        // Award coins (only if streak is 3+ days)
+        if (isEligibleForCoins) {
+          await this.awardCoins(userId, COIN_REWARD, 'Daily voice activity reward (3+ day streak)');
+        }
         
         // Mark reward as claimed
         dailyReward.rewardClaimed = true;
-        dailyReward.rewardAmount = REWARD_AMOUNT;
+        dailyReward.rewardAmount = TICKET_REWARD + (isEligibleForCoins ? COIN_REWARD : 0);
         
-        console.log(`🎁 ${username} earned ${REWARD_AMOUNT} HamsterCoins for ${dailyReward.voiceTimeMinutes} minutes of voice activity today!`);
+        const rewardMessage = isEligibleForCoins 
+          ? `🎁 ${username} earned ${TICKET_REWARD} gacha ticket and ${COIN_REWARD} coins for ${dailyReward.voiceTimeMinutes} minutes of voice activity today! (${currentStreak} day streak)`
+          : `🎁 ${username} earned ${TICKET_REWARD} gacha ticket for ${dailyReward.voiceTimeMinutes} minutes of voice activity today! (${currentStreak}/${STREAK_REQUIREMENT} days streak)`;
+        
+        console.log(rewardMessage);
       }
 
       await dailyReward.save();
@@ -319,6 +346,53 @@ class DiscordBot {
 
     } catch (error) {
       console.error('Error checking daily voice reward:', error);
+    }
+  }
+
+  private async awardTickets(userId: string, amount: number, description: string) {
+    try {
+      // Ensure MongoDB connection
+      await connectDB();
+      
+      // Ensure user exists in users collection before awarding tickets
+      await this.ensureUserExists(userId);
+      
+      // Find or create ticket record
+      const TicketSchema = new mongoose.Schema({
+        userId: { type: String, required: true, unique: true },
+        balance: { type: Number, default: 0 },
+        totalEarned: { type: Number, default: 0 },
+        totalSpent: { type: Number, default: 0 },
+        lastTicketEarned: { type: Date, default: null },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
+      });
+
+      const Ticket = mongoose.models.Ticket || mongoose.model('Ticket', TicketSchema);
+      
+      let ticketData = await Ticket.findOne({ userId });
+      
+      if (!ticketData) {
+        ticketData = new Ticket({
+          userId,
+          balance: 0,
+          totalEarned: 0,
+          totalSpent: 0,
+          lastTicketEarned: null
+        });
+      }
+
+      // Add tickets
+      ticketData.balance += amount;
+      ticketData.totalEarned += amount;
+      ticketData.lastTicketEarned = new Date();
+      ticketData.updatedAt = new Date();
+      
+      await ticketData.save();
+      
+      console.log(`🎫 Awarded ${amount} gacha ticket(s) to user ${userId}: ${description}`);
+    } catch (error) {
+      console.error('Error awarding tickets:', error);
     }
   }
 

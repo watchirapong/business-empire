@@ -54,8 +54,9 @@ const GachaItem = mongoose.models.GachaItem || mongoose.model('GachaItem', gacha
 const Currency = mongoose.models.Currency || mongoose.model('Currency', currencySchema);
 const GachaPull = mongoose.models.GachaPull || mongoose.model('GachaPull', gachaPullSchema);
 
-// Gacha pull cost
-const GACHA_COST = 10; // 10 Hamster Coins per pull
+// Gacha pull costs
+const GACHA_COIN_COST = 10; // 10 Hamster Coins per pull
+const GACHA_TICKET_COST = 1; // 1 Ticket per pull
 
 // POST - Perform a gacha pull
 export async function POST(request: NextRequest) {
@@ -67,27 +68,56 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
+    const body = await request.json();
+    const { paymentMethod = 'coins' } = body; // 'coins' or 'tickets'
+    
     await connectDB();
 
-    // Get user's currency balance
-    let userCurrency = await Currency.findOne({ userId });
-    
-    if (!userCurrency) {
-      // Create new currency account if it doesn't exist
-      userCurrency = new Currency({
-        userId,
-        hamsterCoins: 0,
-        totalEarned: 0,
-        totalSpent: 0
+    let cost = 0;
+    let paymentType = '';
+    let hasEnoughCurrency = false;
+
+    if (paymentMethod === 'tickets') {
+      // Check ticket balance
+      const ticketResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/tickets`, {
+        headers: {
+          'Cookie': request.headers.get('cookie') || ''
+        }
       });
+      
+      if (ticketResponse.ok) {
+        const ticketData = await ticketResponse.json();
+        if (ticketData.success && ticketData.data.balance >= GACHA_TICKET_COST) {
+          hasEnoughCurrency = true;
+          cost = GACHA_TICKET_COST;
+          paymentType = 'tickets';
+        }
+      }
+    } else {
+      // Check Hamster Coins balance
+      let userCurrency = await Currency.findOne({ userId });
+      
+      if (!userCurrency) {
+        userCurrency = new Currency({
+          userId,
+          hamsterCoins: 0,
+          totalEarned: 0,
+          totalSpent: 0
+        });
+      }
+
+      if (userCurrency.hamsterCoins >= GACHA_COIN_COST) {
+        hasEnoughCurrency = true;
+        cost = GACHA_COIN_COST;
+        paymentType = 'coins';
+      }
     }
 
-    // Check if user has enough coins
-    if (userCurrency.hamsterCoins < GACHA_COST) {
+    if (!hasEnoughCurrency) {
       return NextResponse.json({ 
-        error: 'Insufficient Hamster Coins',
-        currentBalance: userCurrency.hamsterCoins,
-        requiredAmount: GACHA_COST
+        error: `Insufficient ${paymentMethod === 'tickets' ? 'Tickets' : 'Hamster Coins'}`,
+        paymentMethod,
+        requiredAmount: paymentMethod === 'tickets' ? GACHA_TICKET_COST : GACHA_COIN_COST
       }, { status: 400 });
     }
 
@@ -123,11 +153,33 @@ export async function POST(request: NextRequest) {
       selectedItem = gachaItems[0];
     }
 
-    // Deduct coins from user's balance
-    userCurrency.hamsterCoins -= GACHA_COST;
-    userCurrency.totalSpent += GACHA_COST;
-    userCurrency.updatedAt = new Date();
-    await userCurrency.save();
+    // Deduct payment from user's balance
+    if (paymentType === 'tickets') {
+      // Deduct tickets
+      const ticketUpdateResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/tickets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || ''
+        },
+        body: JSON.stringify({
+          action: 'spend',
+          amount: GACHA_TICKET_COST,
+          reason: 'gacha pull'
+        })
+      });
+      
+      if (!ticketUpdateResponse.ok) {
+        return NextResponse.json({ error: 'Failed to deduct tickets' }, { status: 500 });
+      }
+    } else {
+      // Deduct Hamster Coins
+      const userCurrency = await Currency.findOne({ userId });
+      userCurrency.hamsterCoins -= GACHA_COIN_COST;
+      userCurrency.totalSpent += GACHA_COIN_COST;
+      userCurrency.updatedAt = new Date();
+      await userCurrency.save();
+    }
 
     // Record the pull
     const pullRecord = new GachaPull({
@@ -135,7 +187,7 @@ export async function POST(request: NextRequest) {
       itemId: selectedItem._id.toString(),
       itemName: selectedItem.name,
       itemRarity: selectedItem.rarity,
-      cost: GACHA_COST
+      cost: cost
     });
     await pullRecord.save();
 
@@ -149,12 +201,30 @@ export async function POST(request: NextRequest) {
       dropRate: selectedItem.dropRate
     };
 
+    // Get updated balance for response
+    let newBalance = 0;
+    if (paymentType === 'tickets') {
+      const ticketResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/tickets`, {
+        headers: {
+          'Cookie': request.headers.get('cookie') || ''
+        }
+      });
+      if (ticketResponse.ok) {
+        const ticketData = await ticketResponse.json();
+        newBalance = ticketData.data.balance;
+      }
+    } else {
+      const userCurrency = await Currency.findOne({ userId });
+      newBalance = userCurrency.hamsterCoins;
+    }
+
     return NextResponse.json({ 
       success: true,
       message: 'Gacha pull successful!',
       item: pulledItem,
-      newBalance: userCurrency.hamsterCoins,
-      cost: GACHA_COST
+      newBalance: newBalance,
+      cost: cost,
+      paymentMethod: paymentType
     });
 
   } catch (error) {

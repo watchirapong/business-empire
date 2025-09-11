@@ -101,7 +101,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings'>('users');
   const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
   const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
   // Removed unused voice activity states since we moved to dedicated dashboard
@@ -109,6 +109,33 @@ export default function AdminPage() {
   const [gachaItems, setGachaItems] = useState<any[]>([]);
   const [showGachaForm, setShowGachaForm] = useState(false);
   const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
+  
+  // Assessment states
+  const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
+  const [assessmentAnswers, setAssessmentAnswers] = useState<any[]>([]);
+  const [assessmentUsers, setAssessmentUsers] = useState<any[]>([]);
+  const [assessmentSettings, setAssessmentSettings] = useState<any>(null);
+  const [assessmentNicknames, setAssessmentNicknames] = useState<{[key: string]: string}>({});
+  const [selectedAssessmentUser, setSelectedAssessmentUser] = useState<any>(null);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [questionForm, setQuestionForm] = useState({
+    phase: 1,
+    path: '',
+    questionText: '',
+    questionImage: '',
+    requiresImageUpload: false,
+    skillCategories: {
+      selfLearning: 0,
+      creative: 0,
+      algorithm: 0,
+      logic: 0,
+      communication: 0,
+      presentation: 0,
+      leadership: 0,
+      careerKnowledge: 0
+    },
+    order: 1
+  });
 
   // Shop management states
   const [shopItems, setShopItems] = useState<any[]>([]);
@@ -206,6 +233,17 @@ export default function AdminPage() {
     loadAchievements();
   }, [session, status, router]);
 
+  // Separate useEffect to load assessment data when switching to assessment tabs
+  useEffect(() => {
+    if (activeTab === 'assessment' || activeTab.startsWith('assessment-')) {
+      console.log('Admin Panel - Loading assessment data for tab:', activeTab);
+      loadAssessmentQuestions();
+      loadAssessmentAnswers();
+      loadAssessmentUsers();
+      loadAssessmentSettings();
+    }
+  }, [activeTab]);
+
   const loadAllUsers = async () => {
     setIsLoading(true);
     setMessage('');
@@ -247,6 +285,91 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error loading gacha items:', error);
+    }
+  };
+
+  // Assessment loading functions
+  const loadAssessmentQuestions = async () => {
+    try {
+      console.log('Admin Panel - Loading assessment questions...');
+      const response = await fetch('/api/assessment/questions?admin=true');
+      console.log('Admin Panel - API Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Admin Panel - API Response data:', data);
+        setAssessmentQuestions(data.questions || []);
+        console.log('Admin Panel - Set questions:', data.questions?.length || 0);
+      } else {
+        const errorData = await response.json();
+        console.error('Admin Panel - API Error:', errorData);
+      }
+    } catch (error) {
+      console.error('Admin Panel - Error loading assessment questions:', error);
+    }
+  };
+
+  const loadAssessmentAnswers = async () => {
+    try {
+      const response = await fetch('/api/assessment/answers');
+      if (response.ok) {
+        const data = await response.json();
+        setAssessmentAnswers(data.answers || []);
+        
+        // Fetch nicknames for all unique user IDs
+        const userIds = [...new Set(data.answers?.map((answer: any) => answer.userId) || [])] as string[];
+        if (userIds.length > 0) {
+          await fetchAssessmentNicknames(userIds);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading assessment answers:', error);
+    }
+  };
+
+  const loadAssessmentUsers = async () => {
+    try {
+      const response = await fetch('/api/assessment/users');
+      if (response.ok) {
+        const data = await response.json();
+        setAssessmentUsers(data.users || []);
+        
+        // Fetch nicknames for all unique user IDs
+        const userIds = [...new Set(data.users?.map((user: any) => user.userId) || [])] as string[];
+        if (userIds.length > 0) {
+          await fetchAssessmentNicknames(userIds);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading assessment users:', error);
+    }
+  };
+
+  const loadAssessmentSettings = async () => {
+    try {
+      const response = await fetch('/api/assessment/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setAssessmentSettings(data.settings);
+      }
+    } catch (error) {
+      console.error('Error loading assessment settings:', error);
+    }
+  };
+
+  const fetchAssessmentNicknames = async (userIds: string[]) => {
+    try {
+      const response = await fetch('/api/users/nicknames', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setAssessmentNicknames(data.nicknames);
+      }
+    } catch (error) {
+      console.error('Error fetching assessment nicknames:', error);
     }
   };
 
@@ -793,6 +916,68 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/assessment/users?userId=${userId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`User assessment data deleted successfully!\nDeleted ${result.deletedAnswers} answers and ${result.deletedProgress} progress records.`);
+        
+        // Reload the assessment users data
+        loadAssessmentUsers();
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete user: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error deleting user assessment data');
+    }
+  };
+
+  const handleSaveSkillScores = async (answerId: string) => {
+    try {
+      // Collect all skill scores from the input fields
+      const skillScores: { [key: string]: number } = {};
+      const skills = ['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'];
+      
+      skills.forEach(skill => {
+        const input = document.getElementById(`${skill}-${answerId}`) as HTMLInputElement;
+        if (input) {
+          skillScores[skill] = parseFloat(input.value) || 0;
+        }
+      });
+
+      // Send the update to the API
+      const response = await fetch('/api/assessment/answers', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          answerId,
+          skillScores,
+          status: 'approved' // Auto-approve when scores are set
+        }),
+      });
+
+      if (response.ok) {
+        alert('✅ Skill scores saved successfully!');
+        // Reload the assessment users data to show updated scores
+        loadAssessmentUsers();
+      } else {
+        const error = await response.json();
+        alert(`❌ Failed to save scores: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving skill scores:', error);
+      alert('❌ Error saving skill scores');
+    }
+  };
+
   const handleUpdateUserAchievement = async (achievementId: string, progress: number) => {
     if (!selectedUserForAchievement) return;
     
@@ -914,76 +1099,78 @@ export default function AdminPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-4 mb-8">
+        <div className="mb-8">
+          {/* Main Navigation */}
+          <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'users'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            👥 User Management
+            👥 Users
           </button>
           <button
             onClick={() => router.push('/admin/voice-dashboard')}
-            className="px-6 py-3 rounded-lg font-medium transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-lg font-medium transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 text-sm"
           >
-            🎤 Voice Dashboard
+            🎤 Voice
           </button>
           <button
             onClick={() => setActiveTab('gacha')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'gacha'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            🎰 Gacha Management
+            🎰 Gacha
           </button>
           <button
             onClick={() => setActiveTab('achievements')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'achievements'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            🏆 Achievement Management
+            🏆 Achievements
           </button>
           <button
             onClick={() => setActiveTab('houses')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'houses'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            🏠 House Management
+            🏠 Houses
           </button>
           <button
             onClick={() => setActiveTab('stardustcoin')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'stardustcoin'
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            ✨ StardustCoin Management
+            ✨ StardustCoin
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'analytics'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
             }`}
           >
-            📊 Analytics Dashboard
+            📊 Analytics
           </button>
           <button
             onClick={() => setActiveTab('shop')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'shop'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
@@ -993,7 +1180,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => setActiveTab('shop-analytics')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'shop-analytics'
                 ? 'bg-orange-600 text-white'
                 : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
@@ -1001,7 +1188,72 @@ export default function AdminPage() {
           >
             📊 Shop Analytics
           </button>
+          <button
+            onClick={() => {
+              if (activeTab === 'assessment' || activeTab.startsWith('assessment-')) {
+                setActiveTab('assessment');
+              } else {
+                setActiveTab('assessment-create');
+              }
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'assessment' || activeTab.startsWith('assessment-')
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            📝 Assessment Management
+          </button>
+          </div>
         </div>
+
+        {/* Assessment Sub-tabs */}
+        {(activeTab === 'assessment' || activeTab.startsWith('assessment-')) && (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveTab('assessment-create')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                  activeTab === 'assessment-create'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                }`}
+              >
+                📝 Create Question
+              </button>
+              <button
+                onClick={() => setActiveTab('assessment-users')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                  activeTab === 'assessment-users'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                }`}
+              >
+                👥 Users
+              </button>
+              <button
+                onClick={() => setActiveTab('assessment-recent')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                  activeTab === 'assessment-recent'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                }`}
+              >
+                📋 Recent
+              </button>
+              <button
+                onClick={() => setActiveTab('assessment-settings')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                  activeTab === 'assessment-settings'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                }`}
+              >
+                ⚙️ Settings
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Message */}
         {message && (
@@ -2661,6 +2913,855 @@ export default function AdminPage() {
                   <UserPurchaseAnalytics userPurchases={shopAnalyticsData.userPurchases} />
                 </div>
               )}
+            </div>
+          </>
+        )}
+
+          {/* Assessment Management Main Tab */}
+        {activeTab === 'assessment' && (
+          <>
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  📝 Assessment Management
+                </h2>
+                <p className="text-gray-400">Manage assessment questions, users, and settings</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-gradient-to-br from-orange-900/50 to-orange-800/30 backdrop-blur-sm rounded-xl p-6 border border-orange-500/20 hover:border-orange-400/40 transition-all duration-300 cursor-pointer" onClick={() => setActiveTab('assessment-create')}>
+                  <div className="text-center">
+                    <div className="text-4xl mb-4">📝</div>
+                    <h3 className="text-xl font-bold text-white mb-2">Create Question</h3>
+                    <p className="text-gray-300 text-sm">Create new assessment questions</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 cursor-pointer" onClick={() => setActiveTab('assessment-users')}>
+                  <div className="text-center">
+                    <div className="text-4xl mb-4">👥</div>
+                    <h3 className="text-xl font-bold text-white mb-2">Users</h3>
+                    <p className="text-gray-300 text-sm">View user progress and scores</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-900/50 to-green-800/30 backdrop-blur-sm rounded-xl p-6 border border-green-500/20 hover:border-green-400/40 transition-all duration-300 cursor-pointer" onClick={() => setActiveTab('assessment-recent')}>
+                  <div className="text-center">
+                    <div className="text-4xl mb-4">📋</div>
+                    <h3 className="text-xl font-bold text-white mb-2">Recent</h3>
+                    <p className="text-gray-300 text-sm">View recent submissions</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300 cursor-pointer" onClick={() => setActiveTab('assessment-settings')}>
+                  <div className="text-center">
+                    <div className="text-4xl mb-4">⚙️</div>
+                    <h3 className="text-xl font-bold text-white mb-2">Settings</h3>
+                    <p className="text-gray-300 text-sm">Configure assessment settings</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+          {/* Assessment Create Question Tab */}
+        {activeTab === 'assessment-create' && (
+          <>
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  📝 Create Question
+                </h2>
+                <p className="text-gray-400">Create and manage assessment questions</p>
+              </div>
+
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-white">Questions ({assessmentQuestions.length})</h3>
+                  <button
+                    onClick={() => setShowQuestionForm(!showQuestionForm)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {showQuestionForm ? 'Cancel' : '+ Add Question'}
+                  </button>
+                </div>
+
+                {showQuestionForm && (
+                  <div className="bg-gray-700/50 rounded-lg p-6 mb-6">
+                    <h4 className="text-lg font-semibold text-white mb-4">Create New Question</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-white font-medium mb-2">Phase</label>
+                        <select
+                          value={questionForm.phase}
+                          onChange={(e) => setQuestionForm({...questionForm, phase: parseInt(e.target.value)})}
+                          className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg text-white"
+                        >
+                          <option value={1}>Phase 1</option>
+                          <option value={2}>Phase 2</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-white font-medium mb-2">Path (Phase 2 only)</label>
+                        <select
+                          value={questionForm.path}
+                          onChange={(e) => setQuestionForm({...questionForm, path: e.target.value})}
+                          className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg text-white"
+                          disabled={questionForm.phase === 1}
+                        >
+                          <option value="">Select Path</option>
+                          <option value="health">Health Science</option>
+                          <option value="creative">Creative & Design</option>
+                          <option value="gamedev">Game Development</option>
+                          <option value="engineering">Engineering & AI</option>
+                          <option value="business">Business & Startup</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label className="block text-white font-medium mb-2">Question Text</label>
+                      <textarea
+                        value={questionForm.questionText}
+                        onChange={(e) => setQuestionForm({...questionForm, questionText: e.target.value})}
+                        className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg text-white"
+                        rows={4}
+                        placeholder="Enter your question here..."
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <label className="flex items-center text-white">
+                        <input
+                          type="checkbox"
+                          checked={questionForm.requiresImageUpload}
+                          onChange={(e) => setQuestionForm({...questionForm, requiresImageUpload: e.target.checked})}
+                          className="mr-2"
+                        />
+                        Requires Image Upload
+                      </label>
+                    </div>
+                    <div className="mt-6">
+                      <h5 className="text-white font-medium mb-3">Skill Categories (0-10 points each)</h5>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(questionForm.skillCategories).map(([key, value]) => (
+                          <div key={key}>
+                            <label className="block text-gray-300 text-sm mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1')}</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="10"
+                              value={value}
+                              onChange={(e) => setQuestionForm({
+                                ...questionForm,
+                                skillCategories: {...questionForm.skillCategories, [key]: parseInt(e.target.value) || 0}
+                              })}
+                              className="w-full p-2 bg-gray-600 border border-gray-500 rounded text-white"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-6 flex gap-4">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/assessment/questions', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(questionForm)
+                            });
+                            if (response.ok) {
+                              setMessage('Question created successfully!');
+                              setShowQuestionForm(false);
+                              setQuestionForm({
+                                phase: 1,
+                                path: '',
+                                questionText: '',
+                                questionImage: '',
+                                requiresImageUpload: false,
+                                skillCategories: {
+                                  selfLearning: 0,
+                                  creative: 0,
+                                  algorithm: 0,
+                                  logic: 0,
+                                  communication: 0,
+                                  presentation: 0,
+                                  leadership: 0,
+                                  careerKnowledge: 0
+                                },
+                                order: 1
+                              });
+                              loadAssessmentQuestions();
+                            } else {
+                              const errorData = await response.json();
+                              setMessage(`Error: ${errorData.error}`);
+                            }
+                          } catch (error) {
+                            setMessage('Error creating question');
+                          }
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        Create Question
+                      </button>
+                      <button
+                        onClick={() => setShowQuestionForm(false)}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {assessmentQuestions.map((question) => (
+                    <div key={question._id || question.id} className="bg-gray-700/50 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-orange-600 text-white px-2 py-1 rounded text-sm">
+                              Phase {question.phase}
+                            </span>
+                            {question.path && (
+                              <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm capitalize">
+                                {question.path}
+                              </span>
+                            )}
+                            <span className="bg-gray-600 text-white px-2 py-1 rounded text-sm">
+                              Order: {question.order}
+                            </span>
+                          </div>
+                          <p className="text-white mb-2">{question.questionText}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(question.skillCategories).map(([key, value]) => (
+                              (value as number) > 0 && (
+                                <span key={key} className="bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs">
+                                  {key.replace(/([A-Z])/g, ' $1')}: {value as number}
+                                </span>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/assessment/questions?id=${question._id || question.id}`, {
+                                  method: 'DELETE'
+                                });
+                                if (response.ok) {
+                                  setMessage('Question deleted successfully!');
+                                  loadAssessmentQuestions();
+                                } else {
+                                  const errorData = await response.json();
+                                  setMessage(`Error: ${errorData.error}`);
+                                }
+                              } catch (error) {
+                                setMessage('Error deleting question');
+                              }
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Assessment Users Tab */}
+        {activeTab === 'assessment-users' && (
+          <>
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  👥 Assessment Users
+                </h2>
+                <p className="text-gray-400">View user progress, scores, and detailed answers</p>
+              </div>
+
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <div className="space-y-4">
+                  {assessmentUsers.map((user) => (
+                    <div key={user.id} className="bg-gray-700/50 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {(assessmentNicknames[user.userId] || user.userId).charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="text-white font-semibold">
+                              {assessmentNicknames[user.userId] || `User ${user.userId.slice(-4)}`}
+                            </h3>
+                            <p className="text-gray-400 text-sm">ID: {user.userId}</p>
+                            <div className="flex gap-4 mt-1">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                user.phase1Completed ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
+                              }`}>
+                                Phase 1: {user.phase1Completed ? 'Completed' : 'In Progress'}
+                              </span>
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                user.phase2Completed ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
+                              }`}>
+                                Phase 2: {user.phase2Completed ? 'Completed' : 'Not Started'}
+                              </span>
+                              {user.selectedPath && (
+                                <span className="px-2 py-1 rounded text-xs bg-blue-600 text-white capitalize">
+                                  Path: {user.selectedPath}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSelectedAssessmentUser(selectedAssessmentUser?.id === user.id ? null : user)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            {selectedAssessmentUser?.id === user.id ? 'Hide Details' : 'View Details'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete ALL assessment data for ${assessmentNicknames[user.userId] || `User ${user.userId.slice(-4)}`}? This will completely reset them as if they never took the assessment.`)) {
+                                handleDeleteUser(user.userId);
+                              }
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            🗑️ Delete All User
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {selectedAssessmentUser?.id === user.id && (
+                        <div className="mt-4 pt-4 border-t border-gray-600">
+                          <h4 className="text-white font-semibold mb-3">User Scores</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            {Object.entries(user.totalScore || {}).map(([key, value]) => (
+                              <div key={key} className="bg-gray-600 rounded p-2">
+                                <div className="text-gray-300 text-sm capitalize">{key.replace(/([A-Z])/g, ' $1')}</div>
+                                <div className="text-white font-semibold">{(value as number)?.toFixed(1) || '0.0'}</div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <h4 className="text-white font-semibold mb-3">All Questions & Answers ({user.allAnswers?.length || 0})</h4>
+                          <div className="space-y-4">
+                            {user.allAnswers && user.allAnswers.length > 0 ? (
+                              user.allAnswers.map((answer: any) => (
+                                <div key={answer.id} className="bg-gray-600 rounded p-4">
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                      <span className="text-orange-400 text-sm font-semibold">
+                                        Phase {answer.questionPhase} Question
+                                      </span>
+                                      <span className="text-gray-300 text-sm ml-2">
+                                        {new Date(answer.submittedAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      answer.status === 'approved' ? 'bg-green-600 text-white' : 
+                                      answer.status === 'declined' ? 'bg-red-600 text-white' : 
+                                      'bg-yellow-600 text-white'
+                                    }`}>
+                                      {answer.status === 'approved' ? 'Approved' : 
+                                       answer.status === 'declined' ? 'Declined' : 
+                                       'Pending'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="mb-3">
+                                    <h5 className="text-white font-semibold mb-2">Question:</h5>
+                                    <p className="text-gray-300 text-sm bg-gray-700 p-2 rounded">
+                                      {answer.questionText}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="mb-3">
+                                    <h5 className="text-white font-semibold mb-2">Answer:</h5>
+                                    <p className="text-white text-sm bg-gray-700 p-2 rounded">
+                                      {answer.answerText}
+                                    </p>
+                                  </div>
+                                  
+                                  {answer.answerImage && (
+                                    <div className="mb-3">
+                                      <h5 className="text-white font-semibold mb-2">Image:</h5>
+                                      <img 
+                                        src={answer.answerImage} 
+                                        alt="Answer image" 
+                                        className="max-w-xs rounded border border-gray-500"
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  <div className="mb-3">
+                                    <h5 className="text-white font-semibold mb-2">Skill Scores:</h5>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                      {['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'].map((skill) => (
+                                        <div key={skill} className="bg-gray-700 rounded p-2">
+                                          <div className="text-gray-300 text-xs capitalize mb-1">{skill.replace(/([A-Z])/g, ' $1')}</div>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            step="0.1"
+                                            className="w-full px-2 py-1 bg-gray-600 text-orange-400 font-semibold text-sm rounded border border-gray-500 focus:border-orange-500 focus:outline-none"
+                                            defaultValue={answer.skillScores?.[skill] || 0}
+                                            id={`${skill}-${answer.id}`}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button
+                                      onClick={() => handleSaveSkillScores(answer.id)}
+                                      className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                                    >
+                                      💾 Save Scores
+                                    </button>
+                                  </div>
+                                  
+                                  {answer.reviewedAt && (
+                                    <div className="text-gray-400 text-xs">
+                                      Reviewed by {answer.reviewedBy} on {new Date(answer.reviewedAt).toLocaleString()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-400 text-center py-4">
+                                No answers submitted yet
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Assessment Recent Submissions Tab */}
+        {activeTab === 'assessment-recent' && (
+          <>
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  📋 Recent Submissions
+                </h2>
+                <p className="text-gray-400">View recent user submissions and review answers</p>
+              </div>
+
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <div className="space-y-4">
+                  {assessmentAnswers
+                    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+                    .slice(0, 20)
+                    .map((answer) => (
+                      <div key={answer.id} className="bg-gray-700/50 rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white font-semibold">
+                              {(assessmentNicknames[answer.userId] || answer.userId).charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="text-white font-semibold">
+                                {assessmentNicknames[answer.userId] || `User ${answer.userId.slice(-4)}`}
+                              </h3>
+                              <p className="text-gray-400 text-sm">
+                                {new Date(answer.submittedAt).toLocaleString()}
+                              </p>
+                              <p className="text-gray-300 text-sm mt-1 line-clamp-2">
+                                {answer.answerText}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              answer.status === 'approved' ? 'bg-green-600 text-white' : 
+                              answer.status === 'declined' ? 'bg-red-600 text-white' : 
+                              'bg-yellow-600 text-white'
+                            }`}>
+                              {answer.status === 'approved' ? 'Approved' : 
+                               answer.status === 'declined' ? 'Declined' : 
+                               'Pending'}
+                            </span>
+                            {answer.adminScore && (
+                              <span className="bg-orange-600 text-white px-2 py-1 rounded text-xs">
+                                {answer.adminScore}/10
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {answer.answerImage && (
+                          <div className="mt-3">
+                            <img 
+                              src={answer.answerImage} 
+                              alt="Answer" 
+                              className="max-w-xs h-auto rounded-lg"
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Scoring Form */}
+                        {answer.status === 'pending' && (
+                          <div className="mt-4 p-4 bg-gray-600/30 rounded-lg">
+                            <h4 className="text-white font-semibold mb-3">ให้คะแนนทักษะ (0-10 คะแนน)</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div>
+                                <label className="text-gray-300 text-sm">Self Learning</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`selfLearning-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Creative</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`creative-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Algorithm</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`algorithm-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Logic</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`logic-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Communication</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`communication-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Presentation</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`presentation-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Leadership</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`leadership-${answer._id || answer.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Career Knowledge</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                  placeholder="0"
+                                  id={`careerKnowledge-${answer._id || answer.id}`}
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <label className="text-gray-300 text-sm">ความคิดเห็น (ไม่บังคับ)</label>
+                              <textarea
+                                className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                rows={2}
+                                placeholder="ให้ความคิดเห็นเพิ่มเติม..."
+                                id={`feedback-${answer._id || answer.id}`}
+                              />
+                            </div>
+                            <div className="mt-4 flex gap-2">
+                              <div className="flex gap-3">
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const skillScores = {
+                                        selfLearning: parseInt((document.getElementById(`selfLearning-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        creative: parseInt((document.getElementById(`creative-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        algorithm: parseInt((document.getElementById(`algorithm-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        logic: parseInt((document.getElementById(`logic-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        communication: parseInt((document.getElementById(`communication-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        presentation: parseInt((document.getElementById(`presentation-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        leadership: parseInt((document.getElementById(`leadership-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0'),
+                                        careerKnowledge: parseInt((document.getElementById(`careerKnowledge-${answer._id || answer.id}`) as HTMLInputElement)?.value || '0')
+                                      };
+                                      
+                                      const adminFeedback = (document.getElementById(`feedback-${answer._id || answer.id}`) as HTMLTextAreaElement)?.value || '';
+                                      
+                                      const response = await fetch('/api/assessment/answers', {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          answerId: answer._id || answer.id,
+                                          skillScores,
+                                          adminFeedback
+                                        })
+                                      });
+                                      
+                                      if (response.ok) {
+                                        setMessage('คะแนนถูกบันทึกเรียบร้อยแล้ว!');
+                                        loadAssessmentAnswers();
+                                      } else {
+                                        const errorData = await response.json();
+                                        setMessage(`Error: ${errorData.error}`);
+                                      }
+                                    } catch (error) {
+                                      setMessage('เกิดข้อผิดพลาดในการบันทึกคะแนน');
+                                    }
+                                  }}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                  บันทึกคะแนน
+                                </button>
+                                
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm('คุณแน่ใจหรือไม่ที่จะปฏิเสธคำตอบนี้? ผู้ใช้จะต้องทำคำถามนี้ใหม่')) {
+                                      return;
+                                    }
+                                    
+                                    try {
+                                      const adminFeedback = (document.getElementById(`feedback-${answer._id || answer.id}`) as HTMLTextAreaElement)?.value || 'คำตอบไม่ผ่านการประเมิน กรุณาทำใหม่';
+                                      
+                                      const response = await fetch('/api/assessment/answers', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          answerId: answer._id || answer.id,
+                                          status: 'declined',
+                                          adminFeedback
+                                        })
+                                      });
+                                      
+                                      if (response.ok) {
+                                        setMessage('คำตอบถูกปฏิเสธเรียบร้อยแล้ว!');
+                                        loadAssessmentAnswers();
+                                      } else {
+                                        const errorData = await response.json();
+                                        setMessage(`Error: ${errorData.error}`);
+                                      }
+                                    } catch (error) {
+                                      setMessage('เกิดข้อผิดพลาดในการปฏิเสธคำตอบ');
+                                    }
+                                  }}
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                  ปฏิเสธคำตอบ
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Show existing scores if approved */}
+                        {answer.status === 'approved' && answer.skillScores && (
+                          <div className="mt-4 p-4 bg-green-600/20 rounded-lg">
+                            <h4 className="text-white font-semibold mb-2">คะแนนที่ให้แล้ว:</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                              {answer.skillScores.selfLearning && (
+                                <div className="text-gray-300">Self Learning: <span className="text-orange-400 font-semibold">{answer.skillScores.selfLearning}/10</span></div>
+                              )}
+                              {answer.skillScores.creative && (
+                                <div className="text-gray-300">Creative: <span className="text-orange-400 font-semibold">{answer.skillScores.creative}/10</span></div>
+                              )}
+                              {answer.skillScores.algorithm && (
+                                <div className="text-gray-300">Algorithm: <span className="text-orange-400 font-semibold">{answer.skillScores.algorithm}/10</span></div>
+                              )}
+                              {answer.skillScores.logic && (
+                                <div className="text-gray-300">Logic: <span className="text-orange-400 font-semibold">{answer.skillScores.logic}/10</span></div>
+                              )}
+                              {answer.skillScores.communication && (
+                                <div className="text-gray-300">Communication: <span className="text-orange-400 font-semibold">{answer.skillScores.communication}/10</span></div>
+                              )}
+                              {answer.skillScores.presentation && (
+                                <div className="text-gray-300">Presentation: <span className="text-orange-400 font-semibold">{answer.skillScores.presentation}/10</span></div>
+                              )}
+                              {answer.skillScores.leadership && (
+                                <div className="text-gray-300">Leadership: <span className="text-orange-400 font-semibold">{answer.skillScores.leadership}/10</span></div>
+                              )}
+                              {answer.skillScores.careerKnowledge && (
+                                <div className="text-gray-300">Career Knowledge: <span className="text-orange-400 font-semibold">{answer.skillScores.careerKnowledge}/10</span></div>
+                              )}
+                            </div>
+                            {answer.adminFeedback && (
+                              <div className="mt-2 text-gray-300 text-sm">
+                                <strong>ความคิดเห็น:</strong> {answer.adminFeedback}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Show declined feedback */}
+                        {answer.status === 'declined' && (
+                          <div className="mt-4 p-4 bg-red-600/20 rounded-lg">
+                            <h4 className="text-white font-semibold mb-2">คำตอบถูกปฏิเสธ</h4>
+                            {answer.adminFeedback && (
+                              <div className="p-3 bg-gray-600/30 rounded">
+                                <h5 className="text-white font-semibold mb-1">เหตุผล:</h5>
+                                <p className="text-gray-300 text-sm">{answer.adminFeedback}</p>
+                              </div>
+                            )}
+                            <p className="text-gray-400 text-sm mt-2">ผู้ใช้จะต้องทำคำถามนี้ใหม่</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Assessment Settings Tab */}
+        {activeTab === 'assessment-settings' && (
+          <>
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
+                  ⚙️ Assessment Settings
+                </h2>
+                <p className="text-gray-400">Configure system settings and behavior</p>
+              </div>
+
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                {assessmentSettings && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="flex items-center text-white">
+                        <input
+                          type="checkbox"
+                          checked={assessmentSettings.phase2Open}
+                          onChange={async (e) => {
+                            try {
+                              const response = await fetch('/api/assessment/settings', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phase2Open: e.target.checked })
+                              });
+                              if (response.ok) {
+                                setMessage('Settings updated successfully!');
+                                loadAssessmentSettings();
+                              } else {
+                                const errorData = await response.json();
+                                setMessage(`Error: ${errorData.error}`);
+                              }
+                            } catch (error) {
+                              setMessage('Error updating settings');
+                            }
+                          }}
+                          className="mr-3"
+                        />
+                        Phase 2 Open
+                      </label>
+                      <p className="text-gray-400 text-sm mt-1">Allow users to proceed to Phase 2</p>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center text-white">
+                        <input
+                          type="checkbox"
+                          checked={assessmentSettings.allowFriendAnswers}
+                          onChange={async (e) => {
+                            try {
+                              const response = await fetch('/api/assessment/settings', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ allowFriendAnswers: e.target.checked })
+                              });
+                              if (response.ok) {
+                                setMessage('Settings updated successfully!');
+                                loadAssessmentSettings();
+                              } else {
+                                const errorData = await response.json();
+                                setMessage(`Error: ${errorData.error}`);
+                              }
+                            } catch (error) {
+                              setMessage('Error updating settings');
+                            }
+                          }}
+                          className="mr-3"
+                        />
+                        Allow Friend Answers
+                      </label>
+                      <p className="text-gray-400 text-sm mt-1">Show friend answers after completing Phase 1</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-white font-medium mb-2">Max Image Size (MB)</label>
+                      <input
+                        type="number"
+                        value={assessmentSettings.maxImageSize / (1024 * 1024)}
+                        onChange={async (e) => {
+                          try {
+                            const response = await fetch('/api/assessment/settings', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ maxImageSize: parseInt(e.target.value) * 1024 * 1024 })
+                            });
+                            if (response.ok) {
+                              setMessage('Settings updated successfully!');
+                              loadAssessmentSettings();
+                            } else {
+                              const errorData = await response.json();
+                              setMessage(`Error: ${errorData.error}`);
+                            }
+                          } catch (error) {
+                            setMessage('Error updating settings');
+                          }
+                        }}
+                        className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg text-white"
+                        min="1"
+                        max="50"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

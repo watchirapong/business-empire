@@ -4,6 +4,7 @@ import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 import AnalyticsProvider from "../components/AnalyticsProvider";
 import StructuredData from "../components/StructuredData";
+import { ThemeProvider } from "../components/ThemeProvider";
 import "../lib/auto-start-bot"; // Initialize auto-start
 
 const notoSansThai = Noto_Sans_Thai({
@@ -105,11 +106,13 @@ export default function RootLayout({
         className={`${notoSansThai.variable} font-thai antialiased`}
       >
         <StructuredData type="webapplication" />
-        <AuthProvider>
-          <AnalyticsProvider>
-            {children}
-          </AnalyticsProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AnalyticsProvider>
+              {children}
+            </AnalyticsProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

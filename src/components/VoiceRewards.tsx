@@ -73,9 +73,6 @@ export default function VoiceRewards() {
           <span className="mr-2">🎤</span>
           Daily Voice Rewards
         </h3>
-        <div className="text-purple-300 text-sm">
-          Total Earned: {rewardsData.totalRewardsEarned} 🪙
-        </div>
       </div>
 
       {/* Today's Progress */}
@@ -113,30 +110,9 @@ export default function VoiceRewards() {
         )}
       </div>
 
-      {/* Recent Activity */}
-      <div>
-        <h4 className="text-lg font-semibold text-white mb-3">Recent Activity</h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {rewardsData.recentRewards.slice(0, 5).map((reward) => (
-            <div key={reward.date} className="flex justify-between items-center bg-gray-800/30 rounded-lg p-2">
-              <div>
-                <div className="text-white text-sm">{new Date(reward.date).toLocaleDateString()}</div>
-                <div className="text-gray-400 text-xs">{reward.voiceTimeMinutes} minutes</div>
-              </div>
-              <div className="text-right">
-                {reward.rewardClaimed ? (
-                  <span className="text-green-400 text-xs">+{reward.rewardAmount} 🪙</span>
-                ) : (
-                  <span className="text-gray-500 text-xs">No reward</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className="mt-4 text-center text-gray-400 text-xs">
-        Spend 15+ minutes in voice channels daily to earn HamsterCoins!
+        Spend 15+ minutes in voice channels daily to earn Tickets!
       </div>
     </div>
   );

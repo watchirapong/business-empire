@@ -389,125 +389,102 @@ export default function UserProfilePage() {
                 <p className="text-gray-400">Track your skill development and achievements</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Programming */}
-                <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 rounded-xl border border-blue-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">💻</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Programming</h3>
-                        <p className="text-blue-300 text-sm">Code & Development</p>
-                      </div>
+              {/* Ability Chart */}
+              <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-8">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold gradient-text-primary mb-2">🎯 Ability Chart</h2>
+                  <p className="text-gray-300">Your comprehensive skill assessment</p>
+                </div>
+
+                {/* Radar Chart Container */}
+                <div className="relative flex items-center justify-center mb-8">
+                  <div className="relative w-80 h-80">
+                    {/* Radar Chart Background Circles */}
+                    <div className="absolute inset-0 rounded-full border border-orange-500/20"></div>
+                    <div className="absolute inset-8 rounded-full border border-orange-500/20"></div>
+                    <div className="absolute inset-16 rounded-full border border-orange-500/20"></div>
+                    <div className="absolute inset-24 rounded-full border border-orange-500/20"></div>
+                    <div className="absolute inset-32 rounded-full border border-orange-500/20"></div>
+
+                    {/* Radar Lines */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent rotate-0"></div>
+                      <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent rotate-60"></div>
+                      <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent rotate-120"></div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-400">{userStats.programming}</div>
-                      <div className="text-blue-300 text-sm">Level</div>
+
+                    {/* Skill Points */}
+                    {(() => {
+                      const centerX = 160;
+                      const centerY = 160;
+                      const maxRadius = 140;
+                      const angleStep = (Math.PI * 2) / 6;
+
+                      const skills = [
+                        { name: 'Programming', value: userStats.programming, color: 'rgb(59, 130, 246)', icon: '💻' },
+                        { name: 'Artist', value: userStats.artist, color: 'rgb(147, 51, 234)', icon: '🎨' },
+                        { name: 'Creative', value: userStats.creative, color: 'rgb(34, 197, 94)', icon: '💡' },
+                        { name: 'Leadership', value: userStats.leadership, color: 'rgb(234, 179, 8)', icon: '👑' },
+                        { name: 'Communication', value: userStats.communication, color: 'rgb(236, 72, 153)', icon: '💬' },
+                        { name: 'Self Learning', value: userStats.selfLearning, color: 'rgb(99, 102, 241)', icon: '📚' }
+                      ];
+
+                      return skills.map((skill, index) => {
+                        const angle = index * angleStep - Math.PI / 2; // Start from top
+                        const radius = (skill.value / 100) * maxRadius;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius;
+
+                        return (
+                          <div
+                            key={skill.name}
+                            className="absolute w-4 h-4 rounded-full border-2 border-white shadow-lg animate-pulse"
+                            style={{
+                              backgroundColor: skill.color,
+                              left: x - 8,
+                              top: y - 8,
+                              boxShadow: `0 0 15px ${skill.color}40`
+                            }}
+                          >
+                            <div className="absolute -top-8 -left-8 text-lg">{skill.icon}</div>
+                          </div>
+                        );
+                      });
+                    })()}
+
+                    {/* Center */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 bg-orange-500 rounded-full animate-pulse"></div>
                     </div>
-                  </div>
-                  <div className="w-full bg-blue-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full" style={{ width: `${userStats.programming}%` }}></div>
                   </div>
                 </div>
 
-                {/* Artist */}
-                <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 rounded-xl border border-purple-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">🎨</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Artist</h3>
-                        <p className="text-purple-300 text-sm">Design & Creativity</p>
+                {/* Skill Labels */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    { name: 'Programming', value: userStats.programming, color: 'text-blue-400', bg: 'from-blue-500 to-blue-400', icon: '💻' },
+                    { name: 'Artist', value: userStats.artist, color: 'text-purple-400', bg: 'from-purple-500 to-purple-400', icon: '🎨' },
+                    { name: 'Creative', value: userStats.creative, color: 'text-green-400', bg: 'from-green-500 to-green-400', icon: '💡' },
+                    { name: 'Leadership', value: userStats.leadership, color: 'text-yellow-400', bg: 'from-yellow-500 to-yellow-400', icon: '👑' },
+                    { name: 'Communication', value: userStats.communication, color: 'text-pink-400', bg: 'from-pink-500 to-pink-400', icon: '💬' },
+                    { name: 'Self Learning', value: userStats.selfLearning, color: 'text-indigo-400', bg: 'from-indigo-500 to-indigo-400', icon: '📚' }
+                  ].map((skill) => (
+                    <div key={skill.name} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{skill.icon}</span>
+                        <div>
+                          <div className="text-sm font-medium text-white">{skill.name}</div>
+                          <div className={`text-xs ${skill.color}`}>{skill.value}/100</div>
+                        </div>
+                      </div>
+                      <div className={`w-16 h-2 bg-gray-700 rounded-full overflow-hidden`}>
+                        <div
+                          className={`h-full bg-gradient-to-r ${skill.bg} transition-all duration-1000`}
+                          style={{ width: `${skill.value}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-400">{userStats.artist}</div>
-                      <div className="text-purple-300 text-sm">Level</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-purple-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-purple-500 to-purple-400 h-3 rounded-full" style={{ width: `${userStats.artist}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Creative */}
-                <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-xl border border-green-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">💡</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Creative</h3>
-                        <p className="text-green-300 text-sm">Innovation & Ideas</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-400">{userStats.creative}</div>
-                      <div className="text-green-300 text-sm">Level</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-green-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-green-500 to-green-400 h-3 rounded-full" style={{ width: `${userStats.creative}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Leadership */}
-                <div className="bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 rounded-xl border border-yellow-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">👑</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Leadership</h3>
-                        <p className="text-yellow-300 text-sm">Team Management</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-yellow-400">{userStats.leadership}</div>
-                      <div className="text-yellow-300 text-sm">Level</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-yellow-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-yellow-500 to-yellow-400 h-3 rounded-full" style={{ width: `${userStats.leadership}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Communication */}
-                <div className="bg-gradient-to-br from-pink-900/30 to-pink-800/20 rounded-xl border border-pink-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">💬</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Communication</h3>
-                        <p className="text-pink-300 text-sm">Social & Presentation</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-pink-400">{userStats.communication}</div>
-                      <div className="text-pink-300 text-sm">Level</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-pink-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-pink-500 to-pink-400 h-3 rounded-full" style={{ width: `${userStats.communication}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Self Learning */}
-                <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 rounded-xl border border-indigo-500/30 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">📚</div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Self Learning</h3>
-                        <p className="text-indigo-300 text-sm">Continuous Growth</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-indigo-400">{userStats.selfLearning}</div>
-                      <div className="text-indigo-300 text-sm">Level</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-indigo-900/30 rounded-full h-3">
-                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-3 rounded-full" style={{ width: `${userStats.selfLearning}%` }}></div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -117,7 +117,7 @@ export default function ShopPage() {
                     try {
                       const title = await fetchYouTubeVideoTitle(videoId);
                       titles[item.id] = title;
-                    } catch (error) {
+    } catch (error) {
                       console.error(`Failed to fetch title for video ${videoId}:`, error);
                       titles[item.id] = 'YouTube Video';
                     }
@@ -136,8 +136,8 @@ export default function ShopPage() {
           if (balanceData.success) {
             setBalance(balanceData.balance);
           }
-        }
-      } catch (error) {
+      }
+    } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
@@ -181,7 +181,7 @@ export default function ShopPage() {
     if (!item.inStock) return;
     if (cart.find(cartItem => cartItem.id === item.id)) {
       alert('Item already in cart!');
-      return;
+          return;
     }
 
     // Check role requirements before adding to cart
@@ -189,13 +189,13 @@ export default function ShopPage() {
       try {
         const response = await fetch(`/api/test-discord-role?roleId=${item.requiredRoleId}`);
         const data = await response.json();
-
+        
         if (!data.hasRole) {
           const roleName = item.requiredRoleName || item.requiredRoleId;
           alert(`❌ Cannot add to cart!\n\nThis item requires the Discord role: ${roleName}\n\nPlease make sure you have this role in the Discord server before purchasing.`);
           return;
-        }
-      } catch (error) {
+      }
+    } catch (error) {
         console.error('Error checking role requirement:', error);
         alert('⚠️ Warning: Unable to verify role requirements. You may not be able to complete the purchase if you don\'t have the required role.');
       }
@@ -215,9 +215,9 @@ export default function ShopPage() {
   const handlePurchase = async () => {
     if (cart.length === 0) {
       alert('Your cart is empty!');
-      return;
-    }
-
+        return;
+      }
+      
     const total = getTotalPrice();
     const currentBalance = selectedCurrency === 'hamstercoin' ? balance.hamstercoin : balance.stardustcoin;
 
@@ -231,23 +231,23 @@ export default function ShopPage() {
     try {
       // Process each item in cart
       for (const item of cart) {
-        const response = await fetch('/api/shop/purchase', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+      const response = await fetch('/api/shop/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
             itemId: item.id,
-            currency: selectedCurrency
-          }),
-        });
+          currency: selectedCurrency
+        }),
+      });
 
         const data = await response.json();
-
+        
         if (!response.ok) {
           alert(`Purchase failed: ${data.error}`);
-          return;
-        }
+        return;
+      }
       }
 
       // Update balance and clear cart
@@ -258,7 +258,7 @@ export default function ShopPage() {
 
       // Find the first purchased item for the success modal
       const firstItem = cart[0];
-      setPurchasedItem({
+          setPurchasedItem({
         id: firstItem.id,
         name: firstItem.name,
         image: firstItem.image,
@@ -272,7 +272,7 @@ export default function ShopPage() {
       });
 
       setCart([]);
-      setShowPurchaseSuccess(true);
+          setShowPurchaseSuccess(true);
 
       // Refresh balance after purchase
       try {
@@ -318,12 +318,12 @@ export default function ShopPage() {
 
           {/* Admin and Purchase History Buttons */}
           <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <button
+          <button
               onClick={() => router.push('/purchases')}
               className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
-            >
+          >
               📦 View Purchase History
-            </button>
+          </button>
 
             {isShopAdmin && (
               <button
@@ -356,25 +356,25 @@ export default function ShopPage() {
                 ➕ Post New Item
               </button>
             )}
-          </div>
+        </div>
 
           {/* Balance Display */}
           <div className="mt-4 flex flex-wrap justify-center gap-4">
             {/* HamsterCoin Balance */}
             <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
-              selectedCurrency === 'hamstercoin'
-                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50 ring-2 ring-yellow-500/30'
+              selectedCurrency === 'hamstercoin' 
+                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50 ring-2 ring-yellow-500/30' 
                 : 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
             }`}>
               <span className="text-2xl mr-2">🪙</span>
               <span className="text-yellow-400 font-bold text-xl">{balance.hamstercoin.toLocaleString()}</span>
               <span className="text-yellow-300 ml-1">Hamster Coins</span>
             </div>
-
+            
             {/* StardustCoin Balance */}
             <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
-              selectedCurrency === 'stardustcoin'
-                ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50 ring-2 ring-purple-500/30'
+              selectedCurrency === 'stardustcoin' 
+                ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50 ring-2 ring-purple-500/30' 
                 : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30'
             }`}>
               <span className="text-2xl mr-2">✨</span>
@@ -382,7 +382,7 @@ export default function ShopPage() {
               <span className="text-purple-300 ml-1">StardustCoin</span>
             </div>
           </div>
-
+          
           {/* Currency Selector */}
           <div className="mt-4 flex justify-center">
             <div className="bg-white/10 rounded-lg p-2 flex space-x-2">
@@ -408,7 +408,7 @@ export default function ShopPage() {
               </button>
             </div>
           </div>
-
+          
           {/* Search Bar */}
           <div className="mt-6 max-w-md mx-auto">
             <div className="relative">
@@ -438,8 +438,8 @@ export default function ShopPage() {
               </p>
             )}
           </div>
-        </div>
-
+          </div>
+          
         {/* Category Filter */}
         <div className="flex justify-center mb-8">
           <div className="bg-white/10 rounded-lg p-2 flex space-x-2">
@@ -553,13 +553,13 @@ export default function ShopPage() {
               </div>
 
               <div className="flex space-x-2">
-                <button
+              <button
                   onClick={() => addToCart(item)}
                   disabled={!item.inStock}
                   className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
                 >
                   Add to Cart
-                </button>
+              </button>
 
                 {isShopAdmin && (
                   <div className="flex gap-2">
@@ -573,16 +573,16 @@ export default function ShopPage() {
                       title="Edit Item (Admin)"
                     >
                       ✏️
-                    </button>
-                    <button
-                      onClick={async () => {
+              </button>
+              <button
+                onClick={async () => {
                         if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
                           try {
                             const response = await fetch(`/api/shop/items/${item.id}`, {
                               method: 'DELETE',
-                            });
-
-                            if (response.ok) {
+                      });
+                      
+                      if (response.ok) {
                               // Remove item from local state
                               setItems(prevItems => prevItems.filter(i => i.id !== item.id));
                               alert('Item deleted successfully!');
@@ -590,7 +590,7 @@ export default function ShopPage() {
                               const error = await response.json();
                               alert(`Failed to delete item: ${error.error}`);
                             }
-                          } catch (error) {
+                  } catch (error) {
                             console.error('Delete error:', error);
                             alert('Failed to delete item. Please try again.');
                           }
@@ -600,13 +600,13 @@ export default function ShopPage() {
                       title="Delete Item (Admin)"
                     >
                       🗑️
-                    </button>
-                  </div>
-                )}
-              </div>
+              </button>
             </div>
-          ))}
+          )}
         </div>
+                    </div>
+          ))}
+                </div>
 
         {/* Edit Item Modal */}
         {showEditForm && (
@@ -620,13 +620,13 @@ export default function ShopPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input
+                  <input
                       type="text"
                       value={editFormData.name || ''}
                       onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                    />
-                  </div>
+                  />
+                </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -636,12 +636,12 @@ export default function ShopPage() {
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     />
-                  </div>
+              </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-                      <input
+                  <input
                         type="number"
                         value={editFormData.price || ''}
                         onChange={(e) => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})}
@@ -663,15 +663,15 @@ export default function ShopPage() {
                         <option value="cosmetics">Cosmetics</option>
                         <option value="other">Other</option>
                       </select>
-                    </div>
-                  </div>
+              </div>
+              </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Item Image</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
                           setEditFormData({...editFormData, imageFile: file, image: ''});
@@ -685,28 +685,28 @@ export default function ShopPage() {
                         📁 Selected: {editFormData.imageFile.name}
                       </p>
                     )}
-                  </div>
+              </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
-                    <select
+                <select
                       value={editFormData.contentType || 'none'}
                       onChange={(e) => setEditFormData({...editFormData, contentType: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                     >
                       <option value="none">No Content (Digital Item)</option>
-                      <option value="text">Text Content</option>
-                      <option value="link">External Link</option>
+                  <option value="text">Text Content</option>
+                  <option value="link">External Link</option>
                       <option value="file">Downloadable File</option>
                       <option value="youtube">YouTube Video</option>
-                    </select>
-                  </div>
+                </select>
+            </div>
 
                   {/* Text Content Field */}
                   {editFormData.contentType === 'text' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Text Content</label>
-                      <textarea
+                <textarea
                         value={editFormData.textContent || ''}
                         onChange={(e) => setEditFormData({...editFormData, textContent: e.target.value})}
                         rows={5}
@@ -714,49 +714,49 @@ export default function ShopPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-gray-900 bg-white"
                       />
                       <p className="text-xs text-gray-500 mt-1">This text will be displayed to users after they purchase this item.</p>
-                    </div>
-                  )}
+              </div>
+            )}
 
                   {/* Link Content Field */}
                   {editFormData.contentType === 'link' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">External Link URL</label>
-                      <input
-                        type="url"
+                <input
+                  type="url"
                         value={editFormData.linkUrl || ''}
                         onChange={(e) => setEditFormData({...editFormData, linkUrl: e.target.value})}
                         placeholder="https://example.com/your-link"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                       />
                       <p className="text-xs text-gray-500 mt-1">Users will be able to access this link after purchasing the item.</p>
-                    </div>
-                  )}
+              </div>
+            )}
 
                   {/* File Content Fields */}
                   {editFormData.contentType === 'file' && (
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">File URL</label>
-                        <input
+              <input
                           type="text"
                           value={editFormData.fileUrl || ''}
                           onChange={(e) => setEditFormData({...editFormData, fileUrl: e.target.value})}
                           placeholder="/uploads/files/your-file.zip"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
-                      </div>
+            </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">File Name (for download)</label>
-                        <input
+                <input
                           type="text"
                           value={editFormData.fileName || ''}
                           onChange={(e) => setEditFormData({...editFormData, fileName: e.target.value})}
                           placeholder="my-file.zip"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
-                      </div>
-                    </div>
-                  )}
+                  </div>
+              </div>
+            )}
 
                   {/* YouTube Video Preview Field (Optional for all item types) */}
                   <div>
@@ -771,81 +771,81 @@ export default function ShopPage() {
                     <p className="text-xs text-gray-500 mt-1">Optional: Add a YouTube video that will show as a preview in the shop item card.</p>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
                       id="inStock"
                       checked={editFormData.inStock || false}
                       onChange={(e) => setEditFormData({...editFormData, inStock: e.target.checked})}
                       className="rounded"
                     />
                     <label htmlFor="inStock" className="text-sm font-medium text-gray-700">In Stock</label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
                       id="allowMultiple"
                       checked={editFormData.allowMultiplePurchases || false}
                       onChange={(e) => setEditFormData({...editFormData, allowMultiplePurchases: e.target.checked})}
                       className="rounded"
                     />
                     <label htmlFor="allowMultiple" className="text-sm font-medium text-gray-700">Allow Multiple Purchases</label>
-                  </div>
+              </div>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
                       id="requiresRole"
                       checked={editFormData.requiresRole || false}
                       onChange={(e) => setEditFormData({...editFormData, requiresRole: e.target.checked})}
                       className="rounded"
                     />
                     <label htmlFor="requiresRole" className="text-sm font-medium text-gray-700">Require Discord Role</label>
-                  </div>
+              </div>
 
                   {editFormData.requiresRole && (
                     <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <h4 className="text-sm font-semibold text-yellow-800">Discord Role Requirements</h4>
 
-                      <div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Role ID</label>
-                        <input
-                          type="text"
+                    <input
+                      type="text"
                           value={editFormData.requiredRoleId || ''}
                           onChange={(e) => setEditFormData({...editFormData, requiredRoleId: e.target.value})}
                           placeholder="1234567890123456789"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
                         <p className="text-xs text-gray-500 mt-1">The Discord role ID that users must have to purchase this item.</p>
-                      </div>
+                  </div>
 
-                      <div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Role Name (Optional)</label>
-                        <input
-                          type="text"
+                    <input
+                      type="text"
                           value={editFormData.requiredRoleName || ''}
                           onChange={(e) => setEditFormData({...editFormData, requiredRoleName: e.target.value})}
                           placeholder="VIP Member"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
                         />
                         <p className="text-xs text-gray-500 mt-1">Display name for the role (optional, will use Role ID if not provided).</p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
+              )}
+            </div>
 
                 <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowEditForm(false);
+              <button
+                onClick={() => {
+                  setShowEditForm(false);
                       setEditingShopItem(null);
                       setEditFormData({});
                     }}
                     className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
+              >
+                Cancel
+              </button>
                   <button
                     onClick={async () => {
                       try {
@@ -915,11 +915,11 @@ export default function ShopPage() {
                   >
                     {editingShopItem ? 'Update Item' : 'Create Item'}
                   </button>
-                </div>
-              </div>
+                      </div>
+                  </div>
             </div>
-          </div>
-        )}
+                          </div>
+                        )}
 
         {/* Cart Summary */}
         {cart.length > 0 && (
@@ -932,33 +932,33 @@ export default function ShopPage() {
                   <div className="flex items-center space-x-2">
                     <span>{item.image}</span>
                     <span className="text-white text-sm">{item.name}</span>
-                  </div>
+                      </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-orange-400 text-sm">${item.price}</span>
-                    <button
+                      <button
                       onClick={() => removeFromCart(item.id)}
                       className="text-red-400 hover:text-red-300 text-sm"
-                    >
+                      >
                       ✕
-                    </button>
+                      </button>
                   </div>
                 </div>
               ))}
-            </div>
+        </div>
 
             <div className="border-t border-white/20 pt-4">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-white font-semibold">Total:</span>
                 <span className="text-2xl text-orange-400 font-bold">${getTotalPrice()}</span>
-              </div>
+                    </div>
 
-              <button
+                  <button
                 onClick={handlePurchase}
                 disabled={purchasing}
                 className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
-              >
+                  >
                 {purchasing ? 'Processing...' : 'Purchase Now'}
-              </button>
+                  </button>
             </div>
           </div>
         )}
@@ -973,12 +973,12 @@ export default function ShopPage() {
                 <p className="text-gray-300 mb-4">
                   You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.name}</span>
                 </p>
-
+                
                 {/* Item Image */}
                 <div className="mb-6">
                   {purchasedItem.image && purchasedItem.image.startsWith('/') ? (
-                    <img
-                      src={purchasedItem.image}
+                    <img 
+                      src={purchasedItem.image} 
                       alt={purchasedItem.name}
                       className="w-24 h-24 object-cover rounded-lg mx-auto border border-white/20 shadow-lg"
                     />
@@ -1014,7 +1014,7 @@ export default function ShopPage() {
                   )}
 
                   {/* Link Content */}
-                  {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
+                {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
                     <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-5 mb-4 border border-blue-500/30 shadow-lg">
                       <div className="flex items-center mb-3">
                         <div className="text-3xl mr-3">🔗</div>
@@ -1031,10 +1031,10 @@ export default function ShopPage() {
                               {purchasedItem.linkUrl}
                             </p>
                           </div>
-                          <a
-                            href={purchasedItem.linkUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                    <a 
+                      href={purchasedItem.linkUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
                           >
                             🌐 Open Link
@@ -1045,18 +1045,18 @@ export default function ShopPage() {
                         <span className="mr-2">🔓</span>
                         <span>Link unlocked - opens in new tab</span>
                       </div>
-                    </div>
-                  )}
-
+                  </div>
+                )}
+                
                   {/* File Content */}
-                  {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
+                {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
                     <div className="bg-gradient-to-br from-purple-500/20 to-violet-500/20 rounded-xl p-5 mb-4 border border-purple-500/30 shadow-lg">
                       <div className="flex items-center mb-3">
                         <div className="text-3xl mr-3">📁</div>
                         <div>
                           <h4 className="text-purple-300 font-bold text-lg">Downloadable File</h4>
                           <p className="text-purple-200 text-sm">Download your purchased file</p>
-                        </div>
+                  </div>
                       </div>
                       <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
                         <div className="flex items-center justify-between">
@@ -1110,9 +1110,9 @@ export default function ShopPage() {
                       <div className="mt-3 flex items-center text-purple-300 text-sm">
                         <span className="mr-2">📋</span>
                         <span>File ready for download</span>
-                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
                   {/* YouTube Video Preview */}
                   {purchasedItem.youtubeUrl && purchasedItem.youtubeUrl.trim() !== '' && (
@@ -1151,8 +1151,8 @@ export default function ShopPage() {
 
                           <a
                             href={purchasedItem.youtubeUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                      target="_blank" 
+                      rel="noopener noreferrer"
                             className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg inline-block text-center w-full"
                           >
                             🎬 Watch Video on YouTube
@@ -1163,8 +1163,8 @@ export default function ShopPage() {
                         <span className="mr-2">▶️</span>
                         <span>Video preview available - opens in new tab</span>
                       </div>
-                    </div>
-                  )}
+                  </div>
+                )}
 
                   {/* No Content */}
                   {(!purchasedItem.contentType || purchasedItem.contentType === 'none') && (
@@ -1201,7 +1201,7 @@ export default function ShopPage() {
                     🛒 Continue Shopping
                   </button>
                 </div>
-
+                
                 <p className="text-gray-400 text-sm">
                   You can access this content anytime from your <span className="text-blue-400 cursor-pointer" onClick={() => router.push('/purchases')}>Purchase History</span>
                 </p>

@@ -83,10 +83,10 @@ export default function Leaderboard() {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
+      <div className="glass-card rounded-2xl p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading leaderboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-300 text-base font-medium">Loading leaderboard...</p>
         </div>
       </div>
     );
@@ -94,93 +94,126 @@ export default function Leaderboard() {
 
   if (error) {
     return (
-      <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-red-500/20 p-6">
+      <div className="glass-card rounded-2xl p-6 border-red-300/20">
         <div className="text-center">
-          <div className="text-2xl mb-2">❌</div>
-          <p className="text-red-300">{error}</p>
+          <div className="text-3xl mb-3">❌</div>
+          <p className="text-red-300 text-base font-medium">{error}</p>
+          <button
+            onClick={fetchLeaderboard}
+            className="mt-4 btn-modern bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6">
+    <div className="glass-card rounded-2xl p-6 relative overflow-hidden">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center space-x-2">
-          <span className="text-2xl">🏆</span>
-          <span>MEMBER RANK</span>
-        </h2>
-        <p className="text-gray-400 text-sm">Top members by total earnings</p>
+        <div className="inline-flex items-center space-x-3 mb-3">
+          <div className="text-3xl">🏆</div>
+          <h2 className="text-2xl font-bold gradient-text-primary">
+            MEMBER RANK
+          </h2>
+        </div>
+        <p className="text-gray-300 text-sm">Top members by total earnings</p>
+        <div className="h-px bg-gradient-to-r from-transparent via-orange-300/20 to-transparent mt-4"></div>
       </div>
 
-      {/* Leaderboard List */}
-      <div className="space-y-2 max-h-96 overflow-y-auto">
+      {/* Modern Leaderboard List */}
+      <div className="space-y-3 max-h-96 overflow-y-auto relative z-10">
         {leaderboard.slice(0, 10).map((entry, index) => {
           const isTopThree = index < 3;
           const isCurrentUser = session?.user && entry.userId === (session.user as any).id;
-          
-          // Determine background color based on rank and user status
-          let bgColor = 'bg-white/5 hover:bg-white/10';
-          let borderColor = '';
-          
+
+          // Determine styling based on rank and user status - toned down version
+          let cardStyle = 'glass-card hover:border-white/20';
+          let rankStyle = 'text-white font-medium';
+          let nameStyle = 'text-white';
+          let coinStyle = 'text-white font-medium';
+          let rankBadge = '';
+
           if (isCurrentUser) {
-            // Red tint overrides all rank colors for current user
-            bgColor = 'bg-red-500/20 border border-red-500/30';
-            borderColor = 'border-l-4 border-red-400';
+            cardStyle = 'glass-card border-red-300/30 bg-red-500/5 hover:border-red-300/50';
+            rankStyle = 'text-red-200 font-semibold';
+            nameStyle = 'text-red-200 font-medium';
+            coinStyle = 'text-red-200 font-semibold';
+            rankBadge = 'bg-red-500/15 text-red-300';
           } else if (index === 0) {
-            bgColor = 'bg-gradient-to-r from-yellow-500/20 to-yellow-400/20 border border-yellow-400/30';
-            borderColor = 'border-l-4 border-yellow-400';
+            cardStyle = 'glass-card border-yellow-300/30 bg-yellow-500/5 hover:border-yellow-300/50';
+            rankStyle = 'text-yellow-200 font-semibold';
+            nameStyle = 'text-yellow-100 font-medium';
+            coinStyle = 'text-yellow-200 font-semibold';
+            rankBadge = 'bg-yellow-500/15 text-yellow-300';
           } else if (index === 1) {
-            bgColor = 'bg-gradient-to-r from-gray-400/20 to-gray-300/20 border border-gray-400/30';
-            borderColor = 'border-l-4 border-gray-400';
+            cardStyle = 'glass-card border-gray-300/30 bg-gray-400/5 hover:border-gray-300/50';
+            rankStyle = 'text-gray-200 font-semibold';
+            nameStyle = 'text-gray-100 font-medium';
+            coinStyle = 'text-gray-200 font-semibold';
+            rankBadge = 'bg-gray-400/15 text-gray-200';
           } else if (index === 2) {
-            bgColor = 'bg-gradient-to-r from-orange-600/20 to-orange-500/20 border border-orange-500/30';
-            borderColor = 'border-l-4 border-orange-500';
+            cardStyle = 'glass-card border-orange-300/30 bg-orange-500/5 hover:border-orange-300/50';
+            rankStyle = 'text-orange-200 font-semibold';
+            nameStyle = 'text-orange-100 font-medium';
+            coinStyle = 'text-orange-200 font-semibold';
+            rankBadge = 'bg-orange-500/15 text-orange-300';
           }
-          
+
           return (
             <div
               key={entry.userId}
-              className={`flex items-center p-3 rounded-lg transition-all duration-200 ${bgColor} ${borderColor}`}
+              className={`${cardStyle} p-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] hover:-translate-y-0.5 relative overflow-hidden`}
             >
-              {/* Rank */}
-              <div className={`w-12 text-center font-bold ${
-                isCurrentUser ? 'text-red-400' : 
-                index === 0 ? 'text-yellow-400' :
-                index === 1 ? 'text-gray-300' :
-                index === 2 ? 'text-orange-400' : 'text-white'
-              }`}>
-                #{entry.rank}
-              </div>
+              {/* Rank badge for top 3 */}
+              {isTopThree && !isCurrentUser && (
+                <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold ${rankBadge}`}>
+                  TOP {index + 1}
+                </div>
+              )}
 
-              {/* Avatar */}
-              <div className="w-8 h-8 rounded-full overflow-hidden mx-3">
-                <img
-                  src={entry.avatar || '/default-avatar.png'}
-                  alt={entry.username}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              {/* Current user indicator */}
+              {isCurrentUser && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300">
+                  YOU
+                </div>
+              )}
 
-              {/* Username */}
-              <div className={`flex-1 font-medium ${
-                isCurrentUser ? 'text-red-400' : 
-                index === 0 ? 'text-yellow-400' :
-                index === 1 ? 'text-gray-300' :
-                index === 2 ? 'text-orange-400' : 'text-white'
-              }`}>
-                {entry.username}
-              </div>
+              <div className="flex items-center space-x-4">
+                {/* Rank */}
+                <div className={`w-12 text-center font-bold text-lg ${rankStyle}`}>
+                  #{entry.rank}
+                </div>
 
-              {/* Total Earned */}
-              <div className={`font-bold ${
-                isCurrentUser ? 'text-red-400' : 
-                index === 0 ? 'text-yellow-400' :
-                index === 1 ? 'text-gray-300' :
-                index === 2 ? 'text-orange-400' : 'text-white'
-              }`}>
-                {entry.totalEarned.toLocaleString()} 🪙
+                {/* Avatar */}
+                <div className="relative">
+                  <div className={`w-10 h-10 rounded-full overflow-hidden ring-1 transition-all duration-200 ${
+                    isCurrentUser ? 'ring-red-300/40' :
+                    index === 0 ? 'ring-yellow-300/40' :
+                    index === 1 ? 'ring-gray-300/40' :
+                    index === 2 ? 'ring-orange-300/40' :
+                    'ring-white/10'
+                  }`}>
+                    <img
+                      src={entry.avatar || '/default-avatar.png'}
+                      alt={entry.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* Username */}
+                <div className={`flex-1 font-medium ${nameStyle}`}>
+                  {entry.username}
+                </div>
+
+                {/* Total Earned */}
+                <div className={`flex items-center space-x-1 font-semibold ${coinStyle}`}>
+                  <span>{entry.totalEarned.toLocaleString()}</span>
+                  <span className="text-lg">🪙</span>
+                </div>
               </div>
             </div>
           );
@@ -189,39 +222,46 @@ export default function Leaderboard() {
 
             {/* Current User Position (if not in top 10) */}
       {currentUser && currentUser.rank > 10 && (
-        <div className="mt-4 pt-4 border-t border-orange-500/20">
-          <div className="flex items-center p-3 rounded-lg bg-red-500/20 border border-red-500/30">
-            <div className="w-12 text-center font-bold text-red-400">
-              #{currentUser.rank}
-            </div>
-            <div className="w-8 h-8 rounded-full overflow-hidden mx-3">
-              <img
-                src={currentUser.avatar || '/default-avatar.png'}
-                alt={currentUser.username}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 font-medium text-red-400">
-              {currentUser.username} (You)
-            </div>
-            <div className="font-bold text-red-400">
-              {currentUser.totalEarned.toLocaleString()} 🪙
+        <div className="mt-6 pt-6">
+          <div className="h-px bg-gradient-to-r from-transparent via-red-300/20 to-transparent mb-4"></div>
+          <div className="glass-card p-4 rounded-xl border-red-300/30 bg-red-500/5 hover:border-red-300/50 transition-all duration-200">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 text-center font-bold text-lg text-red-200">
+                #{currentUser.rank}
+              </div>
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-red-300/40">
+                  <img
+                    src={currentUser.avatar || '/default-avatar.png'}
+                    alt={currentUser.username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 font-medium text-red-200">
+                {currentUser.username} <span className="text-red-300 font-semibold">(YOU)</span>
+              </div>
+              <div className="flex items-center space-x-1 font-semibold text-red-200">
+                <span>{currentUser.totalEarned.toLocaleString()}</span>
+                <span className="text-lg">🪙</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Auto-refresh info at bottom */}
-      <div className="mt-6 pt-4 border-t border-orange-500/20">
-        <div className="flex items-center justify-center space-x-4 text-sm">
-          <div className="flex items-center space-x-2 text-orange-400">
-            <span className="text-lg">⏰</span>
-            <span>Next refresh: {formatTime(timeUntilRefresh)}</span>
+      <div className="mt-6 pt-4">
+        <div className="h-px bg-gradient-to-r from-transparent via-orange-300/20 to-transparent mb-3"></div>
+        <div className="flex items-center justify-center space-x-6 text-sm">
+          <div className="flex items-center space-x-2 text-orange-200 glass-card px-3 py-1.5 rounded-lg">
+            <span className="text-base">⏰</span>
+            <span className="font-medium">Next refresh: {formatTime(timeUntilRefresh)}</span>
           </div>
           {lastUpdated && (
-            <div className="flex items-center space-x-2 text-gray-400">
-              <span className="text-lg">🕒</span>
-              <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
+            <div className="flex items-center space-x-2 text-gray-300 glass-card px-3 py-1.5 rounded-lg">
+              <span className="text-base">🕒</span>
+              <span className="font-medium">Updated: {lastUpdated.toLocaleTimeString()}</span>
             </div>
           )}
         </div>

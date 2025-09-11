@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Task from '@/models/Task';
 import mongoose from 'mongoose';
+import { getUserNicknames } from '@/lib/user-utils';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -117,6 +118,10 @@ export async function POST(request: NextRequest) {
       await posterCurrency.save();
     }
 
+    // Get nicknames for all winners
+    const winnerIds = winners.map(w => w.id);
+    const winnerNicknames = await getUserNicknames(winnerIds);
+
     // Process each winner
     const processedWinners = [];
     for (const winnerData of winners) {
@@ -133,7 +138,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (reward <= 0) {
-        return NextResponse.json({ error: `Reward for ${winnerAcceptance.username} must be greater than 0` }, { status: 400 });
+        return NextResponse.json({ error: `Reward for ${winnerAcceptance.nickname} must be greater than 0` }, { status: 400 });
       }
 
       // Transfer reward to winner
@@ -147,7 +152,7 @@ export async function POST(request: NextRequest) {
 
       processedWinners.push({
         id: winnerId,
-        username: winnerAcceptance.username,
+        nickname: winnerNicknames[winnerId] || 'Unknown User',
         reward: reward
       });
     }
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
     // Update task with multiple winners
     task.winners = processedWinners.map(winner => ({
       id: winner.id,
-      username: winner.username,
+      nickname: winner.nickname,
       selectedAt: new Date(),
       reward: winner.reward
     })) as any;

@@ -38,6 +38,7 @@ export default function ProfilePage() {
     selfLearning: 83
   });
   const [statsLoading, setStatsLoading] = useState(false);
+  const [joinDate, setJoinDate] = useState<string | null>(null);
 
   const handleLogout = () => {
     setIsLoading(true);
@@ -77,6 +78,21 @@ export default function ProfilePage() {
       console.error('Failed to load user games:', error);
     } finally {
       setGamesLoading(false);
+    }
+  }, [session?.user]);
+
+  const loadJoinDate = useCallback(async () => {
+    if (!session?.user) return;
+
+    try {
+      const response = await fetch('/api/users/join-date');
+      const data = await response.json();
+      
+      if (data.success) {
+        setJoinDate(data.joinDate);
+      }
+    } catch (error) {
+      console.error('Failed to fetch join date:', error);
     }
   }, [session?.user]);
 
@@ -132,7 +148,8 @@ export default function ProfilePage() {
     fetchUserData();
     loadUserStats();
     loadUserGames();
-  }, [session, loadUserStats, loadUserGames]);
+    loadJoinDate();
+  }, [session, loadUserStats, loadUserGames, loadJoinDate]);
 
   if (!session) {
     router.push('/');
@@ -232,7 +249,7 @@ export default function ProfilePage() {
                   {currentNickname ? `@${currentNickname}` : `#${session.user?.name}`}
                 </p>
                 <p className="text-gray-400 text-sm mb-4">
-                  Discord User
+                  Join Hamstellar Day: {joinDate ? new Date(joinDate).toLocaleDateString() : 'Loading...'}
                 </p>
                 <p className="text-gray-400 mb-6">
                   House: {userHouse}

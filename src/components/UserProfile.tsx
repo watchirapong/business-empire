@@ -1,11 +1,12 @@
 'use client';
 
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function UserProfile() {
   const { data: session, status } = useSession();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [joinDate, setJoinDate] = useState<string | null>(null);
 
   const handleLogin = () => {
     signIn("discord", { callbackUrl: "/" });
@@ -18,6 +19,26 @@ export default function UserProfile() {
   const getDiscordAvatarUrl = (userId: string, avatar: string) => {
     return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
   };
+
+  // Fetch join date
+  useEffect(() => {
+    const fetchJoinDate = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const response = await fetch('/api/users/join-date');
+        const data = await response.json();
+        
+        if (data.success) {
+          setJoinDate(data.joinDate);
+        }
+      } catch (error) {
+        console.error('Failed to fetch join date:', error);
+      }
+    };
+
+    fetchJoinDate();
+  }, [session]);
 
   if (status === "loading") {
     return (
@@ -107,7 +128,7 @@ export default function UserProfile() {
                   #{session.user?.name}
                 </div>
                 <div className="text-gray-400 text-xs mt-1">
-                  Discord User
+                  Join Hamstellar Since: {joinDate ? new Date(joinDate).toLocaleDateString() : 'Loading...'}
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import Task from '@/models/Task';
+import { getUserNickname, getUserNicknames } from '@/lib/user-utils';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -98,7 +99,67 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json({ tasks });
+    // Collect all user IDs from tasks to fetch nicknames
+    const userIds = new Set<string>();
+
+    tasks.forEach((task: any) => {
+      // Add postedBy user ID
+      if (task.postedBy?.id) {
+        userIds.add(task.postedBy.id);
+      }
+
+      // Add acceptedBy user IDs
+      if (task.acceptedBy && Array.isArray(task.acceptedBy)) {
+        task.acceptedBy.forEach((acceptor: any) => {
+          if (acceptor.id) {
+            userIds.add(acceptor.id);
+          }
+        });
+      }
+
+      // Add winners user IDs
+      if (task.winners && Array.isArray(task.winners)) {
+        task.winners.forEach((winner: any) => {
+          if (winner.id) {
+            userIds.add(winner.id);
+          }
+        });
+      }
+    });
+
+    // Fetch all nicknames in batch
+    const userIdArray = Array.from(userIds);
+    const nicknames = await getUserNicknames(userIdArray);
+
+    // Update tasks with nicknames
+    const tasksWithNicknames = tasks.map((task: any) => {
+      const updatedTask = { ...task };
+
+      // Update postedBy nickname
+      if (updatedTask.postedBy?.id) {
+        updatedTask.postedBy.nickname = nicknames[updatedTask.postedBy.id] || 'Unknown User';
+      }
+
+      // Update acceptedBy nicknames
+      if (updatedTask.acceptedBy && Array.isArray(updatedTask.acceptedBy)) {
+        updatedTask.acceptedBy = updatedTask.acceptedBy.map((acceptor: any) => ({
+          ...acceptor,
+          nickname: nicknames[acceptor.id] || 'Unknown User'
+        }));
+      }
+
+      // Update winners nicknames
+      if (updatedTask.winners && Array.isArray(updatedTask.winners)) {
+        updatedTask.winners = updatedTask.winners.map((winner: any) => ({
+          ...winner,
+          nickname: nicknames[winner.id] || 'Unknown User'
+        }));
+      }
+
+      return updatedTask;
+    });
+
+    return NextResponse.json({ tasks: tasksWithNicknames });
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -126,7 +187,12 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const username = (session.user as any).username || (session.user as any).name;
+
+    // Get user nickname
+    const nickname = await getUserNickname(userId);
+    if (!nickname) {
+      return NextResponse.json({ error: 'Unable to get user nickname' }, { status: 400 });
+    }
 
     // Check user balance
     const currency = await getUserCurrency(userId);
@@ -147,7 +213,7 @@ export async function POST(request: NextRequest) {
       image,
       postedBy: {
         id: userId,
-        username: username
+        nickname: nickname
       },
       status: 'open'
     });

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Task from '@/models/Task';
 import mongoose from 'mongoose';
+import { getUserNickname } from '@/lib/user-utils';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -115,10 +116,13 @@ export async function POST(request: NextRequest) {
     winnerCurrency.totalEarned += task.reward;
     await winnerCurrency.save();
 
+    // Get winner nickname
+    const winnerNickname = await getUserNickname(winnerId);
+
     // Mark winner and complete task
     task.winner = {
       id: winnerId,
-      username: winnerAcceptance.username,
+      nickname: winnerNickname || 'Unknown User',
       selectedAt: new Date()
     };
     task.status = 'completed';
@@ -132,12 +136,12 @@ export async function POST(request: NextRequest) {
     // Delete the task after completion
     await Task.findByIdAndDelete(taskId);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Winner selected successfully! Reward has been transferred and task has been deleted.',
       winner: {
         id: winnerId,
-        username: winnerAcceptance.username,
+        nickname: winnerNickname || 'Unknown User',
         reward: task.reward
       }
     });

@@ -72,4 +72,7 @@ userSchema.methods.updateLastLogin = function() {
   return this.save();
 };
 
-export default mongoose.model('User', userSchema);
+// Check if model already exists to prevent OverwriteModelError
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+export default User;

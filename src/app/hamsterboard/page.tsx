@@ -14,12 +14,12 @@ interface Task {
   reward: number;
   postedBy: {
     id: string;
-    username: string;
+    nickname: string;
   };
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   acceptedBy: Array<{
     id: string;
-    username: string;
+    nickname: string;
     acceptedAt: Date;
     completedAt?: Date;
     completionImage?: string;
@@ -28,7 +28,7 @@ interface Task {
   }>;
   winners?: Array<{
     id: string;
-    username: string;
+    nickname: string;
     selectedAt: Date;
     reward: number;
   }>;
@@ -393,7 +393,7 @@ const Hamsterboard: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const winnerNames = data.winners.map((w: any) => w.username).join(', ');
+        const winnerNames = data.winners.map((w: any) => w.nickname).join(', ');
         alert(`Winners selected successfully! ${winnerNames} received their rewards. Task has been completed.`);
         setShowWinnerSelection(false);
         setSelectedTaskForWinner(null);
@@ -431,7 +431,7 @@ const Hamsterboard: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Winner selected successfully! ${data.winner.username} received ${data.winner.reward} Hamster Coins. Task has been deleted.`);
+        alert(`Winner selected successfully! ${data.winner.nickname} received ${data.winner.reward} Hamster Coins. Task has been deleted.`);
         setShowWinnerSelection(false);
         setSelectedTaskForWinner(null);
         fetchTasks();
@@ -640,7 +640,7 @@ const Hamsterboard: React.FC = () => {
                       ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' 
                       : 'bg-gray-500/20 text-gray-400'
                   }`}>
-                    {isAdminTask ? '👑 ' : ''}Posted by {task.postedBy.username}
+                    {isAdminTask ? '👑 ' : ''}Posted by {task.postedBy.nickname}
                   </span>
                   {task.acceptedBy.length > 0 && (
                     <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
@@ -649,7 +649,7 @@ const Hamsterboard: React.FC = () => {
                   )}
                   {task.winners && task.winners.length > 0 && (
                     <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-                      🏆 Winner{task.winners.length > 1 ? 's' : ''}: {task.winners.map(w => w.username).join(', ')}
+                      🏆 Winner{task.winners.length > 1 ? 's' : ''}: {task.winners.map(w => w.nickname).join(', ')}
                     </span>
                   )}
                   
@@ -944,7 +944,7 @@ const Hamsterboard: React.FC = () => {
                     }`}>
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <span className="text-white font-bold text-lg">{acceptor.username}</span>
+                          <span className="text-white font-bold text-lg">{acceptor.nickname}</span>
                           <div className="text-gray-400 text-sm mt-1">
                             Accepted: {new Date(acceptor.acceptedAt).toLocaleDateString()}
                           </div>
@@ -982,7 +982,7 @@ const Hamsterboard: React.FC = () => {
                               src={acceptor.completionImage} 
                               alt="Completion proof" 
                               className={`w-full ${showFullImages ? 'h-96' : 'h-64'} object-contain rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity bg-gray-900`}
-                              onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.username}'s completion proof`)}
+                              onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.nickname}'s completion proof`)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                               <div className="text-white font-semibold">Click to view full size</div>
@@ -1000,7 +1000,7 @@ const Hamsterboard: React.FC = () => {
                                 if (acceptor.completionImage) {
                                   const link = document.createElement('a');
                                   link.href = acceptor.completionImage;
-                                  link.download = `completion-proof-${acceptor.username}.jpg`;
+                                  link.download = `completion-proof-${acceptor.nickname}.jpg`;
                                   link.click();
                                 }
                               }}
@@ -1102,7 +1102,7 @@ const Hamsterboard: React.FC = () => {
                         const reward = winnerRewards[winnerId] || 0;
                         return (
                           <div key={winnerId} className="flex justify-between text-sm">
-                            <span className="text-gray-300">{acceptor?.username}:</span>
+                            <span className="text-gray-300">{acceptor?.nickname}:</span>
                             <span className="text-yellow-400">${reward.toFixed(2)}</span>
                           </div>
                         );

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Task from '@/models/Task';
 import mongoose from 'mongoose';
+import { getUserNickname } from '@/lib/user-utils';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -34,7 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const username = (session.user as any).username || (session.user as any).name;
+
+    // Get user nickname
+    const nickname = await getUserNickname(userId);
+    if (!nickname) {
+      return NextResponse.json({ error: 'Unable to get user nickname' }, { status: 400 });
+    }
 
     // Find the task
     const task = await Task.findById(taskId);
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Add user to acceptedBy array
     task.acceptedBy.push({
       id: userId,
-      username: username,
+      nickname: nickname,
       acceptedAt: new Date(),
       isWinner: false
     });

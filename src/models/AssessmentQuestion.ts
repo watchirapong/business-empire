@@ -1,0 +1,79 @@
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IAssessmentQuestion extends Document {
+  id: string;
+  phase: 1 | 2;
+  path?: 'health' | 'creative' | 'gamedev' | 'engineering' | 'business';
+  questionText: string;
+  questionImage?: string;
+  requiresImageUpload: boolean;
+  skillCategories: {
+    selfLearning?: number;
+    creative?: number;
+    algorithm?: number;
+    logic?: number;
+    communication?: number;
+    presentation?: number;
+    leadership?: number;
+    careerKnowledge?: number;
+  };
+  order: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
+  phase: {
+    type: Number,
+    required: true,
+    enum: [1, 2]
+  },
+  path: {
+    type: String,
+    enum: ['health', 'creative', 'gamedev', 'engineering', 'business'],
+    required: function() {
+      return this.phase === 2;
+    }
+  },
+  questionText: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  questionImage: {
+    type: String,
+    default: null
+  },
+  requiresImageUpload: {
+    type: Boolean,
+    default: false
+  },
+  skillCategories: {
+    selfLearning: { type: Number, default: 0, min: 0, max: 100 },
+    creative: { type: Number, default: 0, min: 0, max: 100 },
+    algorithm: { type: Number, default: 0, min: 0, max: 100 },
+    logic: { type: Number, default: 0, min: 0, max: 100 },
+    communication: { type: Number, default: 0, min: 0, max: 100 },
+    presentation: { type: Number, default: 0, min: 0, max: 100 },
+    leadership: { type: Number, default: 0, min: 0, max: 100 },
+    careerKnowledge: { type: Number, default: 0, min: 0, max: 100 }
+  },
+  order: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+}, {
+  timestamps: true
+});
+
+// Create compound index for efficient queries
+AssessmentQuestionSchema.index({ phase: 1, path: 1, order: 1 });
+AssessmentQuestionSchema.index({ phase: 1, isActive: 1 });
+
+export default mongoose.models.AssessmentQuestion || mongoose.model<IAssessmentQuestion>('AssessmentQuestion', AssessmentQuestionSchema);

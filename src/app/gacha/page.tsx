@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
+import TicketBalance from '@/components/TicketBalance';
 
 interface GachaItem {
   id: string;
@@ -261,6 +262,11 @@ export default function GachaPage() {
             </div>
             <div className="text-gray-400 text-sm">Your Balance</div>
           </div>
+        </div>
+
+        {/* Ticket Balance Section */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <TicketBalance />
         </div>
 
         {/* Back Button */}
