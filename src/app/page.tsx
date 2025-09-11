@@ -167,35 +167,62 @@ export default function HomePage() {
                     </svg>
                   </button>
 
-                  {/* Simple Profile Dropdown */}
+                  {/* Profile Display */}
                   {isProfileOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-300 shadow-2xl z-[1000] animate-scale-in">
-                      <div className="p-2 space-y-1">
+                    <div className="absolute right-0 top-full mt-3 w-64 bg-gradient-to-br from-white via-gray-50 to-white backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-2xl z-[1000] animate-fade-in-up overflow-hidden">
+                      {/* User Info Header */}
+                      <div className="px-4 py-4 bg-gradient-to-r from-orange-500/10 to-purple-500/10 border-b border-gray-200/30">
+                        <div className="flex items-center space-x-3">
+                          <div className="relative">
+                            <img
+                              src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
+                              alt="Profile"
+                              className="w-12 h-12 rounded-full ring-2 ring-orange-400/50"
+                            />
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-semibold text-gray-900 truncate">
+                              {(session.user as any).username}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate">
+                              #{session.user?.name}
+                            </p>
+                            <p className="text-xs text-orange-600 font-medium mt-1">
+                              ออนไลน์
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="p-3 space-y-2">
                         {/* Profile Button */}
                         <button
                           onClick={() => {
                             setIsProfileOpen(false);
                             router.push(`/profile/${(session.user as any).id}`);
                           }}
-                          className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 cursor-pointer hover:scale-105 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center space-x-2"
+                          className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
                         >
-                          <span className="text-lg">👤</span>
-                          <span>Profile</span>
+                          <span>ดูโปรไฟล์ของคุณ</span>
                         </button>
 
                         {/* Logout Button */}
                         <button
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={async () => {
+                            console.log('Logout button clicked - starting logout process');
                             setIsProfileOpen(false);
-                            handleLogout();
+                            await new Promise(resolve => setTimeout(resolve, 150));
+                            try {
+                              await signOut({ callbackUrl: '/' });
+                              console.log('Logout successful');
+                            } catch (error) {
+                              console.error('Logout failed:', error);
+                            }
                           }}
-                          className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 cursor-pointer hover:scale-105 shadow-lg hover:shadow-red-500/25 flex items-center justify-center space-x-2"
+                          className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-red-500/25 cursor-pointer"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
                           <span>ออกจากระบบ</span>
                         </button>
                       </div>

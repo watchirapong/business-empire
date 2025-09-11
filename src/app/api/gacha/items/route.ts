@@ -69,7 +69,7 @@ const GachaItem = mongoose.models.GachaItem || mongoose.model('GachaItem', gacha
 
 // Check if user is admin
 const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
   return ADMIN_USER_IDS.includes(userId);
 };
 

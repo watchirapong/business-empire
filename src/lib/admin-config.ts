@@ -1,9 +1,63 @@
 // Centralized admin configuration
-export const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '563644358352568331'];
+export const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '563644358352568331', '315548736388333568'];
+
+// Super admin - only this user can manage admin users
+export const SUPER_ADMIN_ID = '898059066537029692';
 
 // Helper function to check if a user is admin
 export const isAdmin = (userId: string): boolean => {
   return ADMIN_USER_IDS.includes(userId);
+};
+
+// Helper function to check if a user is admin (including dynamic admins from database)
+export const isAdminWithDB = async (userId: string): Promise<boolean> => {
+  console.log('🔍 isAdminWithDB called with userId:', userId);
+  
+  // First check hardcoded admins
+  if (ADMIN_USER_IDS.includes(userId)) {
+    console.log('✅ User found in hardcoded admins');
+    return true;
+  }
+  console.log('❌ User not in hardcoded admins, checking database...');
+
+  // Then check dynamic admins from database
+  try {
+    // Use a direct database query approach
+    const mongoose = await import('mongoose');
+    
+    // Connect if not already connected
+    if (!mongoose.default.connection.readyState || mongoose.default.connection.readyState !== 1) {
+      await mongoose.default.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
+    }
+
+    // Define schema and model
+    const adminUserSchema = new mongoose.default.Schema({
+      userId: { type: String, required: true, unique: true },
+      addedBy: { type: String, required: true },
+      addedAt: { type: Date, default: Date.now },
+    });
+
+    const AdminUser = mongoose.default.models.AdminUser || mongoose.default.model('AdminUser', adminUserSchema);
+    console.log('🔍 Querying database for userId:', userId);
+    const dynamicAdmin = await AdminUser.findOne({ userId });
+    
+    if (dynamicAdmin) {
+      console.log('✅ User found in database:', dynamicAdmin);
+      return true;
+    } else {
+      console.log('❌ User not found in database');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking dynamic admin:', error);
+    return false;
+  }
+};
+
+// Check if user is super admin
+export const isSuperAdmin = (userId: string | undefined | null): boolean => {
+  if (!userId) return false;
+  return userId === SUPER_ADMIN_ID;
 };
 
 // Function to check if user has a specific Discord role
@@ -73,5 +127,7 @@ export const hasDiscordRole = async (userId: string, requiredRoleId: string): Pr
 export const adminConfig = {
   userIds: ADMIN_USER_IDS,
   isAdmin,
+  isAdminWithDB,
+  isSuperAdmin,
   hasDiscordRole,
 };

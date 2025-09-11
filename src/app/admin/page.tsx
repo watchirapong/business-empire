@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdmin } from '@/lib/admin-config';
+import { isAdmin, isAdminWithDB } from '@/lib/admin-config';
 import HouseManager from '@/components/admin/HouseManager';
 import StardustCoinManager from '@/components/admin/StardustCoinManager';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
@@ -110,6 +110,42 @@ export default function AdminPage() {
   const [showGachaForm, setShowGachaForm] = useState(false);
   const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
   
+  // Full-screen image viewer state
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // Super admin state and current admin list
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
+  const [hasAdminAccess, setHasAdminAccess] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (userId === '898059066537029692') {
+      setIsSuperAdmin(true);
+      fetch('/api/admin/admin-users')
+        .then(res => (res.ok ? res.json() : Promise.reject()))
+        .then(data => setCurrentAdmins((data.admins || []).map((a: any) => a.userId as string)))
+        .catch(() => {});
+    } else {
+      setIsSuperAdmin(false);
+      setCurrentAdmins([]);
+    }
+  }, [session]);
+
+  // Handle ESC key to close full-screen image
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && fullscreenImage) {
+        setFullscreenImage(null);
+      }
+    };
+
+    if (fullscreenImage) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [fullscreenImage]);
+  
   // Assessment states
   const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
   const [assessmentAnswers, setAssessmentAnswers] = useState<any[]>([]);
@@ -118,12 +154,15 @@ export default function AdminPage() {
   const [assessmentNicknames, setAssessmentNicknames] = useState<{[key: string]: string}>({});
   const [selectedAssessmentUser, setSelectedAssessmentUser] = useState<any>(null);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<any>(null);
   const [questionForm, setQuestionForm] = useState({
     phase: 1,
     path: '',
     questionText: '',
     questionImage: '',
+    questionImages: [] as string[],
     requiresImageUpload: false,
+    timeLimitMinutes: null as number | null,
     skillCategories: {
       selfLearning: 0,
       creative: 0,
@@ -222,15 +261,36 @@ export default function AdminPage() {
       return;
     }
 
-    if (!isAdmin((session.user as any)?.id)) {
-      router.push('/');
-      return;
-    }
+    // Check admin access with database lookup
+    const checkAdminAccess = async () => {
+      const userId = (session.user as any)?.id;
+      console.log('🔍 Admin Panel Debug - User ID:', userId);
+      console.log('🔍 Admin Panel Debug - Session:', session);
+      
+      if (!userId) {
+        console.log('❌ Admin Panel Debug - No user ID found');
+        setHasAdminAccess(false);
+        router.push('/');
+        return;
+      }
 
-    // Load all users when component mounts
-    loadAllUsers();
-    loadGachaItems();
-    loadAchievements();
+      console.log('🔍 Admin Panel Debug - Checking admin access for:', userId);
+      const adminAccess = await isAdminWithDB(userId);
+      console.log('🔍 Admin Panel Debug - Admin access result:', adminAccess);
+      setHasAdminAccess(adminAccess);
+      
+      if (!adminAccess) {
+        router.push('/');
+        return;
+      }
+
+      // Load all users when component mounts
+      loadAllUsers();
+      loadGachaItems();
+      loadAchievements();
+    };
+
+    checkAdminAccess();
   }, [session, status, router]);
 
   // Separate useEffect to load assessment data when switching to assessment tabs
@@ -311,7 +371,7 @@ export default function AdminPage() {
 
   const loadAssessmentAnswers = async () => {
     try {
-      const response = await fetch('/api/assessment/answers');
+      const response = await fetch('/api/assessment/answers?admin=true');
       if (response.ok) {
         const data = await response.json();
         setAssessmentAnswers(data.answers || []);
@@ -842,6 +902,34 @@ export default function AdminPage() {
     }
   };
 
+  const uploadQuestionImage = async (file: File) => {
+    setUploadingImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/shop/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const data = await response.json();
+      setQuestionForm({...questionForm, questionImages: [...questionForm.questionImages, data.imageUrl]});
+      setMessage('Question image uploaded successfully!');
+      
+    } catch (error) {
+      setMessage(`Error uploading question image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Question image upload error:', error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Achievement management functions
   const loadAchievements = async () => {
     try {
@@ -936,6 +1024,56 @@ export default function AdminPage() {
       console.error('Error deleting user:', error);
       alert('Error deleting user assessment data');
     }
+  };
+
+  // Debounce timer for auto-save
+  const autoSaveTimers: { [key: string]: NodeJS.Timeout } = {};
+
+  const handleAutoSaveSkillScores = async (answerId: string) => {
+    // Clear existing timer for this answer
+    if (autoSaveTimers[answerId]) {
+      clearTimeout(autoSaveTimers[answerId]);
+    }
+
+    // Set new timer to save after 1 second of no changes
+    autoSaveTimers[answerId] = setTimeout(async () => {
+      try {
+        // Collect all skill scores from the input fields
+        const skillScores: { [key: string]: number } = {};
+        const skills = ['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'];
+        
+        skills.forEach(skill => {
+          const input = document.getElementById(`${skill}-${answerId}`) as HTMLInputElement;
+          if (input) {
+            skillScores[skill] = parseFloat(input.value) || 0;
+          }
+        });
+
+        // Send the update to the API
+        const response = await fetch('/api/assessment/answers', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            answerId,
+            skillScores,
+            status: 'approved' // Auto-approve when scores are set
+          }),
+        });
+
+        if (response.ok) {
+          console.log('✅ Skill scores auto-saved successfully!');
+          // Reload the assessment users data to show updated scores
+          loadAssessmentUsers();
+        } else {
+          const error = await response.json();
+          console.error(`❌ Failed to auto-save scores: ${error.error}`);
+        }
+      } catch (error) {
+        console.error('Error auto-saving skill scores:', error);
+      }
+    }, 1000); // Wait 1 second after last change
   };
 
   const handleSaveSkillScores = async (answerId: string) => {
@@ -1046,7 +1184,7 @@ export default function AdminPage() {
   };
 
   // Show loading or unauthorized
-  if (status === 'loading') {
+  if (status === 'loading' || hasAdminAccess === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
@@ -1054,7 +1192,7 @@ export default function AdminPage() {
     );
   }
 
-      if (!session || !isAdmin((session.user as any)?.id)) {
+  if (!session || !hasAdminAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-xl">Unauthorized Access</div>
@@ -1540,6 +1678,39 @@ export default function AdminPage() {
                                   >
                                     {isSelected ? '✓ Selected' : 'Select for Management'}
                                   </button>
+                                  {session?.user && (session.user as any).id === '898059066537029692' && (
+                                    <div className="space-y-2">
+                                      {!currentAdmins.includes(user.discordId) ? (
+                                        <button
+                                          onClick={async () => {
+                                            const res = await fetch('/api/admin/admin-users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.discordId }) });
+                                            if (res.ok) {
+                                              setCurrentAdmins([...currentAdmins, user.discordId]);
+                                              setMessage(`Granted admin to ${user.username}`);
+                                              setTimeout(() => setMessage(''), 2000);
+                                            }
+                                          }}
+                                          className="w-full bg-green-600 hover:bg-green-500 text-white py-2 px-4 rounded-lg transition-all duration-300"
+                                        >
+                                          👑 Grant Admin
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={async () => {
+                                            const res = await fetch(`/api/admin/admin-users?userId=${user.discordId}`, { method: 'DELETE' });
+                                            if (res.ok) {
+                                              setCurrentAdmins(currentAdmins.filter(id => id !== user.discordId));
+                                              setMessage(`Revoked admin from ${user.username}`);
+                                              setTimeout(() => setMessage(''), 2000);
+                                            }
+                                          }}
+                                          className="w-full bg-red-600 hover:bg-red-500 text-white py-2 px-4 rounded-lg transition-all duration-300"
+                                        >
+                                          🔒 Revoke Admin
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
                                   <button
                                     onClick={() => {
                                       navigator.clipboard.writeText(user.discordId);
@@ -1924,13 +2095,22 @@ export default function AdminPage() {
                         {/* Image Preview */}
                         {newGachaItem.image && (
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="text-2xl">
+                            <div className="text-2xl relative">
                               {newGachaItem.image.startsWith('/') ? (
-                                <img 
-                                  src={newGachaItem.image} 
-                                  alt="Preview"
-                                  className="w-8 h-8 object-cover rounded"
-                                />
+                                <>
+                                  <img 
+                                    src={newGachaItem.image} 
+                                    alt="Preview"
+                                    className="w-8 h-8 object-cover rounded"
+                                  />
+                                  <button
+                                    onClick={() => setFullscreenImage(newGachaItem.image)}
+                                    className="absolute -top-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                    title="View full screen"
+                                  >
+                                    ⛶
+                                  </button>
+                                </>
                               ) : (
                                 newGachaItem.image
                               )}
@@ -2101,15 +2281,24 @@ export default function AdminPage() {
                           : 'bg-red-600/10 border-red-500/30'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="text-3xl">
+                          <div className="text-3xl relative">
                             {item.image.startsWith('/') ? (
-                              <img 
-                                src={item.image} 
-                                alt={item.name}
-                                className="w-12 h-12 object-cover rounded-lg"
-                              />
+                              <>
+                                <img 
+                                  src={item.image} 
+                                  alt={item.name}
+                                  className="w-12 h-12 object-cover rounded-lg"
+                                />
+                                <button
+                                  onClick={() => setFullscreenImage(item.image)}
+                                  className="absolute -top-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                  title="View full screen"
+                                >
+                                  ⛶
+                                </button>
+                              </>
                             ) : (
                               item.image
                             )}
@@ -2989,7 +3178,9 @@ export default function AdminPage() {
 
                 {showQuestionForm && (
                   <div className="bg-gray-700/50 rounded-lg p-6 mb-6">
-                    <h4 className="text-lg font-semibold text-white mb-4">Create New Question</h4>
+                    <h4 className="text-lg font-semibold text-white mb-4">
+                      {editingQuestion ? 'Edit Question' : 'Create New Question'}
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-white font-medium mb-2">Phase</label>
@@ -3040,6 +3231,85 @@ export default function AdminPage() {
                         Requires Image Upload
                       </label>
                     </div>
+                    
+                    {/* Question Images Upload */}
+                    <div className="mt-4">
+                      <label className="block text-white font-medium mb-2">Question Images (Optional)</label>
+                      <div className="space-y-2">
+                        {/* Images Preview */}
+                        {questionForm.questionImages.length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                            {questionForm.questionImages.map((imageUrl, index) => (
+                              <div key={index} className="relative">
+                                <img 
+                                  src={imageUrl} 
+                                  alt={`Question image ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border border-gray-500"
+                                />
+                                <button
+                                  onClick={() => setFullscreenImage(imageUrl)}
+                                  className="absolute top-1 right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                  title="View full screen"
+                                >
+                                  ⛶
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const newImages = questionForm.questionImages.filter((_, i) => i !== index);
+                                    setQuestionForm({...questionForm, questionImages: newImages});
+                                  }}
+                                  className="absolute top-1 left-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                  title="Remove image"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Upload Button */}
+                        <div className="flex items-center space-x-2">
+                          <label className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-4 py-2 rounded-lg transition-all duration-300 cursor-pointer text-sm">
+                            {uploadingImage ? '⏳ Uploading...' : '📁 Upload Images'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                files.forEach(file => {
+                                  uploadQuestionImage(file);
+                                });
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          
+                          <span className="text-gray-400 text-sm">or</span>
+                          
+                          <input
+                            type="text"
+                            placeholder="Enter image URL and press Enter"
+                            className="flex-1 bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-orange-400 text-sm"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                const input = e.target as HTMLInputElement;
+                                const url = input.value.trim();
+                                if (url && !questionForm.questionImages.includes(url)) {
+                                  setQuestionForm({
+                                    ...questionForm, 
+                                    questionImages: [...questionForm.questionImages, url]
+                                  });
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        <p className="text-gray-400 text-xs">You can upload multiple images or add URLs one by one</p>
+                      </div>
+                    </div>
                     <div className="mt-6">
                       <h5 className="text-white font-medium mb-3">Skill Categories (0-10 points each)</h5>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -3061,24 +3331,72 @@ export default function AdminPage() {
                         ))}
                       </div>
                     </div>
+                    <div className="mt-6">
+                      <h5 className="text-white font-medium mb-3">Time Settings</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-white font-medium mb-2">Time Limit (minutes)</label>
+                          <input
+                            type="number"
+                            value={questionForm.timeLimitMinutes || ''}
+                            onChange={(e) => setQuestionForm({...questionForm, timeLimitMinutes: e.target.value ? parseInt(e.target.value) : null})}
+                            className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-blue-500 focus:outline-none"
+                            min="1"
+                            max="120"
+                            placeholder="No time limit"
+                          />
+                          <p className="text-gray-400 text-xs mt-1">Leave empty for no time limit (1-120 minutes)</p>
+                        </div>
+                        <div>
+                          <label className="block text-white font-medium mb-2">Order</label>
+                          <input
+                            type="number"
+                            value={questionForm.order}
+                            onChange={(e) => setQuestionForm({...questionForm, order: parseInt(e.target.value) || 1})}
+                            className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-blue-500 focus:outline-none"
+                            min="1"
+                          />
+                        </div>
+                      </div>
+                    </div>
                     <div className="mt-6 flex gap-4">
                       <button
                         onClick={async () => {
                           try {
-                            const response = await fetch('/api/assessment/questions', {
-                              method: 'POST',
+                            const url = '/api/assessment/questions';
+                            const method = editingQuestion ? 'PUT' : 'POST';
+                            
+                            // Clean up the form data before sending
+                            let cleanFormData: any = { ...questionForm };
+                            
+                            // Remove path field if it's empty (for Phase 1 questions)
+                            if (!cleanFormData.path || cleanFormData.path.trim() === '') {
+                              const { path, ...formDataWithoutPath } = cleanFormData;
+                              cleanFormData = formDataWithoutPath;
+                            }
+                            
+                            const requestBody = editingQuestion 
+                              ? { ...cleanFormData, id: editingQuestion._id || editingQuestion.id }
+                              : cleanFormData;
+                            
+                            const response = await fetch(url, {
+                              method,
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify(questionForm)
+                              body: JSON.stringify(requestBody)
                             });
+                            
                             if (response.ok) {
-                              setMessage('Question created successfully!');
+                              setMessage(editingQuestion ? 'Question updated successfully!' : 'Question created successfully!');
                               setShowQuestionForm(false);
+                              setEditingQuestion(null);
                               setQuestionForm({
                                 phase: 1,
                                 path: '',
                                 questionText: '',
                                 questionImage: '',
+                                questionImages: [],
                                 requiresImageUpload: false,
+                                timeLimitMinutes: null,
                                 skillCategories: {
                                   selfLearning: 0,
                                   creative: 0,
@@ -3097,15 +3415,18 @@ export default function AdminPage() {
                               setMessage(`Error: ${errorData.error}`);
                             }
                           } catch (error) {
-                            setMessage('Error creating question');
+                            setMessage(editingQuestion ? 'Error updating question' : 'Error creating question');
                           }
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
                       >
-                        Create Question
+                        {editingQuestion ? 'Update Question' : 'Create Question'}
                       </button>
                       <button
-                        onClick={() => setShowQuestionForm(false)}
+                        onClick={() => {
+                          setShowQuestionForm(false);
+                          setEditingQuestion(null);
+                        }}
                         className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
                       >
                         Cancel
@@ -3133,6 +3454,51 @@ export default function AdminPage() {
                             </span>
                           </div>
                           <p className="text-white mb-2">{question.questionText}</p>
+                          
+                          {/* Question Images Display */}
+                          {(question.questionImages && question.questionImages.length > 0) && (
+                            <div className="mb-3">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {question.questionImages.map((imageUrl: string, index: number) => (
+                                  <div key={index} className="relative">
+                                    <img 
+                                      src={imageUrl} 
+                                      alt={`Question image ${index + 1}`} 
+                                      className="w-full h-24 object-cover rounded border border-gray-500"
+                                    />
+                                    <button
+                                      onClick={() => setFullscreenImage(imageUrl)}
+                                      className="absolute top-1 right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                      title="View full screen"
+                                    >
+                                      ⛶
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Backward compatibility: Show single questionImage if no questionImages */}
+                          {(!question.questionImages || question.questionImages.length === 0) && question.questionImage && (
+                            <div className="mb-3">
+                              <div className="relative inline-block">
+                                <img 
+                                  src={question.questionImage} 
+                                  alt="Question image" 
+                                  className="max-w-xs rounded border border-gray-500"
+                                />
+                                <button
+                                  onClick={() => setFullscreenImage(question.questionImage)}
+                                  className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                  title="View full screen"
+                                >
+                                  ⛶
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(question.skillCategories).map(([key, value]) => (
                               (value as number) > 0 && (
@@ -3144,6 +3510,26 @@ export default function AdminPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingQuestion(question);
+                              setQuestionForm({
+                                phase: question.phase,
+                                path: question.path || '',
+                                questionText: question.questionText,
+                                questionImage: question.questionImage || '',
+                                questionImages: question.questionImages || [],
+                                requiresImageUpload: question.requiresImageUpload,
+                                timeLimitMinutes: question.timeLimitMinutes || null,
+                                skillCategories: question.skillCategories,
+                                order: question.order
+                              });
+                              setShowQuestionForm(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                          >
+                            Edit
+                          </button>
                           <button
                             onClick={async () => {
                               try {
@@ -3281,6 +3667,91 @@ export default function AdminPage() {
                                     <p className="text-gray-300 text-sm bg-gray-700 p-2 rounded">
                                       {answer.questionText}
                                     </p>
+                                    
+                                    {/* Question Images Display */}
+                                    {answer.questionImages && answer.questionImages.length > 0 && (
+                                      <div className="mt-2">
+                                        <div className="text-gray-400 text-xs mb-2">
+                                          Question Images ({answer.questionImages.length}):
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                          {answer.questionImages.map((imageUrl: string, index: number) => (
+                                            <div key={index} className="relative">
+                                              <img 
+                                                src={imageUrl} 
+                                                alt={`Question image ${index + 1}`} 
+                                                className="w-full h-20 object-cover rounded border border-gray-500"
+                                                onError={(e) => {
+                                                  console.error('Failed to load question image:', imageUrl);
+                                                  (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                              />
+                                              <button
+                                                onClick={() => setFullscreenImage(imageUrl)}
+                                                className="absolute top-1 right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                                title="View full screen"
+                                              >
+                                                ⛶
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Backward compatibility: Show single questionImage if no questionImages */}
+                                    {(!answer.questionImages || answer.questionImages.length === 0) && answer.questionImage && (
+                                      <div className="mt-2">
+                                        <div className="text-gray-400 text-xs mb-2">
+                                          Question Image:
+                                        </div>
+                                        <div className="relative inline-block">
+                                          <img 
+                                            src={answer.questionImage} 
+                                            alt="Question image" 
+                                            className="max-w-xs rounded border border-gray-500"
+                                            onError={(e) => {
+                                              console.error('Failed to load question image:', answer.questionImage);
+                                              (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                          />
+                                          <button
+                                            onClick={() => setFullscreenImage(answer.questionImage)}
+                                            className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                            title="View full screen"
+                                          >
+                                            ⛶
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Answer timing info */}
+                                    <div className="mt-2 text-xs text-gray-400">
+                                      ⏱️ Submitted on: {new Date(answer.submittedAt).toLocaleString()}
+                                      {answer.timeStartedAt && (
+                                        <>
+                                          <br />
+                                          🕐 Time taken: {(() => {
+                                            const totalSeconds = Math.round((new Date(answer.submittedAt).getTime() - new Date(answer.timeStartedAt).getTime()) / 1000);
+                                            const minutes = Math.floor(totalSeconds / 60);
+                                            const seconds = totalSeconds % 60;
+                                            return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                                          })()}
+                                        </>
+                                      )}
+                                      {answer.timeSpentSeconds && (
+                                        <>
+                                          <br />
+                                          ⏰ Time spent: {(() => {
+                                            const totalSeconds = Math.round(answer.timeSpentSeconds);
+                                            const minutes = Math.floor(totalSeconds / 60);
+                                            const seconds = totalSeconds % 60;
+                                            return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                                          })()}
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                   
                                   <div className="mb-3">
@@ -3290,14 +3761,55 @@ export default function AdminPage() {
                                     </p>
                                   </div>
                                   
+                                  {/* Time Tracking Display */}
+                                  {(answer.timeSpentSeconds || answer.timeStartedAt) && (
+                                    <div className="mb-3">
+                                      <h5 className="text-white font-semibold mb-2">Time Tracking:</h5>
+                                      <div className="bg-gray-700 rounded p-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                          {answer.timeSpentSeconds && (
+                                            <div>
+                                              <span className="text-gray-400">Time Spent:</span>
+                                              <span className="text-orange-400 font-semibold ml-2">
+                                                {(() => {
+                                                  const totalSeconds = Math.round(answer.timeSpentSeconds);
+                                                  const minutes = Math.floor(totalSeconds / 60);
+                                                  const seconds = totalSeconds % 60;
+                                                  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                                                })()}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {answer.timeStartedAt && (
+                                            <div>
+                                              <span className="text-gray-400">Started At:</span>
+                                              <span className="text-blue-400 font-semibold ml-2">
+                                                {new Date(answer.timeStartedAt).toLocaleString()}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
                                   {answer.answerImage && (
                                     <div className="mb-3">
                                       <h5 className="text-white font-semibold mb-2">Image:</h5>
-                                      <img 
-                                        src={answer.answerImage} 
-                                        alt="Answer image" 
-                                        className="max-w-xs rounded border border-gray-500"
-                                      />
+                                      <div className="relative inline-block">
+                                        <img 
+                                          src={answer.answerImage} 
+                                          alt="Answer image" 
+                                          className="max-w-xs rounded border border-gray-500"
+                                        />
+                                        <button
+                                          onClick={() => setFullscreenImage(answer.answerImage)}
+                                          className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                          title="View full screen"
+                                        >
+                                          ⛶
+                                        </button>
+                                      </div>
                                     </div>
                                   )}
                                   
@@ -3309,22 +3821,18 @@ export default function AdminPage() {
                                           <div className="text-gray-300 text-xs capitalize mb-1">{skill.replace(/([A-Z])/g, ' $1')}</div>
                                           <input
                                             type="number"
-                                            min="0"
-                                            max="10"
                                             step="0.1"
                                             className="w-full px-2 py-1 bg-gray-600 text-orange-400 font-semibold text-sm rounded border border-gray-500 focus:border-orange-500 focus:outline-none"
                                             defaultValue={answer.skillScores?.[skill] || 0}
                                             id={`${skill}-${answer.id}`}
+                                            onChange={() => handleAutoSaveSkillScores(answer.id)}
                                           />
                                         </div>
                                       ))}
                                     </div>
-                                    <button
-                                      onClick={() => handleSaveSkillScores(answer.id)}
-                                      className="mt-3 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                                    >
-                                      💾 Save Scores
-                                    </button>
+                                    <div className="mt-3 text-gray-400 text-xs">
+                                      💾 Auto-saves when you change values
+                                    </div>
                                   </div>
                                   
                                   {answer.reviewedAt && (
@@ -3380,9 +3888,19 @@ export default function AdminPage() {
                               <p className="text-gray-400 text-sm">
                                 {new Date(answer.submittedAt).toLocaleString()}
                               </p>
-                              <p className="text-gray-300 text-sm mt-1 line-clamp-2">
-                                {answer.answerText}
+                              <p className="text-orange-400 text-sm mt-1 font-medium">
+                                Phase {answer.questionPhase} Question
                               </p>
+                              {answer.timeSpentSeconds && (
+                                <p className="text-gray-500 text-xs mt-1">
+                                  ⏰ Time: {(() => {
+                                    const totalSeconds = Math.round(answer.timeSpentSeconds);
+                                    const minutes = Math.floor(totalSeconds / 60);
+                                    const seconds = totalSeconds % 60;
+                                    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                                  })()}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -3402,13 +3920,56 @@ export default function AdminPage() {
                             )}
                           </div>
                         </div>
+                        
+                        {/* Question Section */}
+                        <div className="mt-4 p-3 bg-gray-600/30 rounded-lg">
+                          <h5 className="text-white font-semibold mb-2">📝 Question:</h5>
+                          <p className="text-gray-300 text-sm mb-3">
+                            {answer.questionText || 'Question text not available'}
+                          </p>
+                          {answer.questionImage && (
+                            <div className="relative inline-block">
+                              <img 
+                                src={answer.questionImage} 
+                                alt="Question" 
+                                className="max-w-xs h-auto rounded-lg border border-gray-500"
+                              />
+                              <button
+                                onClick={() => setFullscreenImage(answer.questionImage)}
+                                className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                title="View full screen"
+                              >
+                                ⛶
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Answer Section */}
+                        <div className="mt-4 p-3 bg-gray-700/30 rounded-lg">
+                          <h5 className="text-white font-semibold mb-2">💡 User Answer:</h5>
+                          <p className="text-gray-200 text-sm mb-3">
+                            {answer.answerText}
+                          </p>
+                        </div>
+                        
                         {answer.answerImage && (
                           <div className="mt-3">
-                            <img 
-                              src={answer.answerImage} 
-                              alt="Answer" 
-                              className="max-w-xs h-auto rounded-lg"
-                            />
+                            <h6 className="text-white font-medium mb-2">📷 Answer Image:</h6>
+                            <div className="relative inline-block">
+                              <img 
+                                src={answer.answerImage} 
+                                alt="Answer" 
+                                className="max-w-xs h-auto rounded-lg"
+                              />
+                              <button
+                                onClick={() => setFullscreenImage(answer.answerImage)}
+                                className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                title="View full screen"
+                              >
+                                ⛶
+                              </button>
+                            </div>
                           </div>
                         )}
                         
@@ -3767,6 +4328,29 @@ export default function AdminPage() {
         )}
 
       </div>
+
+      {/* Full-screen Image Modal */}
+      {fullscreenImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <div className="relative max-w-full max-h-full">
+            <button
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold z-10"
+            >
+              ×
+            </button>
+            <img
+              src={fullscreenImage}
+              alt="Full screen view"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

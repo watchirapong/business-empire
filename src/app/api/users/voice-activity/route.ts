@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const targetUserId = searchParams.get('userId');
     
     // Users can only get their own voice activity or admins can get any
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
     const isAdmin = ADMIN_USER_IDS.includes((session.user as any).id);
     
     if (!isAdmin && targetUserId !== (session.user as any).id) {

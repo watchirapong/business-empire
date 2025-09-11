@@ -7,6 +7,8 @@ export interface IUserAnswer extends Document {
   answerText: string;
   answerImage?: string;
   submittedAt: Date;
+  timeSpentSeconds?: number; // Time spent on this question in seconds
+  timeStartedAt?: Date; // When user started answering this question
   isReviewed: boolean;
   status: 'pending' | 'approved' | 'declined';
   adminScore?: number;
@@ -49,6 +51,15 @@ const UserAnswerSchema = new Schema<IUserAnswer>({
     type: Date,
     default: Date.now
   },
+  timeSpentSeconds: {
+    type: Number,
+    default: null,
+    min: 0
+  },
+  timeStartedAt: {
+    type: Date,
+    default: null
+  },
   isReviewed: {
     type: Boolean,
     default: false
@@ -80,50 +91,34 @@ const UserAnswerSchema = new Schema<IUserAnswer>({
   skillScores: {
     selfLearning: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     creative: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     algorithm: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     logic: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     communication: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     presentation: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     leadership: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     },
     careerKnowledge: {
       type: Number,
-      min: 0,
-      max: 10,
       default: null
     }
   }

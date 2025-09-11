@@ -83,7 +83,9 @@ export async function POST(request: NextRequest) {
       path,
       questionText,
       questionImage,
+      questionImages,
       requiresImageUpload,
+      timeLimitMinutes,
       skillCategories,
       order
     } = body;
@@ -98,7 +100,9 @@ export async function POST(request: NextRequest) {
       path: phase === 2 ? path : undefined,
       questionText,
       questionImage: questionImage || null,
+      questionImages: questionImages || [],
       requiresImageUpload: requiresImageUpload || false,
+      timeLimitMinutes: timeLimitMinutes || null,
       skillCategories: skillCategories || {},
       order: order || 0
     });
@@ -113,7 +117,9 @@ export async function POST(request: NextRequest) {
         path: question.path,
         questionText: question.questionText,
         questionImage: question.questionImage,
+        questionImages: question.questionImages,
         requiresImageUpload: question.requiresImageUpload,
+        timeLimitMinutes: question.timeLimitMinutes,
         skillCategories: question.skillCategories,
         order: question.order,
         isActive: question.isActive
@@ -133,20 +139,31 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('PUT Questions API - Session:', session?.user?.id);
+    
     if (!session?.user) {
+      console.log('PUT Questions API - No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
     const userId = (session.user as any).id;
+    console.log('PUT Questions API - User ID:', userId);
+    
     if (!isAdmin(userId)) {
+      console.log('PUT Questions API - User is not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('PUT Questions API - Request body:', JSON.stringify(body, null, 2));
+    
     const { id, ...updateData } = body;
+    console.log('PUT Questions API - Question ID:', id);
+    console.log('PUT Questions API - Update data:', JSON.stringify(updateData, null, 2));
 
     if (!id) {
+      console.log('PUT Questions API - No ID provided');
       return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
     }
 
@@ -155,13 +172,18 @@ export async function PUT(request: NextRequest) {
       await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
     }
 
+    console.log('PUT Questions API - Attempting to update question with ID:', id);
+    
     const question = await AssessmentQuestion.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
 
+    console.log('PUT Questions API - Update result:', question ? 'Success' : 'Question not found');
+
     if (!question) {
+      console.log('PUT Questions API - Question not found for ID:', id);
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
@@ -173,7 +195,9 @@ export async function PUT(request: NextRequest) {
         path: question.path,
         questionText: question.questionText,
         questionImage: question.questionImage,
+        questionImages: question.questionImages,
         requiresImageUpload: question.requiresImageUpload,
+        timeLimitMinutes: question.timeLimitMinutes,
         skillCategories: question.skillCategories,
         order: question.order,
         isActive: question.isActive
@@ -181,7 +205,8 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error updating question:', error);
+    console.error('PUT Questions API - Error updating question:', error);
+    console.error('PUT Questions API - Error stack:', (error as Error).stack);
     return NextResponse.json(
       { error: 'Failed to update question' },
       { status: 500 }

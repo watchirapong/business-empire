@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
     const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });

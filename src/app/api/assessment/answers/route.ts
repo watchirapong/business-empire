@@ -16,24 +16,66 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || (session.user as any).id;
+    const userId = searchParams.get('userId');
     const questionId = searchParams.get('questionId');
+    const admin = searchParams.get('admin') === 'true';
 
     // Connect to MongoDB
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
     }
 
-    const query: any = { userId };
-    if (questionId) {
-      query.questionId = questionId;
+    // Check if user is admin for admin-only features
+    const userIsAdmin = isAdmin((session.user as any).id);
+    
+    const query: any = {};
+    
+    // If admin parameter is true and user is admin, get all answers
+    if (admin && userIsAdmin) {
+      // Get all answers for admin view
+      if (questionId) {
+        query.questionId = questionId;
+      }
+    } else {
+      // Regular user - only get their own answers
+      query.userId = userId || (session.user as any).id;
+      if (questionId) {
+        query.questionId = questionId;
+      }
     }
 
     const answers = await UserAnswer.find(query)
       .sort({ submittedAt: -1 })
       .select('-__v');
 
-    return NextResponse.json({ answers });
+    // Fetch question data for each answer
+    const answersWithQuestions = await Promise.all(
+      answers.map(async (answer) => {
+        const question = await AssessmentQuestion.findById(answer.questionId)
+          .select('questionText questionImage questionImages phase path');
+        
+        // Debug logging
+        console.log(`Answer ${answer._id} -> Question ${answer.questionId}:`, {
+          questionText: question?.questionText,
+          questionImage: question?.questionImage,
+          questionImages: question?.questionImages,
+          questionImagesLength: question?.questionImages?.length || 0
+        });
+        
+        return {
+          ...answer.toObject(),
+          questionText: question?.questionText || 'Question not found',
+          questionImage: question?.questionImage || null,
+          questionImages: question?.questionImages || [],
+          questionPhase: question?.phase || null,
+          questionPath: question?.path || null,
+          timeSpentSeconds: answer.timeSpentSeconds || null,
+          timeStartedAt: answer.timeStartedAt || null
+        };
+      })
+    );
+
+    return NextResponse.json({ answers: answersWithQuestions });
 
   } catch (error) {
     console.error('Error fetching answers:', error);
@@ -56,11 +98,15 @@ export async function POST(request: NextRequest) {
     const questionId = formData.get('questionId') as string;
     const answerText = formData.get('answerText') as string;
     const answerImage = formData.get('answerImage') as File | null;
+    const timeSpentSeconds = formData.get('timeSpentSeconds') as string;
+    const timeStartedAt = formData.get('timeStartedAt') as string;
 
     console.log('Received form data:');
     console.log('questionId:', questionId);
     console.log('answerText:', answerText);
     console.log('answerImage:', answerImage ? 'File present' : 'No file');
+    console.log('timeSpentSeconds:', timeSpentSeconds);
+    console.log('timeStartedAt:', timeStartedAt);
 
     if (!questionId || !answerText) {
       return NextResponse.json({ 
@@ -106,7 +152,9 @@ export async function POST(request: NextRequest) {
       userId: (session.user as any).id,
       questionId,
       answerText,
-      answerImage: imageUrl
+      answerImage: imageUrl,
+      timeSpentSeconds: timeSpentSeconds ? parseInt(timeSpentSeconds) : null,
+      timeStartedAt: timeStartedAt ? new Date(timeStartedAt) : null
     });
 
     await answer.save();

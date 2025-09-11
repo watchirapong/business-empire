@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
+import { io, Socket } from 'socket.io-client';
+import { isAdmin } from '@/lib/admin-config';
 
 interface Question {
   _id: string;
@@ -11,8 +13,10 @@ interface Question {
   phase: number;
   path?: string;
   questionText: string;
-  questionImage?: string;
+  questionImage?: string; // Keep for backward compatibility
+  questionImages?: string[]; // New field for multiple images
   requiresImageUpload: boolean;
+  timeLimitMinutes?: number; // Time limit in minutes
   skillCategories: {
     selfLearning?: number;
     creative?: number;
@@ -63,6 +67,19 @@ const CAREER_PATHS = [
   { id: 'business', name: 'Business & Startup', icon: '💼', color: 'bg-yellow-500' }
 ];
 
+// Session state persisted in MongoDB
+interface SessionStatePayload {
+  currentPhase: 1 | 2;
+  currentQuestionIndex: number;
+  draftAnswerText: string;
+  timeRemainingSeconds: number | null;
+  timeStartedAt: string | null;
+  showPathSelection: boolean;
+}
+
+// Debounced save to API for session state
+const debounceDelayMs = 800;
+
 export default function AssessmentPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -86,6 +103,144 @@ export default function AssessmentPage() {
   const [friendAnswers, setFriendAnswers] = useState<any[]>([]);
   const [nicknames, setNicknames] = useState<{ [key: string]: string }>({});
 
+  // Live lobby state
+  const socketRef = useRef<Socket | null>(null);
+  const [inRoom, setInRoom] = useState(false);
+  const [roomId, setRoomId] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [roomQuestionIndex, setRoomQuestionIndex] = useState<number | null>(null);
+
+  // Full-screen image viewer state
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // Timer state - persisted via API
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [timeStarted, setTimeStarted] = useState<Date | null>(null);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  
+
+  // Handle ESC key to close full-screen image
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && fullscreenImage) {
+        setFullscreenImage(null);
+      }
+    };
+
+    if (fullscreenImage) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [fullscreenImage]);
+
+  // Timer functions
+  const startTimer = (timeLimitMinutes: number, initialRemaining?: number | null) => {
+    // Always clear any existing interval to avoid double ticking
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+
+    const timeLimitSeconds = timeLimitMinutes * 60;
+    const nextRemaining = typeof initialRemaining === 'number' && initialRemaining > 0
+      ? Math.min(initialRemaining, timeLimitSeconds)
+      : timeLimitSeconds;
+
+    setTimeRemaining(nextRemaining);
+    setTimeStarted(new Date());
+
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          setTimerInterval(null);
+          // Auto-submit when time runs out (force submit even if empty)
+          handleAnswerSubmit(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    setTimerInterval(interval);
+  };
+
+  const stopTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Start timer when question changes (avoid double intervals)
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex < questions.length) {
+      const currentQuestion = questions[currentQuestionIndex];
+      if (currentQuestion?.timeLimitMinutes) {
+        startTimer(currentQuestion.timeLimitMinutes, timeRemaining);
+      } else {
+        // Even for questions without time limits, track the start time
+        setTimeStarted(new Date());
+        stopTimer();
+        setTimeRemaining(null);
+      }
+    }
+    
+    return () => stopTimer();
+  // Only re-run when question index or questions change; startTimer ensures prior interval is cleared
+  }, [currentQuestionIndex, questions]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => stopTimer();
+  }, []);
+
+  // Debounced API save for session state
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        await fetch('/api/assessment/progress', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPhase,
+            currentQuestionIndex,
+            draftAnswerText: answerText,
+            timeRemainingSeconds: timeRemaining,
+            timeStartedAt: timeStarted ? timeStarted.toISOString() : null,
+            showPathSelection
+          } as SessionStatePayload),
+          signal: controller.signal
+        });
+      } catch (e) {
+        // ignore background persistence errors
+      }
+    }, debounceDelayMs);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [currentPhase, currentQuestionIndex, answerText, timeRemaining, timeStarted, showPathSelection]);
+
+  // Sync question index with room state
+  useEffect(() => {
+    if (inRoom && questions.length > 0 && roomQuestionIndex !== null) {
+      const boundedIndex = Math.max(0, Math.min(roomQuestionIndex, questions.length - 1));
+      if (boundedIndex !== currentQuestionIndex) {
+        setCurrentQuestionIndex(boundedIndex);
+      }
+    }
+  }, [inRoom, roomQuestionIndex, questions, currentQuestionIndex]);
+
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) {
@@ -98,7 +253,7 @@ export default function AssessmentPage() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      
+
       // Load user progress and system settings
       const [progressResponse, settingsResponse] = await Promise.all([
         fetch('/api/assessment/progress'),
@@ -119,23 +274,55 @@ export default function AssessmentPage() {
         const newProgressResponse = await fetch('/api/assessment/progress');
         const newProgressData = await newProgressResponse.json();
         setUserProgress(newProgressData.progress);
+        // Reset state to defaults
+        setCurrentQuestionIndex(0);
+        setAnswerText('');
+        setTimeRemaining(null);
+        setTimeStarted(null);
+        setShowPathSelection(false);
       }
 
       // Determine current phase - add null checks
       if (progressData && progressData.progress) {
+        const sessionState = progressData.progress.sessionState;
+        // Restore persisted session state from backend
+        if (sessionState) {
+          setCurrentPhase(sessionState.currentPhase);
+          setCurrentQuestionIndex(sessionState.currentQuestionIndex || 0);
+          setAnswerText(sessionState.draftAnswerText || '');
+          setShowPathSelection(Boolean(sessionState.showPathSelection));
+
+          // Timer restoration with server timestamps
+          if (sessionState.timeRemainingSeconds != null && sessionState.timeStartedAt) {
+            // Compute remaining based on timeStartedAt, not lastUpdatedAt, to avoid drift
+            const startedAt = new Date(sessionState.timeStartedAt);
+            const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+            const remaining = Math.max(0, (sessionState.timeRemainingSeconds as number) - elapsed);
+            if (remaining > 0) {
+              setTimeRemaining(remaining);
+              setTimeStarted(startedAt);
+            } else {
+              setTimeRemaining(0);
+            }
+          }
+        }
+
         if (progressData.canProceedToPhase2 && !progressData.progress.selectedPath) {
           setShowPathSelection(true);
+          setCurrentQuestionIndex(0);
+          setAnswerText('');
+          await loadQuestions(1, undefined, progressData.progress);
         } else if (progressData.progress.selectedPath) {
           setCurrentPhase(2);
-          await loadQuestions(2, progressData.progress.selectedPath);
+          await loadQuestions(2, progressData.progress.selectedPath, progressData.progress);
         } else {
           setCurrentPhase(1);
-          await loadQuestions(1);
+          await loadQuestions(1, undefined, progressData.progress);
         }
       } else {
         // Default to phase 1 if no progress data
         setCurrentPhase(1);
-        await loadQuestions(1);
+        await loadQuestions(1, undefined, null);
       }
 
     } catch (error) {
@@ -158,13 +345,43 @@ export default function AssessmentPage() {
     }
   };
 
-  const loadQuestions = async (phase: number, path?: string) => {
+  const loadQuestions = async (phase: number, path?: string, progress?: UserProgress | null) => {
     try {
       const url = `/api/assessment/questions?phase=${phase}${path ? `&path=${path}` : ''}`;
       const response = await fetch(url);
       const data = await response.json();
-      setQuestions(data.questions);
-      setCurrentQuestionIndex(0);
+      const fetchedQuestions: Question[] = data.questions || [];
+      setQuestions(fetchedQuestions);
+
+      // Determine starting index: prefer server sessionState if valid and not already answered; otherwise first unanswered
+      const answeredIds: string[] | undefined = phase === 1
+        ? (progress as any)?.phase1Answers
+        : (progress as any)?.phase2Answers;
+
+      const sessionIndex = (progress as any)?.sessionState?.currentQuestionIndex ?? 0;
+      const sessionValid = Number.isInteger(sessionIndex) && sessionIndex >= 0 && sessionIndex < fetchedQuestions.length;
+      const sessionQuestion = sessionValid ? fetchedQuestions[sessionIndex] : null;
+      const sessionQuestionId = sessionQuestion ? (sessionQuestion as any)?._id || (sessionQuestion as any)?.id : null;
+      const sessionAnswered = sessionQuestionId && Array.isArray(answeredIds) ? answeredIds.includes(sessionQuestionId) : false;
+
+      // Helper to locate first unanswered
+      const firstUnansweredIndex = Array.isArray(answeredIds)
+        ? fetchedQuestions.findIndex((q: any) => {
+            const qid = q?._id || q?.id;
+            return qid ? !answeredIds.includes(qid) : true;
+          })
+        : 0;
+
+      if (sessionValid && !sessionAnswered) {
+        setCurrentQuestionIndex(sessionIndex);
+      } else if (firstUnansweredIndex >= 0) {
+        setCurrentQuestionIndex(firstUnansweredIndex);
+      } else if (fetchedQuestions.length > 0) {
+        // default to last question if all answered to allow completion flow
+        setCurrentQuestionIndex(fetchedQuestions.length - 1);
+      } else {
+        setCurrentQuestionIndex(0);
+      }
     } catch (error) {
       console.error('Error loading questions:', error);
     }
@@ -203,8 +420,96 @@ export default function AssessmentPage() {
     }
   };
 
-  const handleAnswerSubmit = async () => {
-    if (!answerText.trim()) {
+  // Socket helpers
+  const ensureSocket = () => {
+    if (!socketRef.current) {
+      const s = io();
+      socketRef.current = s;
+
+      s.on('connect', () => {
+        // no-op
+      });
+
+      s.on('assessment:state', (state: any) => {
+        try {
+          setInRoom(true);
+          setRoomId(state.roomId);
+          setParticipants(Array.isArray(state.participants) ? state.participants : []);
+          setRoomQuestionIndex(Number(state.currentQuestionIndex) || 0);
+          setIsHost(state.hostId === s.id);
+        } catch {}
+      });
+
+      s.on('assessment:error', ({ message }: any) => {
+        alert(message || 'Assessment live session error');
+      });
+
+      s.on('disconnect', () => {
+        setInRoom(false);
+        setIsHost(false);
+        setParticipants([]);
+      });
+    }
+    return socketRef.current!;
+  };
+
+  const handleCreateRoom = () => {
+    const admin = isAdmin(((session?.user as any)?.id) as string);
+    if (!admin) {
+      alert('Only admin can create a room');
+      return;
+    }
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const s = ensureSocket();
+    s.emit('assessment:createRoom', {
+      roomId: code,
+      hostName: (session?.user as any)?.name || 'Admin',
+      isAdmin: true
+    });
+  };
+
+  const handleJoinRoom = (codeInput?: string) => {
+    const code = (codeInput || roomId || '').toUpperCase().trim();
+    if (!code) {
+      alert('Enter room code to join');
+      return;
+    }
+    const s = ensureSocket();
+    s.emit('assessment:joinRoom', {
+      roomId: code,
+      name: (session?.user as any)?.name || 'Player'
+    });
+  };
+
+  const handleLeaveRoom = () => {
+    const code = roomId;
+    try {
+      socketRef.current?.emit('assessment:leave', { roomId: code });
+    } catch {}
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+    setInRoom(false);
+    setIsHost(false);
+    setParticipants([]);
+    setRoomQuestionIndex(null);
+  };
+
+  const handleAdminNext = () => {
+    if (!isHost) return;
+    socketRef.current?.emit('assessment:next', { roomId });
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        socketRef.current?.disconnect();
+      } catch {}
+    };
+  }, []);
+
+  const handleAnswerSubmit = async (forceSubmit = false) => {
+    if (!answerText.trim() && !forceSubmit) {
       alert('Please enter your answer');
       return;
     }
@@ -229,9 +534,20 @@ export default function AssessmentPage() {
       }
       
       formData.append('questionId', questionId);
-      formData.append('answerText', answerText);
+      
+      // If no answer text and forced submit (time ran out), use default message
+      const finalAnswerText = answerText.trim() || (forceSubmit ? 'ว่างเปล่าไม่ได้ส่งอะไร' : answerText);
+      formData.append('answerText', finalAnswerText);
+      
       if (answerImage) {
         formData.append('answerImage', answerImage);
+      }
+      
+      // Add time tracking data
+      if (timeStarted) {
+        const timeSpentSeconds = Math.floor((new Date().getTime() - timeStarted.getTime()) / 1000);
+        formData.append('timeSpentSeconds', timeSpentSeconds.toString());
+        formData.append('timeStartedAt', timeStarted.toISOString());
       }
 
       const response = await fetch('/api/assessment/answers', {
@@ -242,9 +558,20 @@ export default function AssessmentPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Clear draft answer on server
+        try {
+          await fetch('/api/assessment/progress', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ draftAnswerText: '' })
+          });
+        } catch {}
+
         // Move to next question or show friend answers
         if (currentQuestionIndex < questions.length - 1) {
-          setCurrentQuestionIndex(currentQuestionIndex + 1);
+          if (!inRoom) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+          }
           setAnswerText('');
           setAnswerImage(null);
         } else {
@@ -257,13 +584,54 @@ export default function AssessmentPage() {
             }
             // Show path selection after completing Phase 1
             setShowPathSelection(true);
+            // Clear question-specific state on server
+            try {
+              await fetch('/api/assessment/progress', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentQuestionIndex: 0, draftAnswerText: '' })
+              });
+            } catch {}
           } else {
             // Phase 2 completed, show waiting message
             await loadInitialData(); // Refresh progress
           }
         }
       } else {
-        alert(data.error || 'Failed to submit answer');
+        const message: string = (data && data.error) ? String(data.error) : 'Failed to submit answer';
+        if (message.toLowerCase().includes('already answered')) {
+          // Auto-skip to next unanswered question or completion flow
+          const answeredIds: string[] | undefined = currentPhase === 1
+            ? (userProgress as any)?.phase1Answers
+            : (userProgress as any)?.phase2Answers;
+
+          const nextIndex = (questions || []).findIndex((q: any, idx: number) => {
+            if (idx <= currentQuestionIndex) return false;
+            const qid = q?._id || q?.id;
+            return qid ? !(answeredIds || []).includes(qid) : true;
+          });
+
+          if (nextIndex >= 0) {
+            if (!inRoom) {
+              setCurrentQuestionIndex(nextIndex);
+            }
+            setAnswerText('');
+            setAnswerImage(null);
+          } else {
+            // End of list → trigger phase completion behavior
+            if (currentPhase === 1) {
+              const qid = questions[currentQuestionIndex]?._id || questions[currentQuestionIndex]?.id;
+              if (qid) {
+                await loadFriendAnswers(qid);
+              }
+              setShowPathSelection(true);
+            } else {
+              await loadInitialData();
+            }
+          }
+        } else {
+          alert(message);
+        }
       }
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -287,6 +655,17 @@ export default function AssessmentPage() {
         setShowPathSelection(false);
         setCurrentPhase(2);
         await loadQuestions(2, pathId);
+
+        // Reset question state for new path in server session state
+        try {
+          await fetch('/api/assessment/progress', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPhase: 2, currentQuestionIndex: 0, draftAnswerText: '', showPathSelection: false })
+          });
+        } catch {}
+        setCurrentQuestionIndex(0);
+        setAnswerText('');
       } else {
         alert(data.error || 'Failed to select path');
       }
@@ -305,8 +684,27 @@ export default function AssessmentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading Assessment...</div>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center glass-card rounded-3xl p-12 border border-orange-500/30 animate-slide-in-bottom">
+            <div className="text-7xl mb-6 animate-bounce-in">📝</div>
+            <h1 className="text-3xl font-bold gradient-text-primary mb-4">Loading Assessment...</h1>
+            <div className="w-10 h-10 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -318,25 +716,51 @@ export default function AssessmentPage() {
   // Show path selection
   if (showPathSelection) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-4">Choose Your Career Path</h1>
-            <p className="text-gray-300 text-lg">Select the path that interests you most for Phase 2</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16">
+          <div className="text-center mb-12 animate-slide-in-bottom">
+            <h1 className="text-5xl sm:text-6xl font-black mb-6 gradient-text">Choose Your Career Path</h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">Select the path that interests you most for Phase 2</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CAREER_PATHS.map((path) => (
-              <div
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {CAREER_PATHS.map((path, index) => (
+              <button
                 key={path.id}
                 onClick={() => handlePathSelection(path.id)}
-                className={`${path.color} rounded-xl p-6 cursor-pointer hover:scale-105 transition-all duration-300 shadow-lg`}
+                className={`group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom relative overflow-hidden`}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="text-center">
-                  <div className="text-4xl mb-4">{path.icon}</div>
-                  <h3 className="text-xl font-semibold text-white">{path.name}</h3>
+                {/* Background gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                {/* Floating particles */}
+                <div className="absolute top-4 right-4 w-2 h-2 bg-orange-400/40 rounded-full animate-ping animation-delay-1000"></div>
+                <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-orange-300/60 rounded-full animate-ping animation-delay-2000"></div>
+
+                <div className="text-center w-full flex flex-col items-center justify-center relative z-10">
+                  <div className="text-7xl mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 flex justify-center animate-bounce-in">{path.icon}</div>
+                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300 text-center leading-tight">
+                    {path.name}
+                  </h3>
+                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300 text-center leading-relaxed">
+                    Click to select this path
+                  </p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -347,73 +771,26 @@ export default function AssessmentPage() {
   // Show waiting for admin approval (only if no declined submissions)
   if (userProgress?.phase2Completed && !userProgress?.isApproved && !userProgress?.hasDeclinedSubmissions) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-6">⏳</div>
-          <h1 className="text-3xl font-bold text-white mb-4">Waiting for Admin Review</h1>
-          <p className="text-gray-300 text-lg">Your assessment has been submitted and is under review.</p>
-          <p className="text-gray-400 mt-2">You will be notified once the review is complete.</p>
-          
-          {/* Debug info and manual reset button */}
-          <div className="mt-8 p-4 bg-black/20 rounded-lg">
-            <p className="text-sm text-gray-400 mb-4">Debug Info:</p>
-            <p className="text-xs text-gray-500">Phase2Completed: {userProgress?.phase2Completed ? 'true' : 'false'}</p>
-            <p className="text-xs text-gray-500">IsApproved: {userProgress?.isApproved ? 'true' : 'false'}</p>
-            <p className="text-xs text-gray-500">HasDeclinedSubmissions: {userProgress?.hasDeclinedSubmissions ? 'true' : 'false'}</p>
-            
-            <button
-              onClick={async () => {
-                try {
-                  // First try the normal reset
-                  const response = await fetch('/api/assessment/progress', {
-                    method: 'DELETE'
-                  });
-                  
-                  if (response.ok) {
-                    const result = await response.json();
-                    console.log('Reset result:', result);
-                    // Force reload the page with multiple methods
-                    setTimeout(() => {
-                      window.location.href = window.location.href;
-                    }, 100);
-                    window.location.reload();
-                  } else {
-                    // If normal reset fails, try a more aggressive approach
-                    console.log('Normal reset failed, trying aggressive reset...');
-                    
-                    // Force reset by directly updating the user progress
-                    const aggressiveResponse = await fetch('/api/assessment/progress', {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                        forceReset: true,
-                        phase1Completed: false,
-                        phase2Completed: false,
-                        isApproved: false
-                      })
-                    });
-                    
-                    if (aggressiveResponse.ok) {
-                      // Force reload the page with multiple methods
-                      setTimeout(() => {
-                        window.location.href = window.location.href;
-                      }, 100);
-                      window.location.reload();
-                    } else {
-                      alert('Failed to reset progress. Please contact admin.');
-                    }
-                  }
-                } catch (error) {
-                  console.error('Reset error:', error);
-                  alert('Error resetting progress: ' + (error instanceof Error ? error.message : 'Unknown error'));
-                }
-              }}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-            >
-              🔄 Force Reset Progress
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center glass-card rounded-3xl p-12 border border-orange-500/30 animate-slide-in-bottom max-w-2xl mx-auto">
+            <div className="text-7xl mb-6 animate-bounce-in">⏳</div>
+            <h1 className="text-4xl font-bold gradient-text-primary mb-6">Waiting for Admin Review</h1>
+            <p className="text-xl text-gray-300 mb-4 leading-relaxed">Your assessment has been submitted and is under review.</p>
+            <p className="text-gray-400 leading-relaxed">You will be notified once the review is complete.</p>
           </div>
         </div>
       </div>
@@ -423,12 +800,26 @@ export default function AssessmentPage() {
   // Show approved message
   if (userProgress?.isApproved) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-6">✅</div>
-          <h1 className="text-3xl font-bold text-white mb-4">Assessment Complete!</h1>
-          <p className="text-gray-300 text-lg">Your assessment has been reviewed and approved.</p>
-          <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6 max-w-md mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center glass-card rounded-3xl p-12 border border-orange-500/30 animate-slide-in-bottom max-w-3xl mx-auto">
+            <div className="text-7xl mb-6 animate-bounce-in">✅</div>
+            <h1 className="text-4xl font-bold gradient-text-primary mb-6">Assessment Complete!</h1>
+            <p className="text-xl text-gray-300 mb-8 leading-relaxed">Your assessment has been reviewed and approved.</p>
+            <div className="glass-card rounded-2xl p-8 border border-white/20">
             <h3 className="text-xl font-semibold text-white mb-4">Your Scores</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="text-gray-300">Self Learning: <span className="text-white font-semibold">{userProgress.totalScore.selfLearning.toFixed(1)}</span></div>
@@ -440,6 +831,7 @@ export default function AssessmentPage() {
               <div className="text-gray-300">Leadership: <span className="text-white font-semibold">{userProgress.totalScore.leadership.toFixed(1)}</span></div>
               <div className="text-gray-300">Career Knowledge: <span className="text-white font-semibold">{userProgress.totalScore.careerKnowledge.toFixed(1)}</span></div>
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -449,11 +841,24 @@ export default function AssessmentPage() {
   // Show friend answers
   if (friendAnswers.length > 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-4">Friend&apos;s Answers</h1>
-            <p className="text-gray-300">See how others answered this question</p>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16">
+          <div className="text-center mb-12 animate-slide-in-bottom">
+            <h1 className="text-4xl sm:text-5xl font-black mb-6 gradient-text">Friend&apos;s Answers</h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">See how others answered this question</p>
           </div>
 
           <div className="space-y-6">
@@ -500,44 +905,189 @@ export default function AssessmentPage() {
   const currentQuestion = questions[currentQuestionIndex];
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">No questions available</div>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+          {/* Additional floating elements for depth */}
+          <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+          <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center glass-card rounded-3xl p-12 border border-orange-500/30 animate-slide-in-bottom">
+            <div className="text-7xl mb-6 animate-bounce-in">❓</div>
+            <h1 className="text-3xl font-bold gradient-text-primary mb-4">No questions available</h1>
+            <p className="text-gray-300">Please contact administrator for assistance.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+      {/* Enhanced Animated Background */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+
+        {/* Additional floating elements for depth */}
+        <div className="absolute top-1/3 right-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-float"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-24 h-24 bg-pink-500/5 rounded-full blur-xl animate-float animation-delay-2000"></div>
+        <div className="absolute top-2/3 right-1/4 w-16 h-16 bg-blue-500/5 rounded-full blur-lg animate-float animation-delay-4000"></div>
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
+        <div className="text-center mb-12 animate-slide-in-bottom">
+          <h1 className="text-4xl sm:text-5xl font-black mb-6 gradient-text">
             Phase {currentPhase} Assessment
           </h1>
-          <p className="text-gray-300">
+          <p className="text-xl text-gray-300 mb-4">
             Question {currentQuestionIndex + 1} of {questions.length}
           </p>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-4">
+
+          {/* Live Lobby Controls */}
+          <div className="max-w-3xl mx-auto mb-6">
+            {!inRoom ? (
+              <div className="glass-card rounded-2xl p-4 border border-white/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="text-white font-semibold">Join Live Session</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={roomId}
+                      onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                      placeholder="ROOM CODE"
+                      className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
+                      maxLength={8}
+                    />
+                    <button
+                      onClick={() => handleJoinRoom()}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    >Join</button>
+                    {isAdmin(((session?.user as any)?.id) as string) && (
+                      <button
+                        onClick={handleCreateRoom}
+                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-semibold"
+                      >Create</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="glass-card rounded-2xl p-4 border border-white/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="text-white font-semibold">
+                    Live Room: <span className="font-mono bg-white/10 px-2 py-1 rounded">{roomId}</span>
+                    {isHost && <span className="ml-2 bg-yellow-400 text-black px-2 py-1 rounded">Admin</span>}
+                    <span className="ml-3 text-gray-300">Participants: {participants.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isHost && (
+                      <button
+                        onClick={handleAdminNext}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
+                        title="Next question for everyone"
+                      >Next →</button>
+                    )}
+                    <button
+                      onClick={handleLeaveRoom}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg"
+                    >Leave</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Timer Display */}
+          {timeRemaining !== null && (
+            <div className="mt-6 mb-6 animate-scale-in">
+              <div className={`inline-flex items-center px-6 py-3 rounded-2xl text-xl font-bold glass-card border transition-all duration-300 ${
+                timeRemaining <= 60 ? 'border-red-500/50 bg-red-500/20 text-red-300' : 
+                timeRemaining <= 300 ? 'border-yellow-500/50 bg-yellow-500/20 text-yellow-300' : 
+                'border-green-500/50 bg-green-500/20 text-green-300'
+              }`}>
+                <span className="mr-3 text-2xl">⏰</span>
+                {formatTime(timeRemaining)}
+              </div>
+              {timeRemaining <= 60 && (
+                <div className="mt-3">
+                  <p className="text-red-400 text-lg animate-pulse font-semibold">⚠️ Time is running out!</p>
+                  {!answerText.trim() && (
+                    <p className="text-orange-400 text-sm mt-1 animate-pulse">
+                      📝 หากไม่พิมพ์คำตอบ ระบบจะส่งข้อความ &quot;ว่างเปล่าไม่ได้ส่งอะไร&quot; แทน
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="w-full bg-gray-700/50 rounded-full h-3 mt-6 glass-card border border-white/10">
             <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-orange-500 to-orange-400 h-3 rounded-full transition-all duration-500 animate-pulse"
               style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
             ></div>
           </div>
         </div>
 
         {/* Question Card */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 mb-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
+        <div className="glass-card rounded-3xl p-8 border border-orange-500/30 mb-8 animate-slide-in-bottom">
+          <h2 className="text-2xl font-bold gradient-text-primary mb-6">
             {currentQuestion.questionText}
           </h2>
           
-          {currentQuestion.questionImage && (
+          {/* Multiple Question Images */}
+          {currentQuestion.questionImages && currentQuestion.questionImages.length > 0 && (
             <div className="mb-6">
-              <img 
-                src={currentQuestion.questionImage} 
-                alt="Question" 
-                className="max-w-full h-auto rounded-lg"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentQuestion.questionImages.map((imageUrl, index) => (
+                  <div key={index} className="relative">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Question image ${index + 1}`} 
+                      className="w-full h-auto rounded-lg"
+                    />
+                    <button
+                      onClick={() => setFullscreenImage(imageUrl)}
+                      className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                      title="View full screen"
+                    >
+                      ⛶
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Backward compatibility: Show single questionImage if no questionImages */}
+          {(!currentQuestion.questionImages || currentQuestion.questionImages.length === 0) && currentQuestion.questionImage && (
+            <div className="mb-6">
+              <div className="relative inline-block">
+                <img 
+                  src={currentQuestion.questionImage} 
+                  alt="Question" 
+                  className="max-w-full h-auto rounded-lg"
+                />
+                <button
+                  onClick={() => setFullscreenImage(currentQuestion.questionImage || null)}
+                  className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                  title="View full screen"
+                >
+                  ⛶
+                </button>
+              </div>
             </div>
           )}
 
@@ -549,7 +1099,7 @@ export default function AssessmentPage() {
               <textarea
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-4 glass-card border border-orange-500/30 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 transition-all duration-300"
                 rows={6}
                 placeholder="Type your answer here..."
               />
@@ -564,7 +1114,7 @@ export default function AssessmentPage() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white"
+                  className="w-full p-3 glass-card border border-orange-500/30 rounded-2xl text-white file:bg-orange-500/20 file:border-0 file:text-white file:rounded-lg file:px-4 file:py-2 file:mr-4 hover:file:bg-orange-500/30 transition-all duration-300"
                 />
                 {answerImage && (
                   <p className="text-gray-300 mt-2">Selected: {answerImage.name}</p>
@@ -575,16 +1125,40 @@ export default function AssessmentPage() {
         </div>
 
         {/* Submit Button */}
-        <div className="text-center">
+        <div className="text-center animate-slide-in-bottom">
           <button
-            onClick={handleAnswerSubmit}
+            onClick={() => handleAnswerSubmit()}
             disabled={submitting || !answerText.trim()}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-colors"
+            className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 disabled:from-gray-500 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-orange-500/25 transition-all duration-200 cursor-pointer hover:scale-105 flex items-center space-x-3 mx-auto"
           >
-            {submitting ? 'Submitting...' : 'Submit Answer'}
+            <span className="text-2xl">📝</span>
+            <span>{submitting ? 'Submitting...' : 'Submit Answer'}</span>
           </button>
         </div>
       </div>
+
+      {/* Full-screen Image Modal */}
+      {fullscreenImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <div className="relative max-w-full max-h-full">
+            <button
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold z-10"
+            >
+              ×
+            </button>
+            <img
+              src={fullscreenImage}
+              alt="Full screen view"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

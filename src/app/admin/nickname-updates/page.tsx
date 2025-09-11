@@ -21,7 +21,7 @@ export default function NicknameUpdatesPage() {
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   // Check if user is admin
-  const isAdmin = session?.user && ['898059066537029692', '664458019442262018', '547402456363958273'].includes((session.user as any).id);
+  const isAdmin = session?.user && ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'].includes((session.user as any).id);
 
   const triggerNicknameUpdate = async () => {
     if (!isAdmin) return;

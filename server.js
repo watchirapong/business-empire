@@ -21,6 +21,8 @@ const handle = app.getRequestHandler();
 const games = new Map();
 // Track host names for each game to allow reconnection
 const gameHosts = new Map();
+// Assessment live session rooms (in-memory)
+const assessmentRooms = new Map();
 
 app.prepare().then(async () => {
   // Connect to MongoDB
@@ -545,6 +547,120 @@ app.prepare().then(async () => {
       }
     });
 
+    // =========================
+    // Assessment live session
+    // =========================
+    socket.on('assessment:createRoom', ({ roomId, hostName, isAdmin }) => {
+      try {
+        const rid = (roomId || '').toUpperCase().slice(0, 8) || Math.random().toString(36).substring(2, 8).toUpperCase();
+        if (!isAdmin) {
+          socket.emit('assessment:error', { message: 'Only admin can create a room' });
+          return;
+        }
+
+        if (!assessmentRooms.has(rid)) {
+          assessmentRooms.set(rid, {
+            roomId: rid,
+            hostId: socket.id,
+            participants: new Map(),
+            currentQuestionIndex: 0
+          });
+        }
+
+        const room = assessmentRooms.get(rid);
+        room.hostId = socket.id;
+        room.participants.set(socket.id, { id: socket.id, name: hostName || 'Admin' });
+        socket.join(`assessment:${rid}`);
+
+        const state = {
+          roomId: rid,
+          hostId: room.hostId,
+          participants: Array.from(room.participants.values()),
+          currentQuestionIndex: room.currentQuestionIndex
+        };
+        socket.emit('assessment:state', state);
+        socket.to(`assessment:${rid}`).emit('assessment:state', state);
+      } catch (err) {
+        console.error('assessment:createRoom error', err);
+        socket.emit('assessment:error', { message: 'Failed to create room' });
+      }
+    });
+
+    socket.on('assessment:joinRoom', ({ roomId, name }) => {
+      try {
+        const rid = (roomId || '').toUpperCase();
+        if (!rid || !assessmentRooms.has(rid)) {
+          socket.emit('assessment:error', { message: 'Room not found' });
+          return;
+        }
+        const room = assessmentRooms.get(rid);
+        socket.join(`assessment:${rid}`);
+        room.participants.set(socket.id, { id: socket.id, name: name || 'Player' });
+        const state = {
+          roomId: rid,
+          hostId: room.hostId,
+          participants: Array.from(room.participants.values()),
+          currentQuestionIndex: room.currentQuestionIndex
+        };
+        socket.emit('assessment:state', state);
+        socket.to(`assessment:${rid}`).emit('assessment:state', state);
+      } catch (err) {
+        console.error('assessment:joinRoom error', err);
+        socket.emit('assessment:error', { message: 'Failed to join room' });
+      }
+    });
+
+    socket.on('assessment:next', ({ roomId }) => {
+      try {
+        const rid = (roomId || '').toUpperCase();
+        if (!rid || !assessmentRooms.has(rid)) return;
+        const room = assessmentRooms.get(rid);
+        if (room.hostId !== socket.id) {
+          socket.emit('assessment:error', { message: 'Only admin can go next' });
+          return;
+        }
+        room.currentQuestionIndex = Math.max(0, (room.currentQuestionIndex || 0) + 1);
+        const state = {
+          roomId: rid,
+          hostId: room.hostId,
+          participants: Array.from(room.participants.values()),
+          currentQuestionIndex: room.currentQuestionIndex
+        };
+        io.to(`assessment:${rid}`).emit('assessment:state', state);
+      } catch (err) {
+        console.error('assessment:next error', err);
+        socket.emit('assessment:error', { message: 'Failed to go next' });
+      }
+    });
+
+    socket.on('assessment:leave', ({ roomId }) => {
+      try {
+        const rid = (roomId || '').toUpperCase();
+        if (!rid || !assessmentRooms.has(rid)) return;
+        const room = assessmentRooms.get(rid);
+        socket.leave(`assessment:${rid}`);
+        room.participants.delete(socket.id);
+        if (room.hostId === socket.id) {
+          const first = Array.from(room.participants.keys())[0];
+          if (first) {
+            room.hostId = first;
+          } else {
+            assessmentRooms.delete(rid);
+            return;
+          }
+        }
+        const state = {
+          roomId: rid,
+          hostId: room.hostId,
+          participants: Array.from(room.participants.values()),
+          currentQuestionIndex: room.currentQuestionIndex
+        };
+        io.to(`assessment:${rid}`).emit('assessment:state', state);
+      } catch (err) {
+        console.error('assessment:leave error', err);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log('Player disconnected:', socket.id);
       // Remove player from all games
@@ -586,6 +702,29 @@ app.prepare().then(async () => {
           };
           io.to(roomId).emit('gameState', serializedGame);
           io.to(roomId).emit('playerLeft', { playerId: socket.id, totalPlayers: game.players.length });
+        }
+      });
+
+      // Cleanup from assessment rooms
+      assessmentRooms.forEach((room, rid) => {
+        if (room.participants.has(socket.id)) {
+          room.participants.delete(socket.id);
+          if (room.hostId === socket.id) {
+            const first = Array.from(room.participants.keys())[0];
+            if (first) {
+              room.hostId = first;
+            } else {
+              assessmentRooms.delete(rid);
+              return;
+            }
+          }
+          const state = {
+            roomId: rid,
+            hostId: room.hostId,
+            participants: Array.from(room.participants.values()),
+            currentQuestionIndex: room.currentQuestionIndex
+          };
+          io.to(`assessment:${rid}`).emit('assessment:state', state);
         }
       });
     });

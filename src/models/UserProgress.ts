@@ -8,6 +8,15 @@ export interface IUserProgress extends Document {
   selectedPath?: 'health' | 'creative' | 'gamedev' | 'engineering' | 'business';
   phase1Answers: string[]; // Array of question IDs answered in Phase 1
   phase2Answers: string[]; // Array of question IDs answered in Phase 2
+  sessionState?: {
+    currentPhase: 1 | 2;
+    currentQuestionIndex: number;
+    draftAnswerText: string;
+    timeRemainingSeconds: number | null;
+    timeStartedAt: Date | null;
+    showPathSelection: boolean;
+    lastUpdatedAt: Date;
+  };
   totalScore: {
     selfLearning: number;
     creative: number;
@@ -53,6 +62,15 @@ const UserProgressSchema = new Schema<IUserProgress>({
     type: String,
     ref: 'AssessmentQuestion'
   }],
+  sessionState: {
+    currentPhase: { type: Number, enum: [1, 2], default: 1 },
+    currentQuestionIndex: { type: Number, default: 0, min: 0 },
+    draftAnswerText: { type: String, default: '' },
+    timeRemainingSeconds: { type: Number, default: null, min: 0 },
+    timeStartedAt: { type: Date, default: null },
+    showPathSelection: { type: Boolean, default: false },
+    lastUpdatedAt: { type: Date, default: Date.now }
+  },
   totalScore: {
     selfLearning: { type: Number, default: 0, min: 0 },
     creative: { type: Number, default: 0, min: 0 },
@@ -84,5 +102,6 @@ UserProgressSchema.index({ userId: 1 });
 UserProgressSchema.index({ phase1Completed: 1, phase2Completed: 1 });
 UserProgressSchema.index({ isApproved: 1, approvedAt: -1 });
 UserProgressSchema.index({ selectedPath: 1 });
+UserProgressSchema.index({ 'sessionState.lastUpdatedAt': -1 });
 
 export default mongoose.models.UserProgress || mongoose.model<IUserProgress>('UserProgress', UserProgressSchema);

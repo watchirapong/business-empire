@@ -104,7 +104,8 @@ export async function GET(request: NextRequest) {
         isApproved: progress.isApproved,
         approvedAt: progress.approvedAt,
         approvedBy: progress.approvedBy,
-        hasDeclinedSubmissions
+        hasDeclinedSubmissions,
+        sessionState: progress.sessionState
       },
       settings: {
         phase2Open: settings.phase2Open,
@@ -219,7 +220,16 @@ export async function PUT(request: NextRequest) {
           approvedAt: null,
           approvedBy: null,
           phase1Answers: [],
-          phase2Answers: []
+          phase2Answers: [],
+          sessionState: {
+            currentPhase: 1,
+            currentQuestionIndex: 0,
+            draftAnswerText: '',
+            timeRemainingSeconds: null,
+            timeStartedAt: null,
+            showPathSelection: false,
+            lastUpdatedAt: new Date()
+          }
         },
         { new: true, runValidators: true }
       );
@@ -292,6 +302,60 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH - Update session state (current progress within session)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const body = await request.json();
+    const {
+      currentPhase,
+      currentQuestionIndex,
+      draftAnswerText,
+      timeRemainingSeconds,
+      timeStartedAt,
+      showPathSelection
+    } = body || {};
+
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
+    }
+
+    const progress = await UserProgress.findOne({ userId });
+    if (!progress) {
+      return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
+    }
+
+    // Merge and validate minimal fields
+    progress.sessionState = {
+      currentPhase: currentPhase ?? progress.sessionState?.currentPhase ?? 1,
+      currentQuestionIndex: Math.max(0, Number(currentQuestionIndex ?? progress.sessionState?.currentQuestionIndex ?? 0)),
+      draftAnswerText: typeof draftAnswerText === 'string' ? draftAnswerText : (progress.sessionState?.draftAnswerText ?? ''),
+      timeRemainingSeconds: timeRemainingSeconds === null ? null : Number(timeRemainingSeconds ?? progress.sessionState?.timeRemainingSeconds ?? null),
+      timeStartedAt: timeStartedAt ? new Date(timeStartedAt) : (progress.sessionState?.timeStartedAt ?? null),
+      showPathSelection: Boolean(showPathSelection ?? progress.sessionState?.showPathSelection ?? false),
+      lastUpdatedAt: new Date()
+    } as any;
+
+    await progress.save();
+
+    return NextResponse.json({
+      message: 'Session state updated',
+      sessionState: progress.sessionState
+    });
+  } catch (error) {
+    console.error('Error updating session state:', error);
+    return NextResponse.json(
+      { error: 'Failed to update session state' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Reset declined progress (User only)
 export async function DELETE(request: NextRequest) {
   try {
@@ -326,6 +390,15 @@ export async function DELETE(request: NextRequest) {
         progress.approvedBy = null;
         progress.phase1Answers = [];
         progress.phase2Answers = [];
+        progress.sessionState = {
+          currentPhase: 1,
+          currentQuestionIndex: 0,
+          draftAnswerText: '',
+          timeRemainingSeconds: null,
+          timeStartedAt: null,
+          showPathSelection: false,
+          lastUpdatedAt: new Date()
+        } as any;
         
         await progress.save();
         
@@ -361,6 +434,15 @@ export async function DELETE(request: NextRequest) {
       progress.isApproved = false;
       progress.approvedAt = null;
       progress.approvedBy = null;
+      progress.sessionState = {
+        currentPhase: 1,
+        currentQuestionIndex: 0,
+        draftAnswerText: '',
+        timeRemainingSeconds: null,
+        timeStartedAt: null,
+        showPathSelection: false,
+        lastUpdatedAt: new Date()
+      } as any;
       
       await progress.save();
     }

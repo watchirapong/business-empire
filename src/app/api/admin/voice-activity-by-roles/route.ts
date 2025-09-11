@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
 
     if (!ADMIN_USER_IDS.includes(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });

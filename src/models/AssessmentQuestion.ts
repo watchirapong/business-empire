@@ -5,7 +5,8 @@ export interface IAssessmentQuestion extends Document {
   phase: 1 | 2;
   path?: 'health' | 'creative' | 'gamedev' | 'engineering' | 'business';
   questionText: string;
-  questionImage?: string;
+  questionImage?: string; // Keep for backward compatibility
+  questionImages?: string[]; // New field for multiple images
   requiresImageUpload: boolean;
   skillCategories: {
     selfLearning?: number;
@@ -19,6 +20,7 @@ export interface IAssessmentQuestion extends Document {
   };
   order: number;
   isActive: boolean;
+  timeLimitMinutes?: number; // Time limit in minutes (optional)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +47,10 @@ const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
     type: String,
     default: null
   },
+  questionImages: [{
+    type: String,
+    default: []
+  }],
   requiresImageUpload: {
     type: Boolean,
     default: false
@@ -67,6 +73,12 @@ const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
   isActive: {
     type: Boolean,
     default: true
+  },
+  timeLimitMinutes: {
+    type: Number,
+    default: null,
+    min: 1,
+    max: 120 // Maximum 2 hours
   }
 }, {
   timestamps: true

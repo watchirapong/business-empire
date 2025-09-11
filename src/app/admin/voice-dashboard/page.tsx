@@ -153,7 +153,7 @@ export default function VoiceDashboardPage() {
   const [viewMode, setViewMode] = useState<'today' | 'daily' | 'roles'>('today');
 
   // Check if user is admin
-  const isAdmin = session?.user && ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'].includes((session.user as any).id);
+  const isAdmin = session?.user && ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'].includes((session.user as any).id);
 
   // Helper function to get display name (globalName > username)
   const getDisplayName = (activity: VoiceActivityData) => {
