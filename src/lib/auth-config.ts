@@ -39,8 +39,8 @@ export const authConfig = {
             avatar: (profile as any).avatar,
             discriminator: (profile as any).discriminator,
             globalName: (profile as any).global_name,
-            accessToken: account.access_token,
-            refreshToken: account.refresh_token,
+            // Remove sensitive tokens - don't store them in database
+            // accessToken and refreshToken should not be persisted for security
           };
 
           console.log('Saving user data to MongoDB:', basicUserData);

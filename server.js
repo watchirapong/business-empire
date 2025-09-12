@@ -100,6 +100,26 @@ app.prepare().then(async () => {
       console.log(`> Ready on http://${hostname}:${port}`);
     });
 
+  // Cleanup inactive games every 5 minutes
+  setInterval(() => {
+    const now = new Date();
+    const inactiveThreshold = 30 * 60 * 1000; // 30 minutes
+    
+    games.forEach((game, roomId) => {
+      // Skip lock entries
+      if (roomId.startsWith('game_lock_')) return;
+      
+      if (game.lastActivity && (now - game.lastActivity) > inactiveThreshold) {
+        console.log(`Cleaning up inactive game: ${roomId}`);
+        games.delete(roomId);
+        gameHosts.delete(roomId);
+        
+        // Also clean up from database
+        gameService.deleteGame(roomId).catch(console.error);
+      }
+    });
+  }, 5 * 60 * 1000); // Run every 5 minutes
+
   io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
 
@@ -122,19 +142,48 @@ app.prepare().then(async () => {
     socket.on('joinGame', async ({ playerName, gameId }) => {
       console.log('Player joining game:', { playerName, gameId, socketId: socket.id });
       const roomId = gameId || 'default';
-      socket.join(roomId);
+      
+      // Input validation
+      if (!playerName || typeof playerName !== 'string' || playerName.trim().length === 0) {
+        socket.emit('error', { message: 'ชื่อผู้เล่นไม่ถูกต้อง' });
+        return;
+      }
+      
+      if (typeof roomId !== 'string' || roomId.trim().length === 0) {
+        socket.emit('error', { message: 'รหัสห้องไม่ถูกต้อง' });
+        return;
+      }
+      
+      // Sanitize inputs
+      const sanitizedPlayerName = playerName.trim().substring(0, 50); // Limit length
+      const sanitizedRoomId = roomId.trim();
+      
+      socket.join(sanitizedRoomId);
       
       try {
+        // Use a lock mechanism to prevent race conditions
+        const lockKey = `game_lock_${sanitizedRoomId}`;
+        if (games.has(lockKey)) {
+          // Game is being modified, wait and retry
+          setTimeout(() => {
+            socket.emit('joinGame', { playerName: sanitizedPlayerName, gameId: sanitizedRoomId });
+          }, 100);
+          return;
+        }
+        
+        // Set lock
+        games.set(lockKey, true);
+        
         // Check if game exists in memory cache first
-        if (!games.has(roomId)) {
+        if (!games.has(sanitizedRoomId)) {
           // Try to load from database
-          let gameData = await gameService.getGame(roomId);
+          let gameData = await gameService.getGame(sanitizedRoomId);
           
           if (!gameData) {
             // Create new game in database
-            console.log('Creating new game room:', roomId);
-            gameData = await gameService.createGame(roomId, playerName, socket.id);
-            gameHosts.set(roomId, playerName);
+            console.log('Creating new game room:', sanitizedRoomId);
+            gameData = await gameService.createGame(sanitizedRoomId, sanitizedPlayerName, socket.id);
+            gameHosts.set(sanitizedRoomId, sanitizedPlayerName);
           }
           
           // Load into memory cache
@@ -155,12 +204,17 @@ app.prepare().then(async () => {
             investments: gameData.investments || {},
             readyPlayers: new Set(gameData.readyPlayers || []),
             submittedPlayers: new Set(gameData.submittedPlayers || []),
-            hostId: gameData.hostId || socket.id
+            hostId: gameData.hostId || socket.id,
+            lastActivity: new Date() // Add timestamp for cleanup
           };
-          games.set(roomId, game);
+          games.set(sanitizedRoomId, game);
         }
 
-        const game = games.get(roomId);
+        const game = games.get(sanitizedRoomId);
+        
+        // Update last activity
+        game.lastActivity = new Date();
+        
         console.log('Current game state before adding player:', {
           players: game.players.length,
           companies: game.companies.length,
@@ -169,21 +223,30 @@ app.prepare().then(async () => {
         
         const player = {
           id: socket.id,
-          name: playerName,
+          name: sanitizedPlayerName,
           remainingMoney: 100000,
           investments: {}
         };
 
         // Check if player already exists (by name, not socket ID)
-        const existingPlayerIndex = game.players.findIndex(p => p.name === playerName);
+        const existingPlayerIndex = game.players.findIndex(p => p.name === sanitizedPlayerName);
         if (existingPlayerIndex === -1) {
+          // Limit maximum players per game to prevent abuse
+          if (game.players.length >= 10) {
+            socket.emit('error', { message: 'ห้องเต็มแล้ว (สูงสุด 10 คน)' });
+            games.delete(lockKey); // Remove lock
+            return;
+          }
           game.players.push(player);
-          console.log('Added new player:', playerName);
+          console.log('Added new player:', sanitizedPlayerName);
         } else {
           // Update existing player with new socket ID
           game.players[existingPlayerIndex] = player;
-          console.log('Updated existing player:', playerName);
+          console.log('Updated existing player:', sanitizedPlayerName);
         }
+        
+        // Remove lock before continuing
+        games.delete(lockKey);
 
         // Check if this player should be the host (either first player or reconnecting host)
         const isHost = gameHosts.get(roomId) === playerName;
