@@ -18,6 +18,16 @@ export interface IAssessmentQuestion extends Document {
     leadership?: number;
     careerKnowledge?: number;
   };
+  awardsCategories: {
+    selfLearning: boolean;
+    creative: boolean;
+    algorithm: boolean;
+    logic: boolean;
+    communication: boolean;
+    presentation: boolean;
+    leadership: boolean;
+    careerKnowledge: boolean;
+  };
   order: number;
   isActive: boolean;
   timeLimitMinutes?: number; // Time limit in minutes (optional)
@@ -64,6 +74,16 @@ const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
     presentation: { type: Number, default: 0, min: 0, max: 100 },
     leadership: { type: Number, default: 0, min: 0, max: 100 },
     careerKnowledge: { type: Number, default: 0, min: 0, max: 100 }
+  },
+  awardsCategories: {
+    selfLearning: { type: Boolean, default: false },
+    creative: { type: Boolean, default: false },
+    algorithm: { type: Boolean, default: false },
+    logic: { type: Boolean, default: false },
+    communication: { type: Boolean, default: false },
+    presentation: { type: Boolean, default: false },
+    leadership: { type: Boolean, default: false },
+    careerKnowledge: { type: Boolean, default: false }
   },
   order: {
     type: Number,

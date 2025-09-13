@@ -197,7 +197,7 @@ export default function Leaderboard() {
                     'ring-white/10'
                   }`}>
                     <img
-                      src={entry.avatar || '/default-avatar.png'}
+                      src={entry.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                       alt={entry.username}
                       className="w-full h-full object-cover"
                     />
@@ -232,7 +232,7 @@ export default function Leaderboard() {
               <div className="relative">
                 <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-red-300/40">
                   <img
-                    src={currentUser.avatar || '/default-avatar.png'}
+                    src={currentUser.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                     alt={currentUser.username}
                     className="w-full h-full object-cover"
                   />

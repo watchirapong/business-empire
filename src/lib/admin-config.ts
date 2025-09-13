@@ -1,5 +1,7 @@
 // Centralized admin configuration
-export const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '563644358352568331', '315548736388333568'];
+// Note: Hardcoded admins are now managed through the admin panel
+// Only the super admin should remain hardcoded for security
+export const ADMIN_USER_IDS = ['898059066537029692', '641285950902632459', 'watchirapongggg'];
 
 // Super admin - only this user can manage admin users
 export const SUPER_ADMIN_ID = '898059066537029692';

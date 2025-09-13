@@ -1,6 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config, { isServer }) => {
+  // Enable SWC minifier for faster builds
+  swcMinify: true,
+
+  // Enable experimental features for better performance
+  experimental: {
+    // Enable faster builds with turbo
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+    // Enable webpack build worker
+    webpackBuildWorker: true,
+  },
+
+  // Optimize build output
+  output: 'standalone',
+
+  // Enable build performance optimizations
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     if (!isServer) {
       // Don't bundle Discord.js on the client side
       config.resolve.fallback = {
@@ -11,9 +33,47 @@ const nextConfig = {
         'utf-8-validate': false,
       };
     }
+
+    // Add performance optimizations
+    if (!dev) {
+      // Enable webpack optimizations for production
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+              priority: 10,
+            },
+            admin: {
+              test: /[\\/]components[\\/]admin[\\/]/,
+              name: 'admin-components',
+              chunks: 'all',
+              priority: 5,
+            },
+          },
+        },
+      };
+
+      // Add parallel processing for faster builds
+      config.parallelism = 4;
+    }
+
     return config;
   },
+
   serverExternalPackages: ['discord.js', 'zlib-sync', 'bufferutil', 'utf-8-validate'],
+
+  // Add build performance monitoring
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 };
 
 module.exports = nextConfig;

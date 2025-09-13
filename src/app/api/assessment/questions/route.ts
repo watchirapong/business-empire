@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       requiresImageUpload,
       timeLimitMinutes,
       skillCategories,
+      awardsCategories,
       order
     } = body;
 
@@ -104,6 +105,16 @@ export async function POST(request: NextRequest) {
       requiresImageUpload: requiresImageUpload || false,
       timeLimitMinutes: timeLimitMinutes || null,
       skillCategories: skillCategories || {},
+      awardsCategories: awardsCategories || {
+        selfLearning: false,
+        creative: false,
+        algorithm: false,
+        logic: false,
+        communication: false,
+        presentation: false,
+        leadership: false,
+        careerKnowledge: false
+      },
       order: order || 0
     });
 
@@ -121,6 +132,7 @@ export async function POST(request: NextRequest) {
         requiresImageUpload: question.requiresImageUpload,
         timeLimitMinutes: question.timeLimitMinutes,
         skillCategories: question.skillCategories,
+        awardsCategories: question.awardsCategories,
         order: question.order,
         isActive: question.isActive
       }
@@ -199,6 +211,7 @@ export async function PUT(request: NextRequest) {
         requiresImageUpload: question.requiresImageUpload,
         timeLimitMinutes: question.timeLimitMinutes,
         skillCategories: question.skillCategories,
+        awardsCategories: question.awardsCategories,
         order: question.order,
         isActive: question.isActive
       }

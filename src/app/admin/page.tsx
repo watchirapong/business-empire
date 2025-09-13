@@ -1,15 +1,19 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin, isAdminWithDB } from '@/lib/admin-config';
-import HouseManager from '@/components/admin/HouseManager';
-import StardustCoinManager from '@/components/admin/StardustCoinManager';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import ShopAnalytics from '@/components/admin/ShopAnalytics';
-import UserPurchaseAnalytics from '@/components/admin/UserPurchaseAnalytics';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
+
+// Lazy load heavy components to improve initial load time
+const HouseManager = lazy(() => import('@/components/admin/HouseManager'));
+const StardustCoinManager = lazy(() => import('@/components/admin/StardustCoinManager'));
+const AnalyticsDashboard = lazy(() => import('@/components/admin/AnalyticsDashboard'));
+const ShopAnalytics = lazy(() => import('@/components/admin/ShopAnalytics'));
+const UserPurchaseAnalytics = lazy(() => import('@/components/admin/UserPurchaseAnalytics'));
+const AdminManagement = lazy(() => import('@/components/admin/AdminManagement'));
+const LobbyManagement = lazy(() => import('@/components/admin/LobbyManagement'));
 
 interface UserData {
   _id: string;
@@ -101,7 +105,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management'>('users');
   const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
   const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
   // Removed unused voice activity states since we moved to dedicated dashboard
@@ -172,6 +176,17 @@ export default function AdminPage() {
       presentation: 0,
       leadership: 0,
       careerKnowledge: 0
+    },
+    // New field to define which categories this question awards points in
+    awardsCategories: {
+      selfLearning: false,
+      creative: false,
+      algorithm: false,
+      logic: false,
+      communication: false,
+      presentation: false,
+      leadership: false,
+      careerKnowledge: false
     },
     order: 1
   });
@@ -1341,6 +1356,26 @@ export default function AdminPage() {
             }`}
           >
             📝 Assessment Management
+          </button>
+          <button
+            onClick={() => setActiveTab('admin-management')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'admin-management'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            👑 Admin Management
+          </button>
+          <button
+            onClick={() => setActiveTab('lobby-management')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'lobby-management'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🏛️ Lobby Management
           </button>
           </div>
         </div>
@@ -2684,23 +2719,23 @@ export default function AdminPage() {
 
         {/* House Management Tab */}
         {activeTab === 'houses' && (
-          <>
+          <Suspense fallback={<div className="text-center p-8">Loading House Manager...</div>}>
             <HouseManager />
-          </>
+          </Suspense>
         )}
 
         {/* StardustCoin Management Tab */}
         {activeTab === 'stardustcoin' && (
-          <>
+          <Suspense fallback={<div className="text-center p-8">Loading StardustCoin Manager...</div>}>
             <StardustCoinManager />
-          </>
+          </Suspense>
         )}
 
         {/* Analytics Dashboard Tab */}
         {activeTab === 'analytics' && (
-          <>
+          <Suspense fallback={<div className="text-center p-8">Loading Analytics Dashboard...</div>}>
             <AnalyticsDashboard />
-          </>
+          </Suspense>
         )}
 
         {/* Shop Management Tab */}
@@ -3094,12 +3129,16 @@ export default function AdminPage() {
               </div>
 
               {/* Shop Analytics Component */}
-              <ShopAnalytics />
+              <Suspense fallback={<div className="text-center p-8">Loading Shop Analytics...</div>}>
+                <ShopAnalytics />
+              </Suspense>
 
               {/* User Purchase Analytics */}
               {shopAnalyticsData?.userPurchases && shopAnalyticsData.userPurchases.length > 0 && (
                 <div className="mt-8">
-                  <UserPurchaseAnalytics userPurchases={shopAnalyticsData.userPurchases} />
+                  <Suspense fallback={<div className="text-center p-8">Loading User Purchase Analytics...</div>}>
+                    <UserPurchaseAnalytics userPurchases={shopAnalyticsData.userPurchases} />
+                  </Suspense>
                 </div>
               )}
             </div>
@@ -3311,24 +3350,75 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="mt-6">
-                      <h5 className="text-white font-medium mb-3">Skill Categories (0-10 points each)</h5>
+                      <h5 className="text-white font-medium mb-3">This Question Awards Points In</h5>
+                      <p className="text-gray-400 text-sm mb-4">Select which categories this question contributes to (1-3 categories recommended)</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {Object.entries(questionForm.skillCategories).map(([key, value]) => (
+                        {Object.entries(questionForm.awardsCategories).map(([key, isAwarded]) => (
+                          <div key={key} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`award-${key}`}
+                              checked={isAwarded}
+                              onChange={(e) => {
+                                const newAwardsCategories = {...questionForm.awardsCategories, [key]: e.target.checked};
+                                // If unchecking, reset the score to 0
+                                const newSkillCategories = {...questionForm.skillCategories};
+                                if (!e.target.checked) {
+                                  newSkillCategories[key as keyof typeof questionForm.skillCategories] = 0;
+                                }
+                                setQuestionForm({
+                                  ...questionForm,
+                                  awardsCategories: newAwardsCategories,
+                                  skillCategories: newSkillCategories
+                                });
+                              }}
+                              className="w-4 h-4 text-orange-600 bg-gray-600 border-gray-500 rounded focus:ring-orange-500"
+                            />
+                            <label htmlFor={`award-${key}`} className="text-gray-300 text-sm capitalize cursor-pointer">
+                              {key.replace(/([A-Z])/g, ' $1')}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Points input for selected categories */}
+                    <div className="mt-6">
+                      <h5 className="text-white font-medium mb-3">Points for Selected Categories (0-10 points each)</h5>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(questionForm.awardsCategories).map(([key, isAwarded]) => (
                           <div key={key}>
-                            <label className="block text-gray-300 text-sm mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1')}</label>
+                            <label className="block text-gray-300 text-sm mb-1 capitalize">
+                              {key.replace(/([A-Z])/g, ' $1')} {isAwarded ? '' : '(disabled)'}
+                            </label>
                             <input
                               type="number"
                               min="0"
                               max="10"
-                              value={value}
+                              value={questionForm.skillCategories[key as keyof typeof questionForm.skillCategories]}
                               onChange={(e) => setQuestionForm({
                                 ...questionForm,
                                 skillCategories: {...questionForm.skillCategories, [key]: parseInt(e.target.value) || 0}
                               })}
-                              className="w-full p-2 bg-gray-600 border border-gray-500 rounded text-white"
+                              disabled={!isAwarded}
+                              className={`w-full p-2 border rounded text-white ${
+                                isAwarded 
+                                  ? 'bg-gray-600 border-gray-500 focus:border-orange-500' 
+                                  : 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+                              }`}
                             />
                           </div>
                         ))}
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-600/20 rounded-lg">
+                        <p className="text-blue-300 text-sm">
+                          Total points for this question: <span className="font-semibold text-white">
+                            {Object.entries(questionForm.awardsCategories)
+                              .filter(([_, isAwarded]) => isAwarded)
+                              .reduce((total, [key, _]) => total + (questionForm.skillCategories[key as keyof typeof questionForm.skillCategories] || 0), 0)
+                            } points
+                          </span>
+                        </p>
                       </div>
                     </div>
                     <div className="mt-6">
@@ -3406,6 +3496,16 @@ export default function AdminPage() {
                                   presentation: 0,
                                   leadership: 0,
                                   careerKnowledge: 0
+                                },
+                                awardsCategories: {
+                                  selfLearning: false,
+                                  creative: false,
+                                  algorithm: false,
+                                  logic: false,
+                                  communication: false,
+                                  presentation: false,
+                                  leadership: false,
+                                  careerKnowledge: false
                                 },
                                 order: 1
                               });
@@ -3500,13 +3600,30 @@ export default function AdminPage() {
                           )}
                           
                           <div className="flex flex-wrap gap-2">
-                            {Object.entries(question.skillCategories).map(([key, value]) => (
-                              (value as number) > 0 && (
-                                <span key={key} className="bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs">
-                                  {key.replace(/([A-Z])/g, ' $1')}: {value as number}
-                                </span>
+                            {question.awardsCategories ? 
+                              Object.entries(question.awardsCategories).map(([key, isAwarded]) => 
+                                isAwarded ? (
+                                  <span key={key} className="bg-orange-600 text-white px-2 py-1 rounded text-xs">
+                                    {key.replace(/([A-Z])/g, ' $1')}: {question.skillCategories[key as keyof typeof question.skillCategories] || 0}
+                                  </span>
+                                ) : null
+                              ) :
+                              Object.entries(question.skillCategories).map(([key, value]) => 
+                                (value as number) > 0 ? (
+                                  <span key={key} className="bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs">
+                                    {key.replace(/([A-Z])/g, ' $1')}: {value as number}
+                                  </span>
+                                ) : null
                               )
-                            ))}
+                            }
+                            <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                              Total: {question.awardsCategories ? 
+                                Object.entries(question.awardsCategories)
+                                  .filter(([_, isAwarded]) => isAwarded)
+                                  .reduce((total: number, [key, _]) => total + (question.skillCategories[key as keyof typeof question.skillCategories] || 0), 0)
+                                : Object.values(question.skillCategories).reduce((total: number, value) => total + (value as number), 0)
+                              } points
+                            </span>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -3522,6 +3639,16 @@ export default function AdminPage() {
                                 requiresImageUpload: question.requiresImageUpload,
                                 timeLimitMinutes: question.timeLimitMinutes || null,
                                 skillCategories: question.skillCategories,
+                                awardsCategories: question.awardsCategories || {
+                                  selfLearning: false,
+                                  creative: false,
+                                  algorithm: false,
+                                  logic: false,
+                                  communication: false,
+                                  presentation: false,
+                                  leadership: false,
+                                  careerKnowledge: false
+                                },
                                 order: question.order
                               });
                               setShowQuestionForm(true);
@@ -3977,95 +4104,52 @@ export default function AdminPage() {
                         {answer.status === 'pending' && (
                           <div className="mt-4 p-4 bg-gray-600/30 rounded-lg">
                             <h4 className="text-white font-semibold mb-3">ให้คะแนนทักษะ (0-10 คะแนน)</h4>
+                            <p className="text-gray-400 text-sm mb-4">
+                              ให้คะแนนเฉพาะหัวข้อที่ข้อนี้เกี่ยวข้องเท่านั้น
+                            </p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              <div>
-                                <label className="text-gray-300 text-sm">Self Learning</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`selfLearning-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Creative</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`creative-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Algorithm</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`algorithm-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Logic</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`logic-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Communication</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`communication-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Presentation</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`presentation-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Leadership</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`leadership-${answer._id || answer.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-300 text-sm">Career Knowledge</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
-                                  placeholder="0"
-                                  id={`careerKnowledge-${answer._id || answer.id}`}
-                                />
-                              </div>
+                              {(() => {
+                                // Find the question to get its awardsCategories
+                                const question = assessmentQuestions.find(q => q._id === answer.questionId || q.id === answer.questionId);
+                                const awardsCategories = question?.awardsCategories;
+                                
+                                // If question has awardsCategories, only show those categories
+                                if (awardsCategories) {
+                                  return Object.entries(awardsCategories).map(([key, isAwarded]) => 
+                                    isAwarded ? (
+                                      <div key={key}>
+                                        <label className="text-gray-300 text-sm">
+                                          {key.replace(/([A-Z])/g, ' $1')} (max: {question.skillCategories[key as keyof typeof question.skillCategories] || 0})
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max={question.skillCategories[key as keyof typeof question.skillCategories] || 0}
+                                          className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                          placeholder="0"
+                                          id={`${key}-${answer._id || answer.id}`}
+                                        />
+                                      </div>
+                                    ) : null
+                                  ).filter(Boolean);
+                                } else {
+                                  // Fallback to old system for backward compatibility
+                                  const skills = ['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'];
+                                  return skills.map(skill => (
+                                    <div key={skill}>
+                                      <label className="text-gray-300 text-sm">{skill.replace(/([A-Z])/g, ' $1')}</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                                        placeholder="0"
+                                        id={`${skill}-${answer._id || answer.id}`}
+                                      />
+                                    </div>
+                                  ));
+                                }
+                              })()}
                             </div>
                             <div className="mt-4">
                               <label className="text-gray-300 text-sm">ความคิดเห็น (ไม่บังคับ)</label>
@@ -4351,6 +4435,24 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Admin Management and Lobby Management Tabs (ensure above background overlay) */}
+      <div className="relative z-10">
+        {/* Admin Management Tab */}
+        {activeTab === 'admin-management' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Admin Management...</div>}>
+            <AdminManagement />
+          </Suspense>
+        )}
+
+        {/* Lobby Management Tab */}
+        {activeTab === 'lobby-management' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Lobby Management...</div>}>
+            <LobbyManagement />
+          </Suspense>
+        )}
+
+      </div>
     </div>
   );
 }

@@ -8,6 +8,11 @@ export interface IUserProgress extends Document {
   selectedPath?: 'health' | 'creative' | 'gamedev' | 'engineering' | 'business';
   phase1Answers: string[]; // Array of question IDs answered in Phase 1
   phase2Answers: string[]; // Array of question IDs answered in Phase 2
+  // Lobby-related fields
+  lobbyId?: string | null;
+  lobbyStatus?: 'waiting' | 'active' | 'completed' | null;
+  joinedLobbyAt?: Date | null;
+  lobbyPosition?: number | null;
   sessionState?: {
     currentPhase: 1 | 2;
     currentQuestionIndex: number;
@@ -70,6 +75,24 @@ const UserProgressSchema = new Schema<IUserProgress>({
     timeStartedAt: { type: Date, default: null },
     showPathSelection: { type: Boolean, default: false },
     lastUpdatedAt: { type: Date, default: Date.now }
+  },
+  // Lobby-related fields
+  lobbyId: {
+    type: String,
+    default: null
+  },
+  lobbyStatus: {
+    type: String,
+    enum: ['waiting', 'active', 'completed'],
+    default: null
+  },
+  joinedLobbyAt: {
+    type: Date,
+    default: null
+  },
+  lobbyPosition: {
+    type: Number,
+    default: null
   },
   totalScore: {
     selfLearning: { type: Number, default: 0, min: 0 },

@@ -155,10 +155,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
     }
 
+    // Enforce Phase 1 completion before selecting a path,
+    // but allow bypass when session state explicitly enables path selection (via Skip)
     if (!progress.phase1Completed) {
-      return NextResponse.json({ 
-        error: 'Must complete Phase 1 before selecting a path' 
-      }, { status: 400 });
+      const canBypass = Boolean((progress as any).sessionState?.showPathSelection);
+      if (!canBypass) {
+        return NextResponse.json({ 
+          error: 'Must complete Phase 1 before selecting a path' 
+        }, { status: 400 });
+      }
+      // Mark as completed when bypassing to keep consistency
+      progress.phase1Completed = true;
     }
 
     // Get system settings

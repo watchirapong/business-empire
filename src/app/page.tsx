@@ -7,6 +7,7 @@ import Leaderboard from '@/components/Leaderboard';
 import HouseLeaderboard from '@/components/HouseLeaderboard';
 import { isAdmin } from '@/lib/admin-config';
 import dynamic from 'next/dynamic';
+import UserQuickMenu from '@/components/UserQuickMenu';
 
 import VoiceRewards from '@/components/VoiceRewards';
 import LoginTracker from '@/components/LoginTracker';
@@ -44,22 +45,14 @@ export default function HomePage() {
   // Check if current user is admin
   const isCurrentUserAdmin = isAdmin((session?.user as any)?.id);
 
-  // Close dropdown when clicking outside
+  // Close on Escape key for accessibility and reliability
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isProfileOpen && !target.closest('.profile-dropdown')) {
-        setIsProfileOpen(false);
-      }
+    if (!isProfileOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsProfileOpen(false);
     };
-
-    if (isProfileOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isProfileOpen]);
 
 
@@ -133,101 +126,27 @@ export default function HomePage() {
 
             {session ? (
               <div className="flex items-center space-x-4">
-                {/* Profile Avatar Display */}
-                <div className="relative group profile-dropdown">
+                {/* Profile trigger + new drawer */}
+                <div className="relative group">
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center space-x-3 glass-card rounded-xl p-3 border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 cursor-pointer"
+                    aria-haspopup="dialog"
+                    aria-expanded={isProfileOpen}
                   >
                     <div className="relative">
                       <img
                         src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
                         alt="Profile"
-                        className="w-10 h-10 rounded-full ring-2 ring-orange-500/50 group-hover:ring-orange-400 transition-all duration-300 animate-pulse"
+                        className="w-10 h-10 rounded-full ring-2 ring-orange-500/50 group-hover:ring-orange-400 transition-all duration-300"
                       />
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-ping pointer-events-none"></div>
+                      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black"></span>
                     </div>
-                    <div className="text-left">
-                      <div className="text-white font-semibold text-sm group-hover:text-orange-200 transition-colors duration-300">
-                        {(session.user as any).username}
-                      </div>
-                      <div className="text-gray-300 text-xs group-hover:text-orange-300 transition-colors duration-300">
-                        #{session.user?.name}
-                      </div>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-white font-semibold text-sm">{(session.user as any).username}</div>
+                      <div className="text-gray-300 text-xs">#{session.user?.name}</div>
                     </div>
-                    <svg
-                      className={`w-5 h-5 text-white transition-all duration-300 group-hover:text-orange-300 ${
-                        isProfileOpen ? 'rotate-180 scale-110' : 'rotate-0'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
                   </button>
-
-                  {/* Profile Display */}
-                  {isProfileOpen && (
-                    <div className="absolute right-0 top-full mt-3 w-64 bg-gradient-to-br from-white via-gray-50 to-white backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-2xl z-[1000] animate-fade-in-up overflow-hidden">
-                      {/* User Info Header */}
-                      <div className="px-4 py-4 bg-gradient-to-r from-orange-500/10 to-purple-500/10 border-b border-gray-200/30">
-                        <div className="flex items-center space-x-3">
-                          <div className="relative">
-                            <img
-                              src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
-                              alt="Profile"
-                              className="w-12 h-12 rounded-full ring-2 ring-orange-400/50"
-                            />
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-base font-semibold text-gray-900 truncate">
-                              {(session.user as any).username}
-                            </p>
-                            <p className="text-sm text-gray-500 truncate">
-                              #{session.user?.name}
-                            </p>
-                            <p className="text-xs text-orange-600 font-medium mt-1">
-                              ออนไลน์
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="p-3 space-y-2">
-                        {/* Profile Button */}
-                        <button
-                          onClick={() => {
-                            setIsProfileOpen(false);
-                            router.push(`/profile/${(session.user as any).id}`);
-                          }}
-                          className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
-                        >
-                          <span>ดูโปรไฟล์ของคุณ</span>
-                        </button>
-
-                        {/* Logout Button */}
-                        <button
-                          onClick={async () => {
-                            console.log('Logout button clicked - starting logout process');
-                            setIsProfileOpen(false);
-                            await new Promise(resolve => setTimeout(resolve, 150));
-                            try {
-                              await signOut({ callbackUrl: '/' });
-                              console.log('Logout successful');
-                            } catch (error) {
-                              console.error('Logout failed:', error);
-                            }
-                          }}
-                          className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-red-500/25 cursor-pointer"
-                        >
-                          <span>ออกจากระบบ</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Admin Panel Button - Only show for admin */}
@@ -255,6 +174,30 @@ export default function HomePage() {
             )}
           </div>
         </div>
+
+        {/* New Drawer Component (mobile and desktop) */}
+        {session && (
+          <UserQuickMenu
+            isOpen={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+            onProfile={() => {
+              setIsProfileOpen(false);
+              router.push(`/profile/${(session.user as any).id}`);
+            }}
+            onLogout={async () => {
+              setIsProfileOpen(false);
+              await new Promise(resolve => setTimeout(resolve, 100));
+              try {
+                await signOut({ callbackUrl: '/' });
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            username={(session.user as any).username}
+            handle={session.user?.name || null}
+            avatarUrl={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
+          />
+        )}
 
         {/* Modern Hero Section */}
         <div className="text-center mb-20 animate-slide-in-bottom stagger-1">
@@ -416,6 +359,29 @@ export default function HomePage() {
                   </h3>
                   <p className="text-gray-400 text-sm group-hover:text-cyan-200 transition-colors duration-300 text-center leading-relaxed">
                     ระบบประเมินทักษะ
+                  </p>
+                </div>
+              </button>
+
+              {/* Guest Login Card */}
+              <button
+                onClick={() => handleMenuClick('/guest-login')}
+                className="group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom stagger-7 relative overflow-hidden"
+              >
+                {/* Background gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                {/* Floating particles */}
+                <div className="absolute top-4 right-4 w-2 h-2 bg-orange-400/40 rounded-full animate-ping animation-delay-1000"></div>
+                <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-orange-300/60 rounded-full animate-ping animation-delay-2000"></div>
+
+                <div className="text-center w-full flex flex-col items-center justify-center relative z-10">
+                  <div className="text-7xl mb-6 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 flex justify-center animate-bounce-in">👤</div>
+                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300 text-center leading-tight">
+                    Guest Login
+                  </h3>
+                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300 text-center leading-relaxed">
+                    เข้าร่วมแบบไม่ต้องสมัครสมาชิก
                   </p>
                 </div>
               </button>

@@ -27,6 +27,17 @@ interface Question {
     leadership?: number;
     careerKnowledge?: number;
   };
+  // New field to define which categories this question awards points in
+  awardsCategories: {
+    selfLearning: boolean;
+    creative: boolean;
+    algorithm: boolean;
+    logic: boolean;
+    communication: boolean;
+    presentation: boolean;
+    leadership: boolean;
+    careerKnowledge: boolean;
+  };
   order: number;
 }
 
@@ -90,6 +101,10 @@ export default function AssessmentPage() {
     details: { page: 'assessment' }
   });
 
+  // Guest mode state
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestName, setGuestName] = useState('');
+
   const [currentPhase, setCurrentPhase] = useState<1 | 2>(1);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -110,6 +125,9 @@ export default function AssessmentPage() {
   const [isHost, setIsHost] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
   const [roomQuestionIndex, setRoomQuestionIndex] = useState<number | null>(null);
+  const [gameState, setGameState] = useState<'waiting' | 'started' | 'ended'>('waiting');
+  const [roomStartedAt, setRoomStartedAt] = useState<Date | null>(null);
+  const [submissionCount, setSubmissionCount] = useState<number>(0);
 
   // Full-screen image viewer state
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -155,8 +173,7 @@ export default function AssessmentPage() {
         if (prev === null || prev <= 1) {
           clearInterval(interval);
           setTimerInterval(null);
-          // Auto-submit when time runs out (force submit even if empty)
-          handleAnswerSubmit(true);
+          // Time is up: do not auto-submit; keep as a visual timer only
           return 0;
         }
         return prev - 1;
@@ -179,23 +196,44 @@ export default function AssessmentPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Start timer when question changes (avoid double intervals)
+  // Start timer when question changes (only when game has started in room)
   useEffect(() => {
+    // If inside a live room but the game hasn't started, ensure timer is stopped
+    if (inRoom && gameState !== 'started') {
+      stopTimer();
+      setTimeRemaining(null);
+      setTimeStarted(null);
+      return () => stopTimer();
+    }
+
     if (questions.length > 0 && currentQuestionIndex < questions.length) {
       const currentQuestion = questions[currentQuestionIndex];
       if (currentQuestion?.timeLimitMinutes) {
-        startTimer(currentQuestion.timeLimitMinutes, timeRemaining);
+        // Reset and start fresh for each question
+        stopTimer();
+        setTimeRemaining(null);
+        setTimeStarted(null);
+        startTimer(currentQuestion.timeLimitMinutes, null);
       } else {
-        // Even for questions without time limits, track the start time
+        // Even for questions without time limits, track the start time when allowed
         setTimeStarted(new Date());
         stopTimer();
         setTimeRemaining(null);
       }
     }
-    
+
     return () => stopTimer();
-  // Only re-run when question index or questions change; startTimer ensures prior interval is cleared
-  }, [currentQuestionIndex, questions]);
+  // Only re-run when question index, questions, or room game state changes
+  }, [currentQuestionIndex, questions, inRoom, gameState]);
+
+  // When game state switches to waiting or ended, hard stop the timer
+  useEffect(() => {
+    if (inRoom && gameState !== 'started') {
+      stopTimer();
+      setTimeRemaining(null);
+      setTimeStarted(null);
+    }
+  }, [inRoom, gameState]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -231,43 +269,102 @@ export default function AssessmentPage() {
     };
   }, [currentPhase, currentQuestionIndex, answerText, timeRemaining, timeStarted, showPathSelection]);
 
-  // Sync question index with room state
+  // Sync question index with room state only when game is started
   useEffect(() => {
-    if (inRoom && questions.length > 0 && roomQuestionIndex !== null) {
+    if (inRoom && gameState === 'started' && questions.length > 0 && roomQuestionIndex !== null) {
       const boundedIndex = Math.max(0, Math.min(roomQuestionIndex, questions.length - 1));
       if (boundedIndex !== currentQuestionIndex) {
         setCurrentQuestionIndex(boundedIndex);
       }
     }
-  }, [inRoom, roomQuestionIndex, questions, currentQuestionIndex]);
+  }, [inRoom, gameState, roomQuestionIndex, questions, currentQuestionIndex]);
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (!session) {
+    
+    // Check for guest mode
+    const guestMode = sessionStorage.getItem('isGuest') === 'true';
+    const storedGuestName = sessionStorage.getItem('guestName');
+    
+    if (guestMode && storedGuestName) {
+      setIsGuest(true);
+      setGuestName(storedGuestName);
+      loadInitialData();
+      // Auto-join default room after loading
+      setTimeout(() => {
+        autoJoinRoom();
+      }, 1000);
+    } else if (!session) {
       router.push('/');
       return;
+    } else {
+      loadInitialData();
+      // Auto-join default room after loading
+      setTimeout(() => {
+        autoJoinRoom();
+      }, 1000);
     }
-    loadInitialData();
   }, [session, status]);
+
+  const autoJoinRoom = () => {
+    if (inRoom) return; // Already in a room
+    
+    const defaultRoomCode = 'ASSESS01'; // Default room code
+    const s = ensureSocket();
+    s.emit('assessment:joinRoom', {
+      roomId: defaultRoomCode,
+      name: isGuest ? guestName : (session?.user as any)?.name || 'Player',
+      isAdmin: isGuest ? false : isAdmin(((session?.user as any)?.id) as string),
+      userId: isGuest ? `guest_${Date.now()}` : (session?.user as any)?.id
+    });
+  };
 
   const loadInitialData = async () => {
     try {
       setLoading(true);
 
-      // Load user progress and system settings
-      const [progressResponse, settingsResponse] = await Promise.all([
-        fetch('/api/assessment/progress'),
-        fetch('/api/assessment/settings')
-      ]);
+      if (isGuest) {
+        // For guests, skip API calls and set default values
+        setUserProgress({
+          id: `guest_${Date.now()}`,
+          userId: `guest_${Date.now()}`,
+          phase1Completed: false,
+          phase2Completed: false,
+          phase1Answers: [],
+          phase2Answers: [],
+          totalScore: {
+            selfLearning: 0,
+            creative: 0,
+            algorithm: 0,
+            logic: 0,
+            communication: 0,
+            presentation: 0,
+            leadership: 0,
+            careerKnowledge: 0
+          },
+          isApproved: false
+        });
+        setSystemSettings({
+          phase2Open: true,
+          allowFriendAnswers: true
+        });
+        setCurrentPhase(1);
+        await loadQuestions(1, undefined, null);
+      } else {
+        // Load user progress and system settings for authenticated users
+        const [progressResponse, settingsResponse] = await Promise.all([
+          fetch('/api/assessment/progress'),
+          fetch('/api/assessment/settings')
+        ]);
 
-      const progressData = await progressResponse.json();
-      const settingsData = await settingsResponse.json();
+        const progressData = await progressResponse.json();
+        const settingsData = await settingsResponse.json();
 
-      setUserProgress(progressData.progress);
-      setSystemSettings(settingsData.settings);
+        setUserProgress(progressData.progress);
+        setSystemSettings(settingsData.settings);
 
-      // Check for declined submissions and reset progress if needed
-      if (progressData.hasDeclinedSubmissions) {
+        // Check for declined submissions and reset progress if needed
+        if (progressData.hasDeclinedSubmissions) {
         // Reset the user's progress to allow retry
         await resetDeclinedProgress();
         // Reload progress after reset
@@ -307,6 +404,7 @@ export default function AssessmentPage() {
           }
         }
 
+        // Show path selection only if Phase 2 is open and Phase 1 can proceed
         if (progressData.canProceedToPhase2 && !progressData.progress.selectedPath) {
           setShowPathSelection(true);
           setCurrentQuestionIndex(0);
@@ -323,6 +421,7 @@ export default function AssessmentPage() {
         // Default to phase 1 if no progress data
         setCurrentPhase(1);
         await loadQuestions(1, undefined, null);
+      }
       }
 
     } catch (error) {
@@ -420,6 +519,31 @@ export default function AssessmentPage() {
     }
   };
 
+  // Count submissions for the current question (live polling when game is started)
+  const refreshSubmissionCount = async (qId?: string) => {
+    try {
+      const id = qId || (questions[currentQuestionIndex]?._id || questions[currentQuestionIndex]?.id);
+      if (!id) return;
+      const adminView = isAdmin(((session?.user as any)?.id) as string);
+      const res = await fetch(`/api/assessment/answers?questionId=${id}${adminView ? '&admin=true' : ''}`);
+      const data = await res.json();
+      if (Array.isArray(data?.answers)) {
+        setSubmissionCount(data.answers.length);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (!inRoom || gameState !== 'started') return;
+    // initial fetch
+    refreshSubmissionCount();
+    // poll every 3s while on this question
+    const interval = setInterval(() => refreshSubmissionCount(), 3000);
+    return () => clearInterval(interval);
+  }, [inRoom, gameState, currentQuestionIndex, questions]);
+
   // Socket helpers
   const ensureSocket = () => {
     if (!socketRef.current) {
@@ -432,12 +556,21 @@ export default function AssessmentPage() {
 
       s.on('assessment:state', (state: any) => {
         try {
+          console.log('🔍 Received assessment:state:', state);
+          console.log('🔍 Socket ID:', s.id);
+          console.log('🔍 Host ID:', state.hostId);
+          console.log('🔍 Is Host:', state.hostId === s.id);
+          
           setInRoom(true);
           setRoomId(state.roomId);
           setParticipants(Array.isArray(state.participants) ? state.participants : []);
           setRoomQuestionIndex(Number(state.currentQuestionIndex) || 0);
           setIsHost(state.hostId === s.id);
-        } catch {}
+          setGameState(state.gameState || 'waiting');
+          setRoomStartedAt(state.startedAt ? new Date(state.startedAt) : null);
+        } catch (error) {
+          console.error('Error processing assessment:state:', error);
+        }
       });
 
       s.on('assessment:error', ({ message }: any) => {
@@ -464,7 +597,8 @@ export default function AssessmentPage() {
     s.emit('assessment:createRoom', {
       roomId: code,
       hostName: (session?.user as any)?.name || 'Admin',
-      isAdmin: true
+      isAdmin: true,
+      hostUserId: (session?.user as any)?.id
     });
   };
 
@@ -477,7 +611,9 @@ export default function AssessmentPage() {
     const s = ensureSocket();
     s.emit('assessment:joinRoom', {
       roomId: code,
-      name: (session?.user as any)?.name || 'Player'
+      name: (session?.user as any)?.name || 'Player',
+      isAdmin: isAdmin(((session?.user as any)?.id) as string),
+      userId: (session?.user as any)?.id
     });
   };
 
@@ -492,6 +628,15 @@ export default function AssessmentPage() {
     setIsHost(false);
     setParticipants([]);
     setRoomQuestionIndex(null);
+    setGameState('waiting');
+    setRoomStartedAt(null);
+    // Redirect to home page
+    router.push('/');
+  };
+
+  const handleAdminStart = () => {
+    if (!isHost) return;
+    socketRef.current?.emit('assessment:startGame', { roomId });
   };
 
   const handleAdminNext = () => {
@@ -516,6 +661,34 @@ export default function AssessmentPage() {
 
     try {
       setSubmitting(true);
+      
+      if (isGuest) {
+        // For guests, just simulate submission without API calls
+        console.log('Guest submission:', {
+          questionIndex: currentQuestionIndex,
+          answerText: answerText.trim() || (forceSubmit ? 'ว่างเปล่าไม่ได้ส่งอะไร' : answerText),
+          guestName
+        });
+        
+        // Move to next question or show completion
+        if (currentQuestionIndex < questions.length - 1) {
+          if (!inRoom) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+          }
+          setAnswerText('');
+          setAnswerImage(null);
+        } else {
+          // All questions completed for this phase
+          if (currentPhase === 1) {
+            // Show path selection after completing Phase 1
+            setShowPathSelection(true);
+          } else {
+            // Phase 2 completed, show completion message
+            alert('Assessment completed! Thank you for participating.');
+          }
+        }
+        return;
+      }
       
       const formData = new FormData();
       console.log('Questions array:', questions);
@@ -558,6 +731,8 @@ export default function AssessmentPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Immediately refresh submission count for admins/hosts
+        try { await refreshSubmissionCount(questionId); } catch {}
         // Clear draft answer on server
         try {
           await fetch('/api/assessment/progress', {
@@ -643,6 +818,16 @@ export default function AssessmentPage() {
 
   const handlePathSelection = async (pathId: string) => {
     try {
+      if (isGuest) {
+        // For guests, just proceed without API calls
+        setShowPathSelection(false);
+        setCurrentPhase(2);
+        await loadQuestions(2, pathId);
+        setCurrentQuestionIndex(0);
+        setAnswerText('');
+        return;
+      }
+
       const response = await fetch('/api/assessment/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -666,6 +851,37 @@ export default function AssessmentPage() {
         } catch {}
         setCurrentQuestionIndex(0);
         setAnswerText('');
+
+        // Leave Phase 1 lobby and join path-specific lobby
+        const leaveCurrentRoomSilently = () => {
+          try {
+            if (socketRef.current && roomId) {
+              socketRef.current.emit('assessment:leave', { roomId });
+            }
+          } catch {}
+          setInRoom(false);
+          setIsHost(false);
+          setParticipants([]);
+          setRoomQuestionIndex(null);
+          setGameState('waiting');
+          setRoomStartedAt(null);
+        };
+
+        const joinPathRoom = (selectedPathId: string) => {
+          const s = ensureSocket();
+          const code = `ASSESS2-${(selectedPathId || '').toUpperCase()}`;
+          s.emit('assessment:joinRoom', {
+            roomId: code,
+            name: (session?.user as any)?.name || 'Player',
+            isAdmin: isAdmin(((session?.user as any)?.id) as string),
+            userId: (session?.user as any)?.id
+          });
+        };
+
+        if (inRoom) {
+          leaveCurrentRoomSilently();
+        }
+        joinPathRoom(pathId);
       } else {
         alert(data.error || 'Failed to select path');
       }
@@ -674,6 +890,7 @@ export default function AssessmentPage() {
       alert('Failed to select path');
     }
   };
+
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -738,29 +955,31 @@ export default function AssessmentPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {CAREER_PATHS.map((path, index) => (
-              <button
-                key={path.id}
-                onClick={() => handlePathSelection(path.id)}
-                className={`group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom relative overflow-hidden`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Background gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div key={path.id} className="flex flex-col space-y-4">
+                <button
+                  onClick={() => handlePathSelection(path.id)}
+                  className={`group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom relative overflow-hidden`}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Background gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                {/* Floating particles */}
-                <div className="absolute top-4 right-4 w-2 h-2 bg-orange-400/40 rounded-full animate-ping animation-delay-1000"></div>
-                <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-orange-300/60 rounded-full animate-ping animation-delay-2000"></div>
+                  {/* Floating particles */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-orange-400/40 rounded-full animate-ping animation-delay-1000"></div>
+                  <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-orange-300/60 rounded-full animate-ping animation-delay-2000"></div>
 
-                <div className="text-center w-full flex flex-col items-center justify-center relative z-10">
-                  <div className="text-7xl mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 flex justify-center animate-bounce-in">{path.icon}</div>
-                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300 text-center leading-tight">
-                    {path.name}
-                  </h3>
-                  <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300 text-center leading-relaxed">
-                    Click to select this path
-                  </p>
-                </div>
-              </button>
+                  <div className="text-center w-full flex flex-col items-center justify-center relative z-10">
+                    <div className="text-7xl mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 flex justify-center animate-bounce-in">{path.icon}</div>
+                    <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300 text-center leading-tight">
+                      {path.name}
+                    </h3>
+                    <p className="text-gray-400 text-sm group-hover:text-orange-200 transition-colors duration-300 text-center leading-relaxed">
+                      Click to select this path
+                    </p>
+                  </div>
+                </button>
+                
+              </div>
             ))}
           </div>
         </div>
@@ -901,6 +1120,81 @@ export default function AssessmentPage() {
     );
   }
 
+  // Show waiting room when in room but game hasn't started
+  if (inRoom && gameState === 'waiting') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+        {/* Enhanced Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.1),transparent_50%)]"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse animate-morphing"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl animate-pulse delay-1000 animate-morphing animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse delay-500 animate-morphing animation-delay-4000"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12 md:py-16">
+          <div className="text-center mb-12 animate-slide-in-bottom">
+            <h1 className="text-4xl sm:text-5xl font-black mb-6 gradient-text">Assessment Room</h1>
+            <div className="glass-card rounded-2xl p-6 border border-orange-500/30 max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-white font-semibold">
+                  Room Code: <span className="font-mono bg-white/10 px-3 py-1 rounded text-orange-300">{roomId}</span>
+                </div>
+                <button
+                  onClick={handleLeaveRoom}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  Leave Room
+                </button>
+              </div>
+              
+              <div className="text-center mb-6">
+                <div className="text-2xl mb-2">⏳</div>
+                <h2 className="text-xl font-bold text-white mb-2">Waiting for Admin to Start</h2>
+                <p className="text-gray-300">All participants are waiting for the assessment to begin</p>
+              </div>
+
+              {isHost && (
+                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                  <div className="text-yellow-300 font-semibold mb-2">🔑 Admin Controls</div>
+                  <p className="text-yellow-200 text-sm mb-3">You are the room admin. Start the assessment when everyone is ready.</p>
+                  <button
+                    onClick={handleAdminStart}
+                    className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors"
+                  >
+                    🚀 Start Assessment
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-white">Participants ({participants.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {participants.map((participant, index) => (
+                    <div key={participant.id} className="flex items-center space-x-3 bg-white/5 rounded-lg p-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {participant.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-white font-medium">{participant.name}</div>
+                        {participant.isAdmin && (
+                          <div className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded font-semibold">ADMIN</div>
+                        )}
+                      </div>
+                      <div className="text-green-400">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show current question
   const currentQuestion = questions[currentQuestionIndex];
   if (!currentQuestion) {
@@ -951,62 +1245,66 @@ export default function AssessmentPage() {
           <h1 className="text-4xl sm:text-5xl font-black mb-6 gradient-text">
             Phase {currentPhase} Assessment
           </h1>
+          {isGuest && (
+            <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg inline-block">
+              <p className="text-blue-300 font-semibold">
+                👤 Guest Mode: {guestName}
+              </p>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('isGuest');
+                  sessionStorage.removeItem('guestName');
+                  router.push('/guest-login');
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm underline mt-1"
+              >
+                Switch User
+              </button>
+            </div>
+          )}
           <p className="text-xl text-gray-300 mb-4">
             Question {currentQuestionIndex + 1} of {questions.length}
           </p>
 
-          {/* Live Lobby Controls */}
+          {/* Live Room Controls */}
           <div className="max-w-3xl mx-auto mb-6">
             {!inRoom ? (
-              <div className="glass-card rounded-2xl p-4 border border-white/10">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div className="text-white font-semibold">Join Live Session</div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={roomId}
-                      onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                      placeholder="ROOM CODE"
-                      className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
-                      maxLength={8}
-                    />
-                    <button
-                      onClick={() => handleJoinRoom()}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                    >Join</button>
-                    {isAdmin(((session?.user as any)?.id) as string) && (
-                      <button
-                        onClick={handleCreateRoom}
-                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-semibold"
-                      >Create</button>
-                    )}
-                  </div>
+              <div className="glass-card rounded-2xl p-4 border border-blue-500/30 bg-blue-500/10">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                  <div className="text-white font-semibold">🔄 Joining Assessment Room...</div>
                 </div>
               </div>
-            ) : (
-              <div className="glass-card rounded-2xl p-4 border border-white/10">
+            ) : gameState === 'started' ? (
+              <div className="glass-card rounded-2xl p-4 border border-green-500/30 bg-green-500/10">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div className="text-white font-semibold">
-                    Live Room: <span className="font-mono bg-white/10 px-2 py-1 rounded">{roomId}</span>
+                    🟢 Live Assessment: <span className="font-mono bg-white/10 px-2 py-1 rounded">{roomId}</span>
                     {isHost && <span className="ml-2 bg-yellow-400 text-black px-2 py-1 rounded">Admin</span>}
                     <span className="ml-3 text-gray-300">Participants: {participants.length}</span>
+                    <span className="ml-3 text-gray-300">Submissions: {submissionCount}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {isHost && (
                       <button
                         onClick={handleAdminNext}
-                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold"
                         title="Next question for everyone"
-                      >Next →</button>
+                      >Next Question →</button>
                     )}
                     <button
                       onClick={handleLeaveRoom}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg"
+                      className="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg"
                     >Leave</button>
                   </div>
                 </div>
+                {!isHost && (
+                  <div className="mt-3 text-center">
+                    <p className="text-green-300 text-sm">⏳ Waiting for admin to advance to next question</p>
+                  </div>
+                )}
               </div>
-            )}
+            ) : null}
           </div>
           
           {/* Timer Display */}
@@ -1134,6 +1432,28 @@ export default function AssessmentPage() {
             <span className="text-2xl">📝</span>
             <span>{submitting ? 'Submitting...' : 'Submit Answer'}</span>
           </button>
+          {currentPhase === 1 && currentQuestionIndex === questions.length - 1 && (
+            <div className="mt-4">
+              <button
+                onClick={async () => {
+                  try {
+                    // Persist that the chooser is open so backend allows selection
+                    await fetch('/api/assessment/progress', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ showPathSelection: true })
+                    });
+                  } catch {}
+                  handleAnswerSubmit(true);
+                }}
+                disabled={submitting}
+                className="px-6 py-3 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600"
+                title="Skip this question and proceed to path selection"
+              >
+                Skip and Choose Path →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

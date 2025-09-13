@@ -31,7 +31,7 @@ app.prepare().then(async () => {
     console.log('MongoDB connected successfully');
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
-    process.exit(1);
+    // Continue startup without DB to avoid full downtime; DB-backed routes will handle errors
   }
 
   const server = createServer(async (req, res) => {
@@ -550,7 +550,7 @@ app.prepare().then(async () => {
     // =========================
     // Assessment live session
     // =========================
-    socket.on('assessment:createRoom', ({ roomId, hostName, isAdmin }) => {
+    socket.on('assessment:createRoom', ({ roomId, hostName, isAdmin, hostUserId }) => {
       try {
         const rid = (roomId || '').toUpperCase().slice(0, 8) || Math.random().toString(36).substring(2, 8).toUpperCase();
         if (!isAdmin) {
@@ -563,20 +563,25 @@ app.prepare().then(async () => {
             roomId: rid,
             hostId: socket.id,
             participants: new Map(),
-            currentQuestionIndex: 0
+            currentQuestionIndex: 0,
+            gameState: 'waiting', // waiting, started, ended
+            questions: [],
+            startedAt: null
           });
         }
 
         const room = assessmentRooms.get(rid);
         room.hostId = socket.id;
-        room.participants.set(socket.id, { id: socket.id, name: hostName || 'Admin' });
+        room.participants.set(socket.id, { id: socket.id, name: hostName || 'Admin', isAdmin: true });
         socket.join(`assessment:${rid}`);
 
         const state = {
           roomId: rid,
-          hostId: room.hostId,
+          hostId: socket.id,
           participants: Array.from(room.participants.values()),
-          currentQuestionIndex: room.currentQuestionIndex
+          currentQuestionIndex: room.currentQuestionIndex,
+          gameState: room.gameState,
+          startedAt: room.startedAt
         };
         socket.emit('assessment:state', state);
         socket.to(`assessment:${rid}`).emit('assessment:state', state);
@@ -586,27 +591,104 @@ app.prepare().then(async () => {
       }
     });
 
-    socket.on('assessment:joinRoom', ({ roomId, name }) => {
+    socket.on('assessment:joinRoom', ({ roomId, name, isAdmin, userId }) => {
       try {
+        console.log(`🔍 assessment:joinRoom - roomId: ${roomId}, name: ${name}, isAdmin: ${isAdmin}, userId: ${userId}`);
         const rid = (roomId || '').toUpperCase();
-        if (!rid || !assessmentRooms.has(rid)) {
+        if (!rid) {
+          socket.emit('assessment:error', { message: 'Invalid room code' });
+          return;
+        }
+
+        // Auto-create room for any roomId if it doesn't exist (no implicit admin)
+        if (!assessmentRooms.has(rid)) {
+          assessmentRooms.set(rid, {
+            roomId: rid,
+            hostId: null,
+            participants: new Map(),
+            currentQuestionIndex: 0,
+            gameState: 'waiting',
+            questions: [],
+            startedAt: null
+          });
+        }
+
+        if (!assessmentRooms.has(rid)) {
           socket.emit('assessment:error', { message: 'Room not found' });
           return;
         }
+
         const room = assessmentRooms.get(rid);
         socket.join(`assessment:${rid}`);
-        room.participants.set(socket.id, { id: socket.id, name: name || 'Player' });
+
+        // Allow real admins to claim host when room has no host yet
+        if (!room.hostId && isAdmin) {
+          room.hostId = socket.id;
+        }
+
+        // Allow any admin to take over as host (force admin priority)
+        if (isAdmin && room.hostId) {
+          const currentHost = room.participants.get(room.hostId);
+          const currentHostIsAdmin = currentHost && currentHost.isAdmin;
+          
+          console.log(`🔍 Admin takeover check - isAdmin: ${isAdmin}, currentHostIsAdmin: ${currentHostIsAdmin}, userId: ${userId}, superAdmin: ${userId === '898059066537029692'}`);
+          
+          // If current host is not an admin, or if this is a super admin, allow takeover
+          if (!currentHostIsAdmin || userId === '898059066537029692') {
+            console.log(`✅ Admin ${name} (${userId}) taking over host from ${currentHostIsAdmin ? 'admin' : 'non-admin'}`);
+            room.hostId = socket.id;
+          } else {
+            console.log(`❌ Admin takeover denied - current host is admin and user is not super admin`);
+          }
+        }
+
+        const isAdminParticipant = room.hostId === socket.id;
+
+        room.participants.set(socket.id, { id: socket.id, name: name || 'Player', isAdmin: isAdmin });
+        
         const state = {
           roomId: rid,
           hostId: room.hostId,
           participants: Array.from(room.participants.values()),
-          currentQuestionIndex: room.currentQuestionIndex
+          currentQuestionIndex: room.currentQuestionIndex,
+          gameState: room.gameState,
+          startedAt: room.startedAt
         };
+        
+        console.log(`📤 Sending state to ${name} - hostId: ${room.hostId}, socketId: ${socket.id}, isHost: ${room.hostId === socket.id}`);
         socket.emit('assessment:state', state);
         socket.to(`assessment:${rid}`).emit('assessment:state', state);
       } catch (err) {
         console.error('assessment:joinRoom error', err);
         socket.emit('assessment:error', { message: 'Failed to join room' });
+      }
+    });
+
+    // Add start game functionality
+    socket.on('assessment:startGame', ({ roomId }) => {
+      try {
+        const rid = (roomId || '').toUpperCase();
+        if (!rid || !assessmentRooms.has(rid)) return;
+        const room = assessmentRooms.get(rid);
+        if (room.hostId !== socket.id) {
+          socket.emit('assessment:error', { message: 'Only admin can start the game' });
+          return;
+        }
+        room.gameState = 'started';
+        room.startedAt = new Date();
+        room.currentQuestionIndex = 0;
+        const state = {
+          roomId: rid,
+          hostId: room.hostId,
+          participants: Array.from(room.participants.values()),
+          currentQuestionIndex: room.currentQuestionIndex,
+          gameState: room.gameState,
+          startedAt: room.startedAt
+        };
+        io.to(`assessment:${rid}`).emit('assessment:state', state);
+      } catch (err) {
+        console.error('assessment:startGame error', err);
+        socket.emit('assessment:error', { message: 'Failed to start game' });
       }
     });
 
@@ -619,12 +701,18 @@ app.prepare().then(async () => {
           socket.emit('assessment:error', { message: 'Only admin can go next' });
           return;
         }
+        if (room.gameState !== 'started') {
+          socket.emit('assessment:error', { message: 'Game must be started first' });
+          return;
+        }
         room.currentQuestionIndex = Math.max(0, (room.currentQuestionIndex || 0) + 1);
         const state = {
           roomId: rid,
           hostId: room.hostId,
           participants: Array.from(room.participants.values()),
-          currentQuestionIndex: room.currentQuestionIndex
+          currentQuestionIndex: room.currentQuestionIndex,
+          gameState: room.gameState,
+          startedAt: room.startedAt
         };
         io.to(`assessment:${rid}`).emit('assessment:state', state);
       } catch (err) {
@@ -644,6 +732,11 @@ app.prepare().then(async () => {
           const first = Array.from(room.participants.keys())[0];
           if (first) {
             room.hostId = first;
+            // Update the new host to be admin
+            const newHost = room.participants.get(first);
+            if (newHost) {
+              newHost.isAdmin = true;
+            }
           } else {
             assessmentRooms.delete(rid);
             return;
@@ -653,7 +746,9 @@ app.prepare().then(async () => {
           roomId: rid,
           hostId: room.hostId,
           participants: Array.from(room.participants.values()),
-          currentQuestionIndex: room.currentQuestionIndex
+          currentQuestionIndex: room.currentQuestionIndex,
+          gameState: room.gameState,
+          startedAt: room.startedAt
         };
         io.to(`assessment:${rid}`).emit('assessment:state', state);
       } catch (err) {
@@ -727,7 +822,203 @@ app.prepare().then(async () => {
           io.to(`assessment:${rid}`).emit('assessment:state', state);
         }
       });
+
+      // ==================== LOBBY SYSTEM EVENTS ====================
+
+      // Join lobby room
+      socket.on('lobby:join', async (data) => {
+        try {
+          const { roomId, userId, username } = data;
+          
+          if (!roomId || !userId || !username) {
+            socket.emit('lobby:error', { message: 'Missing required data' });
+            return;
+          }
+
+          // Join socket room
+          socket.join(`lobby:${roomId}`);
+          
+          // Add to lobby rooms map if not exists
+          if (!lobbyRooms.has(roomId)) {
+            lobbyRooms.set(roomId, {
+              roomId,
+              participants: new Map(),
+              status: 'waiting',
+              createdAt: new Date()
+            });
+          }
+
+          const room = lobbyRooms.get(roomId);
+          
+          // Add participant
+          room.participants.set(socket.id, {
+            userId,
+            username,
+            socketId: socket.id,
+            joinedAt: new Date(),
+            isReady: false
+          });
+
+          // Broadcast updated room state
+          const roomState = {
+            roomId,
+            participants: Array.from(room.participants.values()),
+            status: room.status
+          };
+
+          io.to(`lobby:${roomId}`).emit('lobby:roomUpdate', roomState);
+          
+          console.log(`User ${username} joined lobby room ${roomId}`);
+        } catch (error) {
+          console.error('Error joining lobby room:', error);
+          socket.emit('lobby:error', { message: 'Failed to join room' });
+        }
+      });
+
+      // Leave lobby room
+      socket.on('lobby:leave', async (data) => {
+        try {
+          const { roomId } = data;
+          
+          if (!roomId) {
+            socket.emit('lobby:error', { message: 'Room ID required' });
+            return;
+          }
+
+          // Leave socket room
+          socket.leave(`lobby:${roomId}`);
+          
+          const room = lobbyRooms.get(roomId);
+          if (room) {
+            // Remove participant
+            const participant = room.participants.get(socket.id);
+            if (participant) {
+              room.participants.delete(socket.id);
+              
+              // If no participants left, delete room
+              if (room.participants.size === 0) {
+                lobbyRooms.delete(roomId);
+                console.log(`Lobby room ${roomId} deleted (no participants)`);
+                return;
+              }
+
+              // Broadcast updated room state
+              const roomState = {
+                roomId,
+                participants: Array.from(room.participants.values()),
+                status: room.status
+              };
+
+              io.to(`lobby:${roomId}`).emit('lobby:roomUpdate', roomState);
+              console.log(`User ${participant.username} left lobby room ${roomId}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error leaving lobby room:', error);
+          socket.emit('lobby:error', { message: 'Failed to leave room' });
+        }
+      });
+
+      // Toggle ready status
+      socket.on('lobby:toggleReady', async (data) => {
+        try {
+          const { roomId } = data;
+          
+          const room = lobbyRooms.get(roomId);
+          if (room) {
+            const participant = room.participants.get(socket.id);
+            if (participant) {
+              participant.isReady = !participant.isReady;
+              
+              // Broadcast updated room state
+              const roomState = {
+                roomId,
+                participants: Array.from(room.participants.values()),
+                status: room.status
+              };
+
+              io.to(`lobby:${roomId}`).emit('lobby:roomUpdate', roomState);
+            }
+          }
+        } catch (error) {
+          console.error('Error toggling ready status:', error);
+          socket.emit('lobby:error', { message: 'Failed to toggle ready status' });
+        }
+      });
+
+      // Start game
+      socket.on('lobby:startGame', async (data) => {
+        try {
+          const { roomId } = data;
+          
+          const room = lobbyRooms.get(roomId);
+          if (room) {
+            const participant = room.participants.get(socket.id);
+            if (participant) {
+              // Check if all participants are ready
+              const allReady = Array.from(room.participants.values()).every(p => p.isReady);
+              
+              if (allReady && room.participants.size >= 2) {
+                room.status = 'starting';
+                
+                // Broadcast game starting
+                io.to(`lobby:${roomId}`).emit('lobby:gameStarting', {
+                  roomId,
+                  participants: Array.from(room.participants.values())
+                });
+                
+                // After 3 seconds, start the game
+                setTimeout(() => {
+                  room.status = 'active';
+                  io.to(`lobby:${roomId}`).emit('lobby:gameStarted', {
+                    roomId,
+                    participants: Array.from(room.participants.values())
+                  });
+                }, 3000);
+              } else {
+                socket.emit('lobby:error', { 
+                  message: allReady ? 'Need at least 2 players' : 'All players must be ready' 
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error starting game:', error);
+          socket.emit('lobby:error', { message: 'Failed to start game' });
+        }
+      });
+
+      // Cleanup from lobby rooms
+      for (const [roomId, room] of lobbyRooms.entries()) {
+        const participant = room.participants.get(socket.id);
+        if (participant) {
+          room.participants.delete(socket.id);
+          
+          // If no participants left, delete room
+          if (room.participants.size === 0) {
+            lobbyRooms.delete(roomId);
+            console.log(`Lobby room ${roomId} deleted (no participants)`);
+          } else {
+            // Broadcast updated room state
+            const roomState = {
+              roomId,
+              participants: Array.from(room.participants.values()),
+              status: room.status
+            };
+
+            io.to(`lobby:${roomId}`).emit('lobby:roomUpdate', roomState);
+          }
+          break;
+        }
+      }
     });
+
+
+    // ==================== LOBBY SYSTEM ====================
+
+    // Store active lobby rooms in memory
+    const lobbyRooms = new Map();
+
   });
 });
 
