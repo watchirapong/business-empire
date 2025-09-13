@@ -1,21 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable SWC minifier for faster builds
-  swcMinify: true,
-
   // Enable experimental features for better performance
   experimental: {
-    // Enable faster builds with turbo
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
     // Enable webpack build worker
     webpackBuildWorker: true,
+  },
+
+  // Configure Turbopack for faster builds
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
   },
 
   // Optimize build output
