@@ -4,17 +4,23 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "dev:next": "next dev",
+    "dev:next": "next dev --turbo",
     "build": "next build",
+    "build:fast": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "node server.js",
     "start:prod": "node server.js",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
     "multiplayer": "node socket-server.js",
     "discord-bot": "tsx scripts/start-discord-bot.ts",
     "start:full": "npm run start & sleep 3 && curl -X POST http://localhost:3000/api/start-bot",
     "import-tcas": "node scripts/import-tcas-data.js",
     "test-tcas": "node scripts/test-tcas-api.js",
-    "restart-app": "./scripts/restart-app.sh"
+    "restart-app": "./scripts/restart-app.sh",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache",
+    "clean:all": "rm -rf .next && rm -rf node_modules/.cache && rm -rf node_modules && npm install"
   },
   "dependencies": {
     "@auth/core": "0.34.2",

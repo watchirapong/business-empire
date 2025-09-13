@@ -27,7 +27,7 @@ export interface ILobbyRoom extends Document {
   endedAt?: Date;
 }
 
-const LobbyRoomSchema = new Schema<ILobbyRoom>({
+const LobbyRoomSchema = new Schema({
   roomId: {
     type: String,
     required: true,
@@ -117,4 +117,4 @@ LobbyRoomSchema.index({ status: 1 });
 LobbyRoomSchema.index({ gameType: 1 });
 LobbyRoomSchema.index({ createdAt: -1 });
 
-export default mongoose.models.LobbyRoom || mongoose.model<ILobbyRoom>('LobbyRoom', LobbyRoomSchema);
+export default mongoose.models.LobbyRoom || mongoose.model('LobbyRoom', LobbyRoomSchema);

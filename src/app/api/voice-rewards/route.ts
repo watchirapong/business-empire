@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
 
-// Connect to MongoDB
-const connectDB = async () => {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI!);
-};
+// Simple in-memory cache per user
+const voiceRewardsCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 10000; // 10 seconds
 
 // Daily Voice Reward Schema
 const DailyVoiceRewardSchema = new mongoose.Schema({
@@ -39,6 +36,15 @@ export async function GET(request: NextRequest) {
     const days = parseInt(searchParams.get('days') || '7'); // Default to 7 days
 
     console.log('Voice rewards API - User ID:', userId);
+
+    // Check cache first
+    const cacheKey = `${userId}-${days}`;
+    const cached = voiceRewardsCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      return NextResponse.json(cached.data);
+    }
 
     await connectDB();
 
@@ -80,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Voice rewards API - Current streak:', currentStreak, 'Eligible for coins:', isEligibleForCoins);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: {
         todayProgress: {
@@ -100,7 +106,12 @@ export async function GET(request: NextRequest) {
         recentRewards: rewards,
         totalRewardsEarned: totalRewardsEarned
       }
-    });
+    };
+
+    // Cache the response
+    voiceRewardsCache.set(cacheKey, { data: response, timestamp: now });
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Voice rewards API error:', error);

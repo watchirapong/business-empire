@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
 import UserProgress from '@/models/UserProgress';
 import UserAnswer from '@/models/UserAnswer';
 import AssessmentQuestion from '@/models/AssessmentQuestion';
@@ -21,9 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     // Get all user progress records
     const allProgress = await UserProgress.find({}).sort({ updatedAt: -1 });
@@ -161,9 +160,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     // Delete all user answers
     const deletedAnswers = await UserAnswer.deleteMany({ userId });

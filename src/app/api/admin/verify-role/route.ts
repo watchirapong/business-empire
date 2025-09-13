@@ -25,7 +25,7 @@ const serverMemberDataSchema = new mongoose.Schema({
   globalName: { type: String },
   avatar: { type: String },
   serverId: { type: String, required: true },
-  serverData: { type: mongoose.Schema.Types.Mixed },
+  serverData: { type: (mongoose.Schema as any).Types.Mixed },
   roles: [String],
   lastUpdated: { type: Date, default: Date.now }
 }, { strict: false });

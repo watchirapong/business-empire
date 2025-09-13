@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
 
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
-      return;
-    }
-    await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('MongoDB Connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
+// Simple in-memory cache
+let leaderboardCache: any = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 30000; // 30 seconds
 
 // Currency schema
 const currencySchema = new mongoose.Schema({
@@ -25,6 +16,9 @@ const currencySchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
+
+// Add indexes for better performance
+currencySchema.index({ totalEarned: -1 }); // For leaderboard sorting
 
 // User schema for getting usernames and avatars
 const userSchema = new mongoose.Schema({
@@ -43,6 +37,9 @@ const userSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+// Add indexes for better performance
+userSchema.index({ discordId: 1 }); // For user lookups
+
 // Username history schema for getting current nicknames
 const usernameHistorySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
@@ -60,12 +57,21 @@ const usernameHistorySchema = new mongoose.Schema({
   lastUpdated: { type: Date, default: Date.now }
 });
 
+// Add indexes for better performance
+usernameHistorySchema.index({ userId: 1 }); // For user lookups
+
 const Currency = mongoose.models.Currency || mongoose.model('Currency', currencySchema);
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const UsernameHistory = mongoose.models.UsernameHistory || mongoose.model('UsernameHistory', usernameHistorySchema);
 
 export async function GET() {
   try {
+    // Check cache first
+    const now = Date.now();
+    if (leaderboardCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      return NextResponse.json(leaderboardCache);
+    }
+
     await connectDB();
 
     // Get all currency records sorted by totalEarned in descending order
@@ -90,24 +96,9 @@ export async function GET() {
     });
 
     // Combine currency data with user data and add ranks
-    const leaderboard = await Promise.all(currencyData.map(async (currency, index) => {
+    const leaderboard = currencyData.map((currency, index) => {
       const user = userMap.get(currency.userId);
-      let currentNickname = nicknameMap.get(currency.userId);
-      
-      // If no nickname found, try to fetch from Discord API
-      if (!currentNickname && !user?.username) {
-        try {
-          const discordResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/users/get-server-nickname?userId=${currency.userId}`);
-          if (discordResponse.ok) {
-            const discordData = await discordResponse.json();
-            if (discordData.nickname) {
-              currentNickname = discordData.nickname;
-            }
-          }
-        } catch (error) {
-          console.log(`Failed to fetch nickname for ${currency.userId}:`, error);
-        }
-      }
+      const currentNickname = nicknameMap.get(currency.userId);
       
       // Priority: currentNickname > username > globalName > fallback
       const displayName = currentNickname || user?.username || user?.globalName || `User${currency.userId.slice(-4)}`;
@@ -119,12 +110,18 @@ export async function GET() {
         totalEarned: currency.totalEarned,
         rank: index + 1
       };
-    }));
+    });
 
-    return NextResponse.json({
+    const response = {
       success: true,
       leaderboard
-    });
+    };
+
+    // Cache the response
+    leaderboardCache = response;
+    cacheTimestamp = now;
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Error fetching leaderboard:', error);

@@ -16,7 +16,7 @@ const achievementSchema = new mongoose.Schema({
 const Achievement = mongoose.models.Achievement || mongoose.model('Achievement', achievementSchema);
 
 async function connectDB() {
-  if (mongoose.connections[0].readyState) return;
+  if (mongoose.connection.readyState) return;
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
 }
 
@@ -24,7 +24,7 @@ export async function GET() {
   try {
     await connectDB();
     
-    const achievements = await Achievement.find({ isActive: true }).sort({ createdAt: -1 });
+    const achievements = await (Achievement as any).find({ isActive: true }).sort({ createdAt: -1 });
     
     return NextResponse.json({ achievements });
   } catch (error) {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
     }
     
-    const achievement = new Achievement({
+    const achievement = new (Achievement as any)({
       title,
       description,
       icon: icon || '🏆',
@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
     }
     
-    const achievement = await Achievement.findByIdAndUpdate(
+    const achievement = await (Achievement as any).findByIdAndUpdate(
       id,
       { title, description, icon, rarity, category, coinReward },
       { new: true, runValidators: true }
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Achievement ID is required' }, { status: 400 });
     }
     
-    const achievement = await Achievement.findByIdAndDelete(id);
+    const achievement = await (Achievement as any).findByIdAndDelete(id);
     
     if (!achievement) {
       return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });

@@ -3943,19 +3943,29 @@ export default function AdminPage() {
                                   <div className="mb-3">
                                     <h5 className="text-white font-semibold mb-2">Skill Scores:</h5>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                      {['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'].map((skill) => (
-                                        <div key={skill} className="bg-gray-700 rounded p-2">
-                                          <div className="text-gray-300 text-xs capitalize mb-1">{skill.replace(/([A-Z])/g, ' $1')}</div>
-                                          <input
-                                            type="number"
-                                            step="0.1"
-                                            className="w-full px-2 py-1 bg-gray-600 text-orange-400 font-semibold text-sm rounded border border-gray-500 focus:border-orange-500 focus:outline-none"
-                                            defaultValue={answer.skillScores?.[skill] || 0}
-                                            id={`${skill}-${answer.id}`}
-                                            onChange={() => handleAutoSaveSkillScores(answer.id)}
-                                          />
-                                        </div>
-                                      ))}
+                                      {(() => {
+                                        // Get the question details to check which skills are enabled
+                                        const question = allQuestions.find(q => q._id.toString() === answer.questionId);
+                                        const enabledSkills = question?.awardsCategories ? 
+                                          Object.entries(question.awardsCategories)
+                                            .filter(([_, enabled]) => enabled)
+                                            .map(([skill, _]) => skill) : 
+                                          ['selfLearning', 'creative', 'algorithm', 'logic', 'communication', 'presentation', 'leadership', 'careerKnowledge'];
+                                        
+                                        return enabledSkills.map((skill) => (
+                                          <div key={skill} className="bg-gray-700 rounded p-2">
+                                            <div className="text-gray-300 text-xs capitalize mb-1">{skill.replace(/([A-Z])/g, ' $1')}</div>
+                                            <input
+                                              type="number"
+                                              step="0.1"
+                                              className="w-full px-2 py-1 bg-gray-600 text-orange-400 font-semibold text-sm rounded border border-gray-500 focus:border-orange-500 focus:outline-none"
+                                              defaultValue={answer.skillScores?.[skill] || 0}
+                                              id={`${skill}-${answer.id}`}
+                                              onChange={() => handleAutoSaveSkillScores(answer.id)}
+                                            />
+                                          </div>
+                                        ));
+                                      })()}
                                     </div>
                                     <div className="mt-3 text-gray-400 text-xs">
                                       💾 Auto-saves when you change values

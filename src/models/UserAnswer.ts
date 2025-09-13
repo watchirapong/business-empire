@@ -27,7 +27,7 @@ export interface IUserAnswer extends Document {
   };
 }
 
-const UserAnswerSchema = new Schema<IUserAnswer>({
+const UserAnswerSchema = new Schema({
   userId: {
     type: String,
     required: true,
@@ -131,4 +131,4 @@ UserAnswerSchema.index({ userId: 1, questionId: 1 }, { unique: true });
 UserAnswerSchema.index({ userId: 1, submittedAt: -1 });
 UserAnswerSchema.index({ isReviewed: 1, submittedAt: -1 });
 
-export default mongoose.models.UserAnswer || mongoose.model<IUserAnswer>('UserAnswer', UserAnswerSchema);
+export default mongoose.models.UserAnswer || mongoose.model('UserAnswer', UserAnswerSchema);

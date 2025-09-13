@@ -6,7 +6,7 @@ import AdminUser from '@/models/AdminUser';
 import { isSuperAdmin } from '@/lib/admin-config';
 
 const connectDB = async () => {
-  if (mongoose.connections[0]?.readyState) return;
+  if (mongoose.connection.readyState) return;
   await mongoose.connect(process.env.MONGODB_URI!);
 };
 
@@ -18,7 +18,7 @@ export async function GET() {
     }
 
     await connectDB();
-    const admins = await AdminUser.find({}).lean();
+    const admins = await (AdminUser as any).find({}).lean();
     return NextResponse.json({
       success: true,
       admins: admins.map(a => ({ userId: a.userId, addedBy: a.addedBy, addedAt: a.addedAt }))
@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDB();
-    const existing = await AdminUser.findOne({ userId });
+    const existing = await (AdminUser as any).findOne({ userId });
     if (existing) {
       return NextResponse.json({ success: true, message: 'User is already an admin' });
     }
-    await AdminUser.create({ userId, addedBy: (session.user as any).id });
+    await (AdminUser as any).create({ userId, addedBy: (session.user as any).id });
     return NextResponse.json({ success: true, message: 'Admin added' });
   } catch (error) {
     console.error('POST admin-users error:', error);
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await connectDB();
-    await AdminUser.deleteOne({ userId });
+    await (AdminUser as any).deleteOne({ userId });
     return NextResponse.json({ success: true, message: 'Admin removed' });
   } catch (error) {
     console.error('DELETE admin-users error:', error);

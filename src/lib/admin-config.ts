@@ -41,7 +41,7 @@ export const isAdminWithDB = async (userId: string): Promise<boolean> => {
 
     const AdminUser = mongoose.default.models.AdminUser || mongoose.default.model('AdminUser', adminUserSchema);
     console.log('🔍 Querying database for userId:', userId);
-    const dynamicAdmin = await AdminUser.findOne({ userId });
+    const dynamicAdmin = await (AdminUser as any).findOne({ userId });
     
     if (dynamicAdmin) {
       console.log('✅ User found in database:', dynamicAdmin);

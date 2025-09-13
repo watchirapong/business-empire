@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 
 // Connect to MongoDB if not already connected
 async function connectDB() {
-  if (mongoose.connections[0].readyState) {
+  if (mongoose.connection.readyState) {
     return;
   }
   

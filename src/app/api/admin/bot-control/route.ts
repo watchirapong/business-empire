@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // If no user ID in session, try to get it from email
     if (!userId && session.user?.email) {
       try {
-        if (mongoose.connections[0]?.readyState === 0) {
+        if (mongoose.connection.readyState === 0) {
           await mongoose.connect(process.env.MONGODB_URI!);
         }
         const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({

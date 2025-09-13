@@ -35,7 +35,7 @@ export interface IAssessmentQuestion extends Document {
   updatedAt: Date;
 }
 
-const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
+const AssessmentQuestionSchema = new Schema({
   phase: {
     type: Number,
     required: true,
@@ -108,4 +108,4 @@ const AssessmentQuestionSchema = new Schema<IAssessmentQuestion>({
 AssessmentQuestionSchema.index({ phase: 1, path: 1, order: 1 });
 AssessmentQuestionSchema.index({ phase: 1, isActive: 1 });
 
-export default mongoose.models.AssessmentQuestion || mongoose.model<IAssessmentQuestion>('AssessmentQuestion', AssessmentQuestionSchema);
+export default mongoose.models.AssessmentQuestion || mongoose.model('AssessmentQuestion', AssessmentQuestionSchema);

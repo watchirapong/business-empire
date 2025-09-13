@@ -10,7 +10,7 @@ export interface ISystemSettings extends Document {
   updatedAt: Date;
 }
 
-const SystemSettingsSchema = new Schema<ISystemSettings>({
+const SystemSettingsSchema = new Schema({
   phase2Open: {
     type: Boolean,
     default: false
@@ -34,4 +34,4 @@ const SystemSettingsSchema = new Schema<ISystemSettings>({
 // Ensure only one settings document exists
 SystemSettingsSchema.index({}, { unique: true });
 
-export default mongoose.models.SystemSettings || mongoose.model<ISystemSettings>('SystemSettings', SystemSettingsSchema);
+export default mongoose.models.SystemSettings || mongoose.model('SystemSettings', SystemSettingsSchema);

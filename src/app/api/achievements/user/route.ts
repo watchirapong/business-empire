@@ -15,7 +15,7 @@ const achievementSchema = new mongoose.Schema({
 
 const userAchievementSchema = new mongoose.Schema({
   userId: { type: String, required: true },
-  achievementId: { type: mongoose.Schema.Types.ObjectId, ref: 'Achievement', required: true },
+  achievementId: { type: (mongoose.Schema as any).Types.ObjectId, ref: 'Achievement', required: true },
   unlockedAt: { type: Date, default: Date.now },
   progress: { type: Number, default: 100 },
   coinsRewarded: { type: Number, default: 0 }
@@ -25,7 +25,7 @@ const Achievement = mongoose.models.Achievement || mongoose.model('Achievement',
 const UserAchievement = mongoose.models.UserAchievement || mongoose.model('UserAchievement', userAchievementSchema);
 
 async function connectDB() {
-  if (mongoose.connections[0].readyState) return;
+  if (mongoose.connection.readyState) return;
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
 }
 
@@ -41,10 +41,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Get all achievements
-    const allAchievements = await Achievement.find({ isActive: true });
+    const allAchievements = await (Achievement as any).find({ isActive: true });
     
     // Get user's unlocked achievements
-    const userAchievements = await UserAchievement.find({ userId }).populate('achievementId');
+    const userAchievements = await (UserAchievement as any).find({ userId }).populate('achievementId');
     
     // Create a map of unlocked achievement IDs
     const unlockedIds = new Set(userAchievements.map(ua => ua.achievementId._id.toString()));
@@ -136,13 +136,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if achievement exists
-    const achievement = await Achievement.findById(achievementId);
+    const achievement = await (Achievement as any).findById(achievementId);
     if (!achievement) {
       return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
     }
     
     // Check if user already has this achievement
-    const existingUserAchievement = await UserAchievement.findOne({ userId, achievementId });
+    const existingUserAchievement = await (UserAchievement as any).findOne({ userId, achievementId });
     
     if (existingUserAchievement) {
       // Update progress
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Create new user achievement
-      const userAchievement = new UserAchievement({
+      const userAchievement = new (UserAchievement as any)({
         userId,
         achievementId,
         progress,

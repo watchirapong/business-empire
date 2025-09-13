@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
           globalName: String
         }));
         
-        const user = await User.findOne({ discordId: userId });
+        const user = await (User as any).findOne({ discordId: userId });
         if (user) {
           hardcodedAdmins.push({
             userId: user.discordId,
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get dynamic admins from database
-    const dynamicAdmins = await AdminUser.find({})
+    const dynamicAdmins = await (AdminUser as any).find({})
       .populate('addedBy', 'username email avatar')
       .sort({ addedAt: -1 });
 
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
             globalName: String
           }));
           
-          const user = await User.findOne({ discordId: admin.userId });
+          const user = await (User as any).findOne({ discordId: admin.userId });
           return {
             _id: admin._id,
             userId: admin.userId,

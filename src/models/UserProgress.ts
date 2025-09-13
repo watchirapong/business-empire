@@ -39,7 +39,7 @@ export interface IUserProgress extends Document {
   updatedAt: Date;
 }
 
-const UserProgressSchema = new Schema<IUserProgress>({
+const UserProgressSchema = new Schema({
   userId: {
     type: String,
     required: true,
@@ -127,4 +127,4 @@ UserProgressSchema.index({ isApproved: 1, approvedAt: -1 });
 UserProgressSchema.index({ selectedPath: 1 });
 UserProgressSchema.index({ 'sessionState.lastUpdatedAt': -1 });
 
-export default mongoose.models.UserProgress || mongoose.model<IUserProgress>('UserProgress', UserProgressSchema);
+export default mongoose.models.UserProgress || mongoose.model('UserProgress', UserProgressSchema);

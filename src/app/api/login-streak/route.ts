@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI!);
-};
+import connectDB from '@/lib/db';
 
 // Login Streak Schema
 const LoginStreakSchema = new mongoose.Schema({
@@ -115,29 +108,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Check today's completion status from voice rewards
-    try {
-      const voiceResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/voice-rewards`, {
-        headers: {
-          'Cookie': request.headers.get('cookie') || ''
-        }
-      });
-      
-      if (voiceResponse.ok) {
-        const voiceData = await voiceResponse.json();
-        if (voiceData.success && voiceData.data.todayProgress) {
-          const todayCompleted = voiceData.data.todayProgress.voiceTimeMinutes >= voiceData.data.todayProgress.requirement;
-          
-          if (streakData.todayCompleted !== todayCompleted) {
-            streakData.todayCompleted = todayCompleted;
-            streakData.updatedAt = new Date();
-            await streakData.save();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking voice rewards:', error);
-    }
+    // Note: Voice rewards completion status is now handled separately
+    // to avoid circular API dependencies and improve performance
 
     return NextResponse.json({
       success: true,
