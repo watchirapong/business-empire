@@ -123,7 +123,6 @@ export default function HomePage() {
             <div className="animate-bounce-in">
               <ThemeToggle />
             </div>
-
             {session ? (
               <div className="flex items-center space-x-4">
                 {/* Profile trigger + new drawer */}
