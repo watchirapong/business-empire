@@ -48,7 +48,7 @@ const housePointsSchema = new mongoose.Schema({
 
 const HousePoints = mongoose.models.HousePoints || mongoose.model('HousePoints', housePointsSchema);
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
 

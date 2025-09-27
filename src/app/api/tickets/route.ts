@@ -24,7 +24,7 @@ const TicketSchema = new mongoose.Schema({
 
 const Ticket = mongoose.models.Ticket || mongoose.model('Ticket', TicketSchema);
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as any).id;
     const body = await request.json();
-    const { action, amount, reason } = body;
+    const { action, amount } = body;
 
     await connectDB();
 

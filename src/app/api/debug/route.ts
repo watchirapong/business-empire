@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Only allow in development
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Debug endpoint only available in development' }, { status: 403 });

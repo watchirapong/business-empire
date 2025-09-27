@@ -66,7 +66,7 @@ export default function LobbyManagement() {
     loadRooms();
     const interval = setInterval(loadRooms, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, [filter, gameTypeFilter]);
+  }, [filter, gameTypeFilter, loadRooms]);
 
   const deleteRoom = async (roomId: string) => {
     if (!confirm('Are you sure you want to delete this room?')) return;

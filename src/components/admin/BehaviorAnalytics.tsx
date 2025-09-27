@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 interface SectionStats {
   section: string;
@@ -77,7 +78,7 @@ export default function BehaviorAnalytics() {
   const [customDays, setCustomDays] = useState<number>(7);
   const [expandedSections, setExpandedSections] = useState(new Set<string>());
 
-  const loadBehaviorData = async () => {
+  const loadBehaviorData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -132,7 +133,7 @@ export default function BehaviorAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewMode, selectedDate, customDays]);
 
   const toggleSectionExpansion = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -221,7 +222,7 @@ export default function BehaviorAnalytics() {
     if ((session?.user as any)?.id) {
       loadBehaviorData();
     }
-  }, [session, viewMode, selectedDate, customDays]);
+  }, [session, viewMode, selectedDate, customDays, loadBehaviorData]);
 
   if (!session) {
     return (
@@ -407,9 +408,11 @@ export default function BehaviorAnalytics() {
                 <div key={user.userId} className="bg-gray-800/30 rounded-lg p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-orange-400 font-bold text-lg">#{index + 1}</div>
-                    <img
+                    <Image
                       src={`https://cdn.discordapp.com/avatars/${user.userId}/${user.avatar}.png`}
                       alt={user.username}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';

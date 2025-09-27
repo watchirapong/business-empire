@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 interface VoiceActivityData {
   _id: string;
@@ -160,35 +161,6 @@ export default function VoiceDashboardPage() {
     return activity.globalName || activity.username;
   };
 
-  useEffect(() => {
-    if (isAdmin) {
-      loadVoiceStats();
-      loadVoiceActivities();
-      checkBotStatus();
-      
-      // Load data based on active tab and view mode
-      if (activeTab === 'comprehensive') {
-        if (viewMode === 'today') {
-          loadTodayVoiceData();
-        } else if (viewMode === 'daily') {
-          loadDailyVoiceData();
-        } else if (viewMode === 'roles') {
-          loadVoiceActivitiesByRoles();
-        }
-      }
-    }
-  }, [isAdmin, filter, limit, roleFilter, selectedDate, activeTab, viewMode, customRoles]);
-
-  // Reset sort when switching tabs
-  useEffect(() => {
-    if (activeTab === 'all') {
-      setSortBy('totalTime');
-    } else {
-      setSortBy('todayTime');
-    }
-    setSortOrder('desc');
-  }, [activeTab]);
-
   const loadVoiceStats = async () => {
     try {
       const response = await fetch('/api/admin/voice-activity');
@@ -292,6 +264,54 @@ export default function VoiceDashboardPage() {
     }
   };
 
+  const checkBotStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/bot-control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status' })
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setBotStatus(data.data.status);
+      } else {
+        console.error('Failed to check bot status:', data.error);
+      }
+    } catch (error) {
+      console.error('Error checking bot status:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadVoiceStats();
+      loadVoiceActivities();
+      checkBotStatus();
+      
+      // Load data based on active tab and view mode
+      if (activeTab === 'comprehensive') {
+        if (viewMode === 'today') {
+          loadTodayVoiceData();
+        } else if (viewMode === 'daily') {
+          loadDailyVoiceData();
+        } else if (viewMode === 'roles') {
+          loadVoiceActivitiesByRoles();
+        }
+      }
+    }
+  }, [isAdmin, filter, limit, roleFilter, selectedDate, activeTab, viewMode, customRoles, loadDailyVoiceData, loadTodayVoiceData, loadVoiceActivities, loadVoiceActivitiesByRoles]);
+
+  // Reset sort when switching tabs
+  useEffect(() => {
+    if (activeTab === 'all') {
+      setSortBy('totalTime');
+    } else {
+      setSortBy('todayTime');
+    }
+    setSortOrder('desc');
+  }, [activeTab]);
+
   const loadUserDetails = async (userId: string) => {
     try {
       const response = await fetch(`/api/admin/user-voice-activity?userId=${userId}`);
@@ -306,22 +326,6 @@ export default function VoiceDashboardPage() {
     } catch (error) {
       setError('Network error occurred');
       console.error('Error loading user details:', error);
-    }
-  };
-
-  const checkBotStatus = async () => {
-    try {
-      const response = await fetch('/api/admin/bot-control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'status' })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setBotStatus(data.isRunning);
-      }
-    } catch (error) {
-      console.error('Error checking bot status:', error);
     }
   };
 
@@ -1045,9 +1049,11 @@ export default function VoiceDashboardPage() {
                           <td className="py-3 px-4 text-white">
                             <div className="flex items-center">
                               {activity.avatar && (
-                                <img
+                                <Image
                                   src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
                                   alt={activity.username}
+                                  width={32}
+                                  height={32}
                                   className="w-8 h-8 rounded-full mr-3"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).style.display = 'none';
@@ -1128,9 +1134,11 @@ export default function VoiceDashboardPage() {
                                 <td className="py-3 px-4 text-white">
                                   <div className="flex items-center">
                                     {activity.avatar && (
-                                      <img
+                                      <Image
                                         src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
                                         alt={activity.username}
+                                        width={32}
+                                        height={32}
                                         className="w-8 h-8 rounded-full mr-3"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = 'none';
@@ -1215,9 +1223,11 @@ export default function VoiceDashboardPage() {
                                 <td className="py-3 px-4 text-white">
                                   <div className="flex items-center">
                                     {activity.avatar && (
-                                      <img
+                                      <Image
                                         src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
                                         alt={activity.username}
+                                        width={32}
+                                        height={32}
                                         className="w-8 h-8 rounded-full mr-3"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = 'none';
@@ -1340,9 +1350,11 @@ export default function VoiceDashboardPage() {
                                 <td className="py-3 px-4 text-white">
                                   <div className="flex items-center">
                                     {activity.avatar && (
-                                      <img
+                                      <Image
                                         src={`https://cdn.discordapp.com/avatars/${activity.userId}/${activity.avatar}.png`}
                                         alt={activity.username}
+                                        width={32}
+                                        height={32}
                                         className="w-8 h-8 rounded-full mr-3"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = 'none';

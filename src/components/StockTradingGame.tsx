@@ -277,7 +277,7 @@ export default function StockTradingGame({ onBackToHome }: StockTradingGameProps
     } else {
       setPortfolioLoading(false);
     }
-  }, [session]);
+  }, [session, loadPortfolio]);
 
   // Load initial stock data
   useEffect(() => {
@@ -297,7 +297,7 @@ export default function StockTradingGame({ onBackToHome }: StockTradingGameProps
     };
 
     loadStockData();
-  }, []);
+  }, [fetchStockData]);
 
   // Update portfolio total value
   useEffect(() => {

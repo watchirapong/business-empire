@@ -98,7 +98,7 @@ export default function ForexTradingGame({ onBackToHome }: ForexTradingGameProps
     fetchForexData();
     const interval = setInterval(fetchForexData, 5000);
     return () => clearInterval(interval);
-  }, [session]);
+  }, [session, fetchForexData, loadPortfolio]);
 
   const executeTrade = async (type: 'buy' | 'sell') => {
     if (!selectedPair || !session?.user) return;

@@ -58,7 +58,7 @@ const Currency = mongoose.models.Currency || mongoose.model('Currency', currency
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const UsernameHistory = mongoose.models.UsernameHistory || mongoose.model('UsernameHistory', usernameHistorySchema);
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Check admin authorization
     const session = await getServerSession();

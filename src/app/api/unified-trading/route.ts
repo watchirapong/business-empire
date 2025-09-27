@@ -24,7 +24,7 @@ async function connectDB() {
 // Import the UnifiedPortfolio model
 import UnifiedPortfolio from '../../../../models/UnifiedPortfolio';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('Unified trading API called');
     
@@ -47,10 +47,26 @@ export async function GET(request: NextRequest) {
     if (!portfolio) {
       // Create new portfolio if it doesn't exist
       const newPortfolio = await (UnifiedPortfolio as any).getOrCreatePortfolio(session.user.id, session.user.name || "Unknown");
-      return NextResponse.json(newPortfolio);
+      return NextResponse.json({
+        cash: newPortfolio.cash,
+        cryptos: Object.fromEntries(newPortfolio.cryptos),
+        stocks: Object.fromEntries(newPortfolio.stocks),
+        forexPositions: Object.fromEntries(newPortfolio.forexPositions),
+        totalValue: newPortfolio.totalValue,
+        totalGainLoss: newPortfolio.totalGainLoss,
+        totalGainLossPercent: newPortfolio.totalGainLossPercent
+      });
     }
     
-    return NextResponse.json(portfolio);
+    return NextResponse.json({
+      cash: portfolio.cash,
+      cryptos: Object.fromEntries(portfolio.cryptos),
+      stocks: Object.fromEntries(portfolio.stocks),
+      forexPositions: Object.fromEntries(portfolio.forexPositions),
+      totalValue: portfolio.totalValue,
+      totalGainLoss: portfolio.totalGainLoss,
+      totalGainLossPercent: portfolio.totalGainLossPercent
+    });
   } catch (error) {
     console.error("Error in unified trading API:", error);
     return NextResponse.json({ error: "Failed to fetch portfolio" }, { status: 500 });
@@ -112,7 +128,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, portfolio });
+    // Return updated portfolio with proper structure
+    const updatedPortfolio = await (UnifiedPortfolio as any).getUserPortfolio(session.user.id);
+    return NextResponse.json({
+      success: true,
+      message: `Successfully ${action}ed ${symbol}`,
+      portfolio: {
+        cash: updatedPortfolio.cash,
+        cryptos: Object.fromEntries(updatedPortfolio.cryptos),
+        stocks: Object.fromEntries(updatedPortfolio.stocks),
+        forexPositions: Object.fromEntries(updatedPortfolio.forexPositions),
+        totalValue: updatedPortfolio.totalValue,
+        totalGainLoss: updatedPortfolio.totalGainLoss,
+        totalGainLossPercent: updatedPortfolio.totalGainLossPercent
+      }
+    });
   } catch (error) {
     console.error("Error executing trade:", error);
     return NextResponse.json({ error: "Failed to execute trade" }, { status: 500 });

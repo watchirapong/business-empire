@@ -16,7 +16,7 @@ const connectDB = async () => {
   }
 };
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
@@ -37,13 +37,8 @@ export async function GET(request: NextRequest) {
     const currencies = db.collection('currencies');
     const currencyData = await currencies.findOne({ userId });
 
-    // Get StardustCoin balance from stardustcoins collection
-    const stardustCoins = db.collection('stardustcoins');
-    const stardustData = await stardustCoins.findOne({ userId });
-
     const balance = {
-      hamstercoin: currencyData?.hamsterCoins || 0,
-      stardustcoin: stardustData?.balance || 0
+      hamstercoin: currencyData?.hamsterCoins || 0
     };
 
     return NextResponse.json({

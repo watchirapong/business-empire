@@ -65,11 +65,11 @@ export default function UserPurchaseAnalytics({ userPurchases }: UserPurchaseAna
   };
 
   const getCurrencyIcon = (currency: string) => {
-    return currency === 'hamstercoin' ? '🪙' : '✨';
+    return '🪙';
   };
 
   const getCurrencyName = (currency: string) => {
-    return currency === 'hamstercoin' ? 'HamsterCoin' : 'StardustCoin';
+    return 'HamsterCoin';
   };
 
   // Filter and sort users

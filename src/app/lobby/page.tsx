@@ -77,7 +77,7 @@ export default function LobbyPage() {
     loadRooms();
     const interval = setInterval(loadRooms, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
-  }, [filter, gameTypeFilter]);
+  }, [filter, gameTypeFilter, loadRooms]);
 
   const createRoom = async () => {
     if (!(session?.user as any)?.id) {

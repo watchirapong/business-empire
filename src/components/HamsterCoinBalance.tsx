@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react';
 
 interface BalanceData {
   hamstercoin: number;
-  stardustcoin: number;
 }
 
 export default function HamsterCoinBalance() {
@@ -49,7 +48,7 @@ export default function HamsterCoinBalance() {
     if (session?.user) {
       fetchBalance();
     }
-  }, [session]);
+  }, [session, fetchBalance]);
 
   if (!session) {
     return (
@@ -104,17 +103,6 @@ export default function HamsterCoinBalance() {
                 </div>
                 <div className="text-lg font-bold text-orange-400">
                   {balance.hamstercoin.toLocaleString()}
-                </div>
-              </div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-purple-500/20">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">✨</span>
-                  <span className="text-white font-medium">Stardust Coins</span>
-                </div>
-                <div className="text-lg font-bold text-purple-400">
-                  {balance.stardustcoin.toLocaleString()}
                 </div>
               </div>
             </div>

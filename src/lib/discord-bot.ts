@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits, Events, VoiceState } from 'discord.js';
 import mongoose from 'mongoose';
+import { Class, ClassVoiceActivity, ClassAttendance } from '@/lib/schemas/class-management';
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -154,6 +155,8 @@ class DiscordBot {
       // User left a voice channel
       else if (oldState.channelId && !newState.channelId) {
         await this.handleVoiceLeave(userId, oldState);
+        // Also handle class voice activity
+        await this.handleClassVoiceActivity(userId, username, globalName || '', oldState, 'leave');
       }
       // User moved between voice channels
       else if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
@@ -194,6 +197,9 @@ class DiscordBot {
       voiceActivity.avatar = avatar;
       voiceActivity.updatedAt = new Date();
       await voiceActivity.save();
+
+      // Check if this voice channel is associated with any class
+      await this.handleClassVoiceActivity(userId, username, globalName, newState, 'join');
 
       // Create voice session
       const voiceSession = new VoiceSession({
@@ -581,12 +587,12 @@ class DiscordBot {
 
       if (voiceSessions.length > 0) {
         totalSessions = voiceSessions.length;
-        totalDuration = voiceSessions.reduce((sum, session) => sum + (session.duration || 0), 0);
+        totalDuration = voiceSessions.reduce((sum: number, session: any) => sum + (session.duration || 0), 0);
         avgSessionDuration = Math.round(totalDuration / totalSessions);
         longestSession = Math.max(...voiceSessions.map(s => s.duration || 0));
 
         // Find most active channel
-        const channelStats = voiceSessions.reduce((acc, session) => {
+        const channelStats = voiceSessions.reduce((acc: any, session: any) => {
           const channel = session.channelName || 'Unknown';
           acc[channel] = (acc[channel] || 0) + (session.duration || 0);
           return acc;
@@ -642,6 +648,153 @@ class DiscordBot {
       botUserId: this.client.user?.id || null,
       botUsername: this.client.user?.username || null
     };
+  }
+
+  // Handle class voice activity tracking
+  private async handleClassVoiceActivity(userId: string, username: string, globalName: string, voiceState: VoiceState, action: 'join' | 'leave') {
+    try {
+      const channelId = voiceState.channelId;
+      if (!channelId) return;
+
+      // Find classes that use this voice channel (support both old and new format)
+      const classes = await Class.find({
+        $or: [
+          { voiceChannelId: channelId, isActive: true }, // Legacy format
+          { 'voiceChannels.id': channelId, isActive: true } // New format
+        ]
+      });
+
+      if (classes.length === 0) return;
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+      for (const classData of classes) {
+        if (action === 'join') {
+          // Create or update voice activity record
+          const existingActivity = await ClassVoiceActivity.findOne({
+            classId: classData._id,
+            userId,
+            date: today,
+            isCurrentlyInVC: true
+          });
+
+          if (!existingActivity) {
+            const voiceActivity = new ClassVoiceActivity({
+              classId: classData._id,
+              userId,
+              username,
+              globalName,
+              voiceChannelId: channelId,
+              joinTime: new Date(),
+              date: today,
+              isCurrentlyInVC: true
+            });
+            await voiceActivity.save();
+            console.log(`📚 User ${username} joined class voice channel: ${classData.name}`);
+          }
+        } else if (action === 'leave') {
+          // Update existing voice activity record
+          const existingActivity = await ClassVoiceActivity.findOne({
+            classId: classData._id,
+            userId,
+            date: today,
+            isCurrentlyInVC: true
+          });
+
+          if (existingActivity) {
+            existingActivity.leaveTime = new Date();
+            existingActivity.isCurrentlyInVC = false;
+            existingActivity.duration = Math.round((existingActivity.leaveTime.getTime() - existingActivity.joinTime.getTime()) / (1000 * 60)); // in minutes
+            await existingActivity.save();
+            console.log(`📚 User ${username} left class voice channel: ${classData.name} (${existingActivity.duration} minutes)`);
+          }
+        }
+
+        // Update class attendance record
+        await this.updateClassAttendance(classData._id, today);
+      }
+    } catch (error) {
+      console.error('Error handling class voice activity:', error);
+    }
+  }
+
+  // Update class attendance record
+  private async updateClassAttendance(classId: any, date: string) {
+    try {
+      // Get all voice activity for this class today
+      const voiceActivities = await ClassVoiceActivity.find({
+        classId,
+        date
+      });
+
+      // Get or create attendance record
+      let attendance = await ClassAttendance.findOne({
+        classId,
+        date
+      });
+
+      if (!attendance) {
+        attendance = new ClassAttendance({
+          classId,
+          date,
+          students: [],
+          totalPresent: 0,
+          totalAbsent: 0,
+          totalLate: 0,
+          averageAttendanceTime: 0
+        });
+      }
+
+      // Update student records based on voice activity
+      const studentMap = new Map();
+      
+      // Process voice activities
+      voiceActivities.forEach(activity => {
+        const studentId = activity.userId;
+        if (!studentMap.has(studentId)) {
+          studentMap.set(studentId, {
+            userId: activity.userId,
+            username: activity.username,
+            globalName: activity.globalName,
+            status: 'absent',
+            joinTime: null,
+            leaveTime: null,
+            totalTime: 0,
+            sessions: []
+          });
+        }
+
+        const student = studentMap.get(studentId);
+        
+        // Update status based on voice activity
+        if (activity.isCurrentlyInVC || activity.leaveTime) {
+          student.status = 'present';
+          if (!student.joinTime || activity.joinTime < student.joinTime) {
+            student.joinTime = activity.joinTime;
+          }
+          if (activity.leaveTime && (!student.leaveTime || activity.leaveTime > student.leaveTime)) {
+            student.leaveTime = activity.leaveTime;
+          }
+          student.totalTime += activity.duration || 0;
+        }
+      });
+
+      // Update attendance record
+      attendance.students = Array.from(studentMap.values());
+      attendance.totalPresent = attendance.students.filter((s: any) => s.status === 'present').length;
+      attendance.totalAbsent = attendance.students.filter((s: any) => s.status === 'absent').length;
+      
+      const totalTime = attendance.students.reduce((sum: number, s: any) => sum + s.totalTime, 0);
+      attendance.averageAttendanceTime = attendance.totalPresent > 0 
+        ? Math.round(totalTime / attendance.totalPresent)
+        : 0;
+
+      attendance.updatedAt = new Date();
+      await attendance.save();
+
+    } catch (error) {
+      console.error('Error updating class attendance:', error);
+    }
   }
 
   // Static method for backwards compatibility

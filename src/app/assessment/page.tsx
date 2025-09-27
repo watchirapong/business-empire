@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 import { io, Socket } from 'socket.io-client';
 import { isAdmin } from '@/lib/admin-config';
@@ -224,7 +225,7 @@ export default function AssessmentPage() {
 
     return () => stopTimer();
   // Only re-run when question index, questions, or room game state changes
-  }, [currentQuestionIndex, questions, inRoom, gameState]);
+  }, [currentQuestionIndex, questions, inRoom, gameState, startTimer, stopTimer]);
 
   // When game state switches to waiting or ended, hard stop the timer
   useEffect(() => {
@@ -233,12 +234,12 @@ export default function AssessmentPage() {
       setTimeRemaining(null);
       setTimeStarted(null);
     }
-  }, [inRoom, gameState]);
+  }, [inRoom, gameState, stopTimer]);
 
   // Cleanup timer on unmount
   useEffect(() => {
     return () => stopTimer();
-  }, []);
+  }, [stopTimer]);
 
   // Debounced API save for session state
   useEffect(() => {
@@ -278,33 +279,6 @@ export default function AssessmentPage() {
       }
     }
   }, [inRoom, gameState, roomQuestionIndex, questions, currentQuestionIndex]);
-
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    // Check for guest mode
-    const guestMode = sessionStorage.getItem('isGuest') === 'true';
-    const storedGuestName = sessionStorage.getItem('guestName');
-    
-    if (guestMode && storedGuestName) {
-      setIsGuest(true);
-      setGuestName(storedGuestName);
-      loadInitialData();
-      // Auto-join default room after loading
-      setTimeout(() => {
-        autoJoinRoom();
-      }, 1000);
-    } else if (!session) {
-      router.push('/');
-      return;
-    } else {
-      loadInitialData();
-      // Auto-join default room after loading
-      setTimeout(() => {
-        autoJoinRoom();
-      }, 1000);
-    }
-  }, [session, status]);
 
   const autoJoinRoom = () => {
     if (inRoom) return; // Already in a room
@@ -348,88 +322,79 @@ export default function AssessmentPage() {
           phase2Open: true,
           allowFriendAnswers: true
         });
-        setCurrentPhase(1);
-        await loadQuestions(1, undefined, null);
-      } else {
-        // Load user progress and system settings for authenticated users
-        const [progressResponse, settingsResponse] = await Promise.all([
-          fetch('/api/assessment/progress'),
-          fetch('/api/assessment/settings')
-        ]);
+        setLoading(false);
+        return;
+      }
 
+      // Load user progress
+      const progressResponse = await fetch('/api/assessment/progress');
+      if (progressResponse.ok) {
         const progressData = await progressResponse.json();
+        setUserProgress(progressData);
+      }
+
+      // Load system settings
+      const settingsResponse = await fetch('/api/assessment/settings');
+      if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
-
-        setUserProgress(progressData.progress);
-        setSystemSettings(settingsData.settings);
-
-        // Check for declined submissions and reset progress if needed
-        if (progressData.hasDeclinedSubmissions) {
-        // Reset the user's progress to allow retry
-        await resetDeclinedProgress();
-        // Reload progress after reset
-        const newProgressResponse = await fetch('/api/assessment/progress');
-        const newProgressData = await newProgressResponse.json();
-        setUserProgress(newProgressData.progress);
-        // Reset state to defaults
-        setCurrentQuestionIndex(0);
-        setAnswerText('');
-        setTimeRemaining(null);
-        setTimeStarted(null);
-        setShowPathSelection(false);
+        setSystemSettings(settingsData);
       }
 
-      // Determine current phase - add null checks
-      if (progressData && progressData.progress) {
-        const sessionState = progressData.progress.sessionState;
-        // Restore persisted session state from backend
-        if (sessionState) {
-          setCurrentPhase(sessionState.currentPhase);
-          setCurrentQuestionIndex(sessionState.currentQuestionIndex || 0);
-          setAnswerText(sessionState.draftAnswerText || '');
-          setShowPathSelection(Boolean(sessionState.showPathSelection));
-
-          // Timer restoration with server timestamps
-          if (sessionState.timeRemainingSeconds != null && sessionState.timeStartedAt) {
-            // Compute remaining based on timeStartedAt, not lastUpdatedAt, to avoid drift
-            const startedAt = new Date(sessionState.timeStartedAt);
-            const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-            const remaining = Math.max(0, (sessionState.timeRemainingSeconds as number) - elapsed);
-            if (remaining > 0) {
-              setTimeRemaining(remaining);
-              setTimeStarted(startedAt);
-            } else {
-              setTimeRemaining(0);
-            }
-          }
-        }
-
-        // Show path selection only if Phase 2 is open and Phase 1 can proceed
-        if (progressData.canProceedToPhase2 && !progressData.progress.selectedPath) {
-          setShowPathSelection(true);
-          setCurrentQuestionIndex(0);
-          setAnswerText('');
-          await loadQuestions(1, undefined, progressData.progress);
-        } else if (progressData.progress.selectedPath) {
-          setCurrentPhase(2);
-          await loadQuestions(2, progressData.progress.selectedPath, progressData.progress);
-        } else {
-          setCurrentPhase(1);
-          await loadQuestions(1, undefined, progressData.progress);
-        }
-      } else {
-        // Default to phase 1 if no progress data
-        setCurrentPhase(1);
-        await loadQuestions(1, undefined, null);
-      }
+      // Load questions for current phase
+      const questionsResponse = await fetch('/api/assessment/questions');
+      if (questionsResponse.ok) {
+        const questionsData = await questionsResponse.json();
+        setQuestions(questionsData);
       }
 
+      // Load submission count
+      refreshSubmissionCount();
     } catch (error) {
       console.error('Error loading initial data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const refreshSubmissionCount = async () => {
+    try {
+      const response = await fetch('/api/assessment/submissions/count');
+      if (response.ok) {
+        const data = await response.json();
+        setSubmissionCount(data.count);
+      }
+    } catch (error) {
+      console.error('Error refreshing submission count:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    // Check for guest mode
+    const guestMode = sessionStorage.getItem('isGuest') === 'true';
+    const storedGuestName = sessionStorage.getItem('guestName');
+    
+    if (guestMode && storedGuestName) {
+      setIsGuest(true);
+      setGuestName(storedGuestName);
+      loadInitialData();
+      // Auto-join default room after loading
+      setTimeout(() => {
+        autoJoinRoom();
+      }, 1000);
+    } else if (!session) {
+      router.push('/');
+      return;
+    } else {
+      loadInitialData();
+      // Auto-join default room after loading
+      setTimeout(() => {
+        autoJoinRoom();
+      }, 1000);
+    }
+  }, [session, status, autoJoinRoom, loadInitialData, router]);
+
 
   const resetDeclinedProgress = async () => {
     try {
@@ -519,21 +484,6 @@ export default function AssessmentPage() {
     }
   };
 
-  // Count submissions for the current question (live polling when game is started)
-  const refreshSubmissionCount = async (qId?: string) => {
-    try {
-      const id = qId || (questions[currentQuestionIndex]?._id || questions[currentQuestionIndex]?.id);
-      if (!id) return;
-      const adminView = isAdmin(((session?.user as any)?.id) as string);
-      const res = await fetch(`/api/assessment/answers?questionId=${id}${adminView ? '&admin=true' : ''}`);
-      const data = await res.json();
-      if (Array.isArray(data?.answers)) {
-        setSubmissionCount(data.answers.length);
-      }
-    } catch {
-      // ignore
-    }
-  };
 
   useEffect(() => {
     if (!inRoom || gameState !== 'started') return;
@@ -542,7 +492,7 @@ export default function AssessmentPage() {
     // poll every 3s while on this question
     const interval = setInterval(() => refreshSubmissionCount(), 3000);
     return () => clearInterval(interval);
-  }, [inRoom, gameState, currentQuestionIndex, questions]);
+  }, [inRoom, gameState, currentQuestionIndex, questions, refreshSubmissionCount]);
 
   // Socket helpers
   const ensureSocket = () => {
@@ -732,7 +682,7 @@ export default function AssessmentPage() {
 
       if (response.ok) {
         // Immediately refresh submission count for admins/hosts
-        try { await refreshSubmissionCount(questionId); } catch {}
+        try { await refreshSubmissionCount(); } catch {}
         // Clear draft answer on server
         try {
           await fetch('/api/assessment/progress', {
@@ -1094,7 +1044,7 @@ export default function AssessmentPage() {
                 </div>
                 <p className="text-gray-300 mb-4">{answer.answerText}</p>
                 {answer.answerImage && (
-                  <img src={answer.answerImage} alt="Answer" className="max-w-full h-auto rounded-lg" />
+                  <Image src={answer.answerImage} alt="Answer" width={400} height={300} className="max-w-full h-auto rounded-lg" />
                 )}
               </div>
             ))}
@@ -1351,9 +1301,11 @@ export default function AssessmentPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentQuestion.questionImages.map((imageUrl, index) => (
                   <div key={index} className="relative">
-                    <img 
+                    <Image 
                       src={imageUrl} 
                       alt={`Question image ${index + 1}`} 
+                      width={400}
+                      height={300}
                       className="w-full h-auto rounded-lg"
                     />
                     <button
@@ -1373,9 +1325,11 @@ export default function AssessmentPage() {
           {(!currentQuestion.questionImages || currentQuestion.questionImages.length === 0) && currentQuestion.questionImage && (
             <div className="mb-6">
               <div className="relative inline-block">
-                <img 
+                <Image 
                   src={currentQuestion.questionImage} 
                   alt="Question" 
+                  width={400}
+                  height={300}
                   className="max-w-full h-auto rounded-lg"
                 />
                 <button
@@ -1470,9 +1424,11 @@ export default function AssessmentPage() {
             >
               ×
             </button>
-            <img
+            <Image
               src={fullscreenImage}
               alt="Full screen view"
+              width={800}
+              height={600}
               className="max-w-full max-h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />

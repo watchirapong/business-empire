@@ -5,29 +5,23 @@ module.exports = {
       script: 'npm',
       args: 'start',
       cwd: '/root/projects/business-empire',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3000
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3000
       },
-      instances: 1,
-      exec_mode: 'fork',
-      max_memory_restart: '2G',
-      node_args: '--max-http-header-size=65536 --max-old-space-size=8192'
-    },
-    {
-      name: 'checkin',
-      script: 'npm',
-      args: 'run checkin',
-      cwd: '/root/projects/checkin',
-      env: {
-        NODE_ENV: 'production'
-      },
-      instances: 1,
-      exec_mode: 'fork'
+      log_file: './logs/combined.log',
+      out_file: './logs/out.log',
+      error_file: './logs/error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true
     }
   ]
 };

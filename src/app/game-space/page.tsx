@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 import { isAdmin } from '@/lib/admin-config';
 
@@ -814,9 +815,11 @@ const GameSpace: React.FC = () => {
                       {/* Add Comment */}
                       <div className="mb-4">
                         <div className="flex gap-3">
-                          <img
+                          <Image
                             src={session?.user?.image || `https://cdn.discordapp.com/embed/avatars/0.png`}
                             alt={(session?.user as any)?.nickname || session?.user?.name || 'User'}
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full"
                           />
                           <div className="flex-1">
@@ -848,9 +851,11 @@ const GameSpace: React.FC = () => {
                       <div className="space-y-3">
                         {game.comments.map((comment) => (
                           <div key={comment._id} className="flex gap-3">
-                            <img
+                            <Image
                               src={comment.avatar || `https://cdn.discordapp.com/embed/avatars/0.png`}
                               alt={comment.username}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 rounded-full"
                             />
                             <div className="flex-1 bg-gray-700/30 rounded-lg p-3">

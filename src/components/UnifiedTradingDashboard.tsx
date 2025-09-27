@@ -97,7 +97,7 @@ export default function UnifiedTradingDashboard({ onBackToHome }: UnifiedTrading
   useEffect(() => {
     loadPortfolio();
     loadExternalDiscordData();
-  }, [session]);
+  }, [session, loadExternalDiscordData, loadPortfolio]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

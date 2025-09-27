@@ -8,7 +8,7 @@ import UserAnswer from '@/models/UserAnswer';
 import AssessmentQuestion from '@/models/AssessmentQuestion';
 
 // GET - Fetch all users with assessment progress (Admin only)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

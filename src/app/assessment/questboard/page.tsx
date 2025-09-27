@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Question {
   id: string;
@@ -79,15 +80,6 @@ export default function QuestboardPage() {
   const [answerText, setAnswerText] = useState('');
   const [answerImage, setAnswerImage] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
-      router.push('/');
-      return;
-    }
-    loadData();
-  }, [session, status]);
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -113,6 +105,15 @@ export default function QuestboardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/');
+      return;
+    }
+    loadData();
+  }, [session, status, loadData, router]);
 
   const handleQuestionSelect = (question: Question) => {
     setSelectedQuestion(question);
@@ -286,9 +287,11 @@ export default function QuestboardPage() {
                 {/* Question Image Preview */}
                 {question.questionImage && (
                   <div className="mb-4">
-                    <img 
+                    <Image 
                       src={question.questionImage} 
                       alt="Question" 
+                      width={400}
+                      height={96}
                       className="w-full h-24 object-cover rounded-lg"
                     />
                   </div>
@@ -355,9 +358,11 @@ export default function QuestboardPage() {
                   
                   {selectedQuestion.questionImage && (
                     <div className="mb-4">
-                      <img 
+                      <Image 
                         src={selectedQuestion.questionImage} 
                         alt="Question" 
+                        width={400}
+                        height={300}
                         className="max-w-full h-auto rounded-lg"
                       />
                     </div>

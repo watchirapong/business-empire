@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 interface AdminUser {
   _id: string;
@@ -234,9 +235,11 @@ export default function AdminManagement() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <img
+                  <Image
                     src={admin.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                     alt={admin.username}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full border-2 border-orange-500/30"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';

@@ -129,7 +129,7 @@ export default function NasdaqTimer() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [getMarketStatus]);
 
   const getStatusColor = (status: MarketStatus['status']) => {
     switch (status) {

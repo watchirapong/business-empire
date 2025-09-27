@@ -63,9 +63,23 @@ const UsernameHistorySchema = new mongoose.Schema({
   lastUpdated: { type: Date, default: Date.now }
 });
 
+// Voice Session Schema
+const VoiceSessionSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  username: String,
+  globalName: String,
+  channelId: String,
+  channelName: String,
+  joinTime: { type: Date, required: true },
+  leaveTime: Date,
+  duration: Number,
+  createdAt: { type: Date, default: Date.now }
+});
+
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const VoiceActivity = mongoose.models.VoiceActivity || mongoose.model('VoiceActivity', VoiceActivitySchema);
 const UsernameHistory = mongoose.models.UsernameHistory || mongoose.model('UsernameHistory', UsernameHistorySchema);
+const VoiceSession = mongoose.models.VoiceSession || mongoose.model('VoiceSession', VoiceSessionSchema);
 
 export async function GET(request: NextRequest) {
   try {
@@ -182,12 +196,15 @@ export async function GET(request: NextRequest) {
         ]
       }).limit(100);
       
-      // Search in username history (nicknames)
+      // Search in username history (nicknames and historical usernames)
       const usernameHistories = await UsernameHistory.find({
         $or: [
           { currentNickname: { $regex: query, $options: 'i' } },
           { currentUsername: { $regex: query, $options: 'i' } },
-          { currentGlobalName: { $regex: query, $options: 'i' } }
+          { currentGlobalName: { $regex: query, $options: 'i' } },
+          { 'usernameHistory.username': { $regex: query, $options: 'i' } },
+          { 'usernameHistory.globalName': { $regex: query, $options: 'i' } },
+          { 'usernameHistory.nickname': { $regex: query, $options: 'i' } }
         ]
       }).limit(100);
       
@@ -294,6 +311,99 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    // Add voice session data for each user
+    const userIds = combinedUsers.map(user => user.discordId);
+    
+    // Get today's date range for checking voice activity
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+    // Get current voice sessions (users currently in voice)
+    const currentVoiceSessions = await VoiceSession.aggregate([
+      {
+        $match: {
+          leaveTime: { $exists: false },
+          userId: { $in: userIds, $ne: 'test-user-123' }
+        }
+      },
+      {
+        $sort: { joinTime: -1 }
+      },
+      {
+        $group: {
+          _id: '$userId',
+          latestSession: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$latestSession' }
+      }
+    ]);
+
+    // Get users who were in voice chat today
+    const todayVoiceActivity = await VoiceSession.find({
+      userId: { $in: userIds, $ne: 'test-user-123' },
+      joinTime: { $gte: startOfToday, $lt: endOfToday }
+    }).distinct('userId');
+
+    const todayVoiceUsers = new Set(todayVoiceActivity);
+    const currentVoiceUsers = new Set(currentVoiceSessions.map(session => session.userId));
+
+    // Get server member data for roles and nicknames
+    const ServerMemberData = mongoose.models.ServerMemberData || mongoose.model('ServerMemberData', new mongoose.Schema({
+      userId: { type: String, required: true },
+      serverId: { type: String, required: true },
+      serverData: {
+        roles: [String],
+        nick: String,
+        user: {
+          id: String,
+          username: String,
+          global_name: String
+        }
+      },
+      lastUpdated: { type: Date, default: Date.now }
+    }, { strict: false }));
+
+    const serverMemberData = await ServerMemberData.find({
+      userId: { $in: userIds }
+    });
+
+    const userRolesMap = new Map();
+    const userNicknamesMap = new Map();
+    serverMemberData.forEach(member => {
+      if (member.serverData) {
+        if (member.serverData.roles) {
+          userRolesMap.set(member.userId, member.serverData.roles);
+        }
+        if (member.serverData.nick) {
+          userNicknamesMap.set(member.userId, member.serverData.nick);
+        }
+      }
+    });
+
+    // Add voice session data, role data, and nickname data to each user
+    combinedUsers = combinedUsers.map(user => {
+      const currentSession = currentVoiceSessions.find(session => session.userId === user.discordId);
+      const isCurrentlyInVoice = currentVoiceUsers.has(user.discordId);
+      const wasInVoiceToday = todayVoiceUsers.has(user.discordId);
+      const userRoles = userRolesMap.get(user.discordId) || [];
+      const userNickname = userNicknamesMap.get(user.discordId) || null;
+
+      return {
+        ...user,
+        isCurrentlyInVoice,
+        wasInVoiceToday,
+        currentVoiceChannel: currentSession?.channelName || null,
+        currentVoiceJoinTime: currentSession?.joinTime || null,
+        timeInCurrentVoice: currentSession ? Math.floor((Date.now() - new Date(currentSession.joinTime).getTime()) / 1000 / 60) : 0,
+        roles: userRoles,
+        roleCount: userRoles.length,
+        currentNickname: userNickname
+      };
+    });
+
     // Sort by creation date (newest first) and limit results
     combinedUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     combinedUsers = combinedUsers.slice(0, 1000);

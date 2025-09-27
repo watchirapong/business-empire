@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     

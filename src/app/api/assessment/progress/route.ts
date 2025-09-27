@@ -364,7 +364,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 // DELETE - Reset declined progress (User only)
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

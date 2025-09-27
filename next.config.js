@@ -19,6 +19,36 @@ const nextConfig = {
   // Optimize build output
   output: 'standalone',
 
+  // Image configuration for external domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        port: '',
+        pathname: '/avatars/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        port: '',
+        pathname: '/embed/avatars/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        port: '',
+        pathname: '/guilds/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        port: '',
+        pathname: '/icons/**',
+      }
+    ],
+  },
+
   // Enable build performance optimizations
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     if (!isServer) {
@@ -32,6 +62,46 @@ const nextConfig = {
       };
     }
 
+    // Fix for "self is not defined" error
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'fs': false,
+      'net': false,
+      'tls': false,
+      'crypto': false,
+      'stream': false,
+      'url': false,
+      'zlib': false,
+      'http': false,
+      'https': false,
+      'assert': false,
+      'os': false,
+      'path': false,
+    };
+
+    // Add global polyfills
+    config.plugins.push(
+      new webpack.ProvidePlugin({
+        process: 'process',
+        Buffer: ['buffer', 'Buffer'],
+      })
+    );
+
+    // Handle 'self is not defined' error with a different approach
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'self': 'window',
+        })
+      );
+    } else {
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'self': 'global',
+        })
+      );
+    }
+
     // Add performance optimizations
     if (!dev) {
       // Enable webpack optimizations for production
@@ -42,12 +112,13 @@ const nextConfig = {
         splitChunks: {
           chunks: 'all',
           cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-            },
+            // Remove the vendor chunk that's causing the self error
+            // vendor: {
+            //   test: /[\\/]node_modules[\\/]/,
+            //   name: 'vendors',
+            //   chunks: 'all',
+            //   priority: 10,
+            // },
             admin: {
               test: /[\\/]components[\\/]admin[\\/]/,
               name: 'admin-components',

@@ -103,7 +103,7 @@ export default function LoginTracker() {
       const interval = setInterval(checkTodayCompletion, 30000); // Check every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [trackerData, session]);
+  }, [trackerData, session, checkTodayCompletion]);
 
   if (!session?.user || loading) {
     return (

@@ -72,14 +72,9 @@ const usernameHistorySchema = new mongoose.Schema({
 const ServerMemberData = mongoose.models.ServerMemberData || mongoose.model('ServerMemberData', serverMemberDataSchema);
 const UsernameHistory = mongoose.models.UsernameHistory || mongoose.model('UsernameHistory', usernameHistorySchema);
 
-// Check if user is admin
-const isAdmin = (userId: string) => {
-  const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
-  return ADMIN_USER_IDS.includes(userId);
-};
 
 // POST - Update existing data with username history
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     

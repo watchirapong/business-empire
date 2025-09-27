@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { startDiscordBot, stopDiscordBot, getBot, isBotConnected } from '@/lib/start-bot';
+import { startDiscordBot, stopDiscordBot, isBotConnected } from '@/lib/start-bot';
 import mongoose from 'mongoose';
 import { isAdmin } from '@/lib/admin-config';
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { action } = body; // 'start' or 'stop'
 
     if (action === 'start') {
-      const bot = await startDiscordBot();
+      await startDiscordBot();
       return NextResponse.json({
         success: true,
         message: 'Discord bot started successfully',

@@ -190,7 +190,7 @@ export default function StockTradingGame({ onBackToHome }: StockTradingGameProps
     };
 
     loadStockData();
-  }, []);
+  }, [fetchStockData]);
 
   // Update portfolio total value
   useEffect(() => {

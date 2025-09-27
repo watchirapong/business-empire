@@ -54,12 +54,6 @@ export default function VoiceActivityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchVoiceActivity();
-    }
-  }, [session]);
-
   const fetchVoiceActivity = async () => {
     if (!session?.user) return;
 
@@ -85,6 +79,12 @@ export default function VoiceActivityPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchVoiceActivity();
+    }
+  }, [session, fetchVoiceActivity]);
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {

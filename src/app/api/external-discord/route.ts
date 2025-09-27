@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     
     try {
       externalData = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse external API response:', responseText);
       return NextResponse.json({ 
         error: "Invalid response from external API",

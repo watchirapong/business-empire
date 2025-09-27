@@ -3,25 +3,18 @@
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Leaderboard from '@/components/Leaderboard';
 import HouseLeaderboard from '@/components/HouseLeaderboard';
 import { isAdmin } from '@/lib/admin-config';
-import dynamic from 'next/dynamic';
 import UserQuickMenu from '@/components/UserQuickMenu';
 
 import VoiceRewards from '@/components/VoiceRewards';
 import LoginTracker from '@/components/LoginTracker';
 // Removed: import HamsterCoinBalance from '@/components/HamsterCoinBalance';
 
-// Dynamically import ThemeToggle to avoid prerendering issues
-const ThemeToggle = dynamic(() => import('@/components/ThemeToggle'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-14 h-8 glass-card rounded-full p-1 opacity-50">
-      <div className="w-6 h-6 rounded-full bg-gray-400"></div>
-    </div>
-  )
-});
+// Import ThemeToggle directly to fix SSR issues
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   const router = useRouter();
@@ -107,9 +100,11 @@ export default function HomePage() {
         <div className="flex justify-between items-center mb-12 animate-slide-in-bottom">
           <div className="flex items-center space-x-6">
             <div className="w-14 h-14 glass-card rounded-2xl p-2 animate-bounce-in">
-              <img
+              <Image
                 src="/hamsterhub-logo.png"
                 alt="HamsterHub Logo"
+                width={56}
+                height={56}
                 className="w-full h-full object-contain animate-float"
               />
             </div>
@@ -135,9 +130,11 @@ export default function HomePage() {
                     aria-expanded={isProfileOpen}
                   >
                     <div className="relative">
-                      <img
+                      <Image
                         src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
                         alt="Profile"
+                        width={40}
+                        height={40}
                         className="w-10 h-10 rounded-full ring-2 ring-orange-500/50 group-hover:ring-orange-400 transition-all duration-300"
                       />
                       <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black"></span>

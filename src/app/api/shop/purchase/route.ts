@@ -110,19 +110,6 @@ export async function POST(request: NextRequest) {
           $set: { updatedAt: new Date() }
         }
       );
-    } else if (currency === 'stardustcoin') {
-      // Update StardustCoin balance in stardustcoins collection
-      const stardustCoins = db.collection('stardustcoins');
-      await stardustCoins.updateOne(
-        { userId },
-        {
-          $inc: {
-            balance: -item.price,
-            totalSpent: item.price
-          },
-          $set: { lastUpdated: new Date(), updatedAt: new Date() }
-        }
-      );
     }
 
     return NextResponse.json({
@@ -141,7 +128,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 

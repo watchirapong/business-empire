@@ -15,7 +15,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    // Return default values instead of throwing error to prevent SSR issues
+    return {
+      theme: 'dark' as Theme,
+      toggleTheme: () => {},
+      setTheme: () => {}
+    };
   }
   return context;
 };
@@ -57,9 +62,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setTheme
   };
 
-  // Prevent hydration mismatch
+  // Prevent hydration mismatch - return children directly for SSR
   if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
+    return <>{children}</>;
   }
 
   return (

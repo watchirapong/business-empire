@@ -44,12 +44,6 @@ export default function Achievements() {
   const [stats, setStats] = useState<AchievementStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchAchievements();
-    }
-  }, [session]);
-
   const fetchAchievements = async () => {
     try {
       setLoading(true);
@@ -66,6 +60,12 @@ export default function Achievements() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchAchievements();
+    }
+  }, [session, fetchAchievements]);
 
   const claimAchievement = async (achievementId: string) => {
     try {

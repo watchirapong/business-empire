@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
+import Image from 'next/image';
 
 export default function UserProfile() {
   const { data: session, status } = useSession();
@@ -69,9 +70,11 @@ export default function UserProfile() {
         onClick={() => setIsProfileOpen(!isProfileOpen)}
         className="flex items-center space-x-3 bg-black/20 backdrop-blur-sm rounded-lg p-2 border border-white/20 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
       >
-        <img
+        <Image
           src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
           alt="Profile"
+          width={32}
+          height={32}
           className="w-8 h-8 rounded-full ring-2 ring-purple-500/50 group-hover:ring-purple-400 transition-all duration-300"
         />
         <div className="text-left">
@@ -113,9 +116,11 @@ export default function UserProfile() {
           <div className="p-6">
             <div className="flex items-center space-x-4 mb-6">
               <div className="relative">
-                <img
+                <Image
                   src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
                   alt="Profile"
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-full ring-4 ring-orange-500/30"
                 />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-orange-500 rounded-full border-2 border-gray-900"></div>

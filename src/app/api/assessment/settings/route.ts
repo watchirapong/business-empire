@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import SystemSettings from '@/models/SystemSettings';
 
 // GET - Fetch system settings
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

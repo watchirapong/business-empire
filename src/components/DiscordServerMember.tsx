@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 interface ServerMemberData {
   member: any;
@@ -138,9 +139,11 @@ export default function DiscordServerMember() {
               
               {memberData.serverInfo.guildIcon && (
                 <div className="flex items-center space-x-3">
-                  <img
+                  <Image
                     src={getGuildIconUrl(memberData.serverInfo.guildId, memberData.serverInfo.guildIcon) || ''}
                     alt="Server Icon"
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full"
                   />
                   <div>
@@ -175,13 +178,15 @@ export default function DiscordServerMember() {
               <h4 className="text-lg font-semibold text-orange-400">User Info</h4>
               
               <div className="flex items-center space-x-3">
-                <img
+                <Image
                   src={getDiscordAvatarUrl(
                     memberData.serverInfo.userId,
                     memberData.serverInfo.avatar,
                     memberData.serverInfo.guildId
                   )}
                   alt="User Avatar"
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full"
                 />
                 <div>

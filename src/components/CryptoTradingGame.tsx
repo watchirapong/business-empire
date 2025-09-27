@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import UserProfile from './UserProfile';
 
@@ -41,8 +41,9 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
   const [quantityToSell, setQuantityToSell] = useState(0.01);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
+  const [trading, setTrading] = useState(false);
 
-  const fetchCryptoData = async () => {
+  const fetchCryptoData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/crypto');
@@ -67,10 +68,10 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCrypto]);
 
   // Load portfolio from database
-  const loadPortfolio = async () => {
+  const loadPortfolio = useCallback(async () => {
     if (!session?.user) return;
 
     try {
@@ -88,7 +89,7 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
     } catch (error) {
       console.error('Error loading portfolio:', error);
     }
-  };
+  }, [session?.user]);
 
   // Manual refresh function
   const refreshPortfolio = async () => {
@@ -104,20 +105,24 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
     fetchCryptoData();
     const interval = setInterval(fetchCryptoData, 5000);
     return () => clearInterval(interval);
-  }, [session]);
+  }, [session?.user, loadPortfolio, fetchCryptoData]);
 
   const executeTrade = async (type: 'buy' | 'sell') => {
-    if (!selectedCrypto || !session?.user) return;
+    if (!selectedCrypto || !session?.user || trading) return;
+    
+    setTrading(true);
 
     // Validate inputs
     if (type === 'buy') {
       if (!amountToBuy || amountToBuy <= 0 || amountToBuy > 1000000) {
         setMessage('Invalid buy amount. Please enter a value between 1 and 1,000,000');
+        setTrading(false);
         return;
       }
     } else {
       if (!quantityToSell || quantityToSell <= 0 || quantityToSell > 1000000) {
         setMessage('Invalid sell quantity. Please enter a value between 0.000001 and 1,000,000');
+        setTrading(false);
         return;
       }
       
@@ -125,6 +130,7 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
       const currentHolding = portfolio.cryptos[selectedCrypto.symbol];
       if (!currentHolding || currentHolding.quantity < quantityToSell) {
         setMessage(`Insufficient ${selectedCrypto.symbol} to sell. You have ${currentHolding?.quantity?.toFixed(6) || 0}`);
+        setTrading(false);
         return;
       }
     }
@@ -166,12 +172,25 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
         
         // Refresh crypto data to get updated prices
         fetchCryptoData();
+        
+        // Reset input values
+        if (type === 'buy') {
+          setAmountToBuy(100);
+        } else {
+          setQuantityToSell(0.01);
+        }
       } else {
         setMessage(data.error || 'Trade failed');
+        // Clear error message after 5 seconds
+        setTimeout(() => setMessage(''), 5000);
       }
     } catch (error) {
       console.error('Error executing trade:', error);
-      setMessage('Failed to execute trade');
+      setMessage('Failed to execute trade. Please try again.');
+      // Clear error message after 5 seconds
+      setTimeout(() => setMessage(''), 5000);
+    } finally {
+      setTrading(false);
     }
   };
 
@@ -478,9 +497,14 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
 
                     <button
                       onClick={() => executeTrade('buy')}
-                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
+                      disabled={trading}
+                      className={`w-full py-3 rounded-lg font-bold transition-all transform ${
+                        trading 
+                          ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white hover:scale-105'
+                      }`}
                     >
-                      💚 BUY {selectedCrypto.symbol}
+                      {trading ? '⏳ Processing...' : `💚 BUY ${selectedCrypto.symbol}`}
                     </button>
                   </div>
                 )}
@@ -521,9 +545,14 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
 
                     <button
                       onClick={() => executeTrade('sell')}
-                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
+                      disabled={trading}
+                      className={`w-full py-3 rounded-lg font-bold transition-all transform ${
+                        trading 
+                          ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white hover:scale-105'
+                      }`}
                     >
-                      🔴 SELL {selectedCrypto.symbol}
+                      {trading ? '⏳ Processing...' : `🔴 SELL ${selectedCrypto.symbol}`}
                     </button>
                   </div>
                 )}
@@ -587,8 +616,21 @@ export default function CryptoTradingGame({ onBackToHome }: CryptoTradingGamePro
         </div>
 
         {message && (
-          <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg">
-            {message}
+          <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all ${
+            message.includes('Successfully') 
+              ? 'bg-green-600 text-white' 
+              : message.includes('Invalid') || message.includes('Insufficient') || message.includes('Failed')
+              ? 'bg-red-600 text-white'
+              : 'bg-blue-600 text-white'
+          }`}>
+            <div className="flex items-center space-x-2">
+              <span>
+                {message.includes('Successfully') ? '✅' : 
+                 message.includes('Invalid') || message.includes('Insufficient') || message.includes('Failed') ? '❌' : 
+                 'ℹ️'}
+              </span>
+              <span>{message}</span>
+            </div>
           </div>
         )}
       </div>

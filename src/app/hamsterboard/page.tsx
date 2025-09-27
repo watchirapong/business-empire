@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { isAdmin } from '@/lib/admin-config';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
@@ -602,9 +603,11 @@ const Hamsterboard: React.FC = () => {
               <div className="text-center mb-4">
                 <div className="mb-3">
                   {task.image.startsWith('/') ? (
-                    <img 
+                    <Image 
                       src={task.image} 
                       alt={task.taskName}
+                      width={400}
+                      height={192}
                       className="w-full h-48 object-cover rounded-lg border border-white/20"
                     />
                   ) : (
@@ -791,9 +794,11 @@ const Hamsterboard: React.FC = () => {
                   {isUploading && <p className="text-blue-400 text-sm mt-1">Uploading image...</p>}
                   {imagePreview && (
                     <div className="mt-2">
-                      <img 
+                      <Image 
                         src={imagePreview} 
                         alt="Preview" 
+                        width={400}
+                        height={128}
                         className="w-full h-32 object-cover rounded-lg border border-white/20"
                       />
                     </div>
@@ -866,9 +871,11 @@ const Hamsterboard: React.FC = () => {
                   {isUploadingCompletion && <p className="text-blue-400 text-sm mt-1">Uploading image...</p>}
                   {completionImagePreview && (
                     <div className="mt-2">
-                      <img 
+                      <Image 
                         src={completionImagePreview} 
                         alt="Completion proof" 
+                        width={400}
+                        height={128}
                         className="w-full h-32 object-cover rounded-lg border border-white/20"
                       />
                     </div>
@@ -978,9 +985,11 @@ const Hamsterboard: React.FC = () => {
                       {acceptor.completionImage && (
                         <div className="mb-4">
                           <div className="relative group mb-3">
-                            <img 
+                            <Image 
                               src={acceptor.completionImage} 
                               alt="Completion proof" 
+                              width={400}
+                              height={showFullImages ? 384 : 256}
                               className={`w-full ${showFullImages ? 'h-96' : 'h-64'} object-contain rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity bg-gray-900`}
                               onClick={() => acceptor.completionImage && handleImagePreview(acceptor.completionImage, `${acceptor.nickname}'s completion proof`)}
                             />
@@ -1160,9 +1169,11 @@ const Hamsterboard: React.FC = () => {
               </div>
               
               <div className="flex justify-center mb-4">
-                <img 
+                <Image 
                   src={previewImageUrl} 
-                  alt="Full size preview" 
+                  alt="Full size preview"
+                  width={800}
+                  height={600} 
                   className="max-w-full max-h-[80vh] object-contain rounded-lg border border-white/20 bg-gray-900"
                 />
               </div>

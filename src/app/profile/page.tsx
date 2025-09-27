@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import HamsterCoinBalance from '@/components/HamsterCoinBalance';
-import StardustCoinBalance from '@/components/StardustCoinBalance';
 import Achievements from '@/components/Achievements';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
@@ -230,9 +230,11 @@ export default function ProfilePage() {
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               {/* Avatar */}
               <div className="relative">
-                <img
+                <Image
                   src={getDiscordAvatarUrl((session.user as any).id, (session.user as any).avatar)}
                   alt="Profile"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 rounded-full ring-4 ring-orange-500/50 shadow-2xl"
                 />
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-black flex items-center justify-center">
@@ -265,7 +267,6 @@ export default function ProfilePage() {
           {/* Currency Balances */}
           <div className="space-y-4">
             <HamsterCoinBalance />
-            <StardustCoinBalance />
           </div>
 
           {/* Stats Section */}
@@ -469,9 +470,11 @@ export default function ProfilePage() {
                   <div key={game._id} className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4 hover:border-purple-400/40 transition-all duration-300">
                     {/* Game Thumbnail */}
                     {game.thumbnailUrl && (
-                      <img
+                      <Image
                         src={game.thumbnailUrl}
                         alt={game.title}
+                        width={400}
+                        height={128}
                         className="w-full h-32 object-cover rounded-lg mb-3"
                       />
                     )}

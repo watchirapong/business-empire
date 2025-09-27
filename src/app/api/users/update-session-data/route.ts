@@ -38,7 +38,7 @@ const usernameHistorySchema = new mongoose.Schema({
 const UsernameHistory = mongoose.models.UsernameHistory || mongoose.model('UsernameHistory', usernameHistorySchema);
 
 // POST - Update username history using session data
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import BehaviorAnalytics from './BehaviorAnalytics';
 
 interface DailyStats {
@@ -63,7 +64,7 @@ export default function AnalyticsDashboard() {
   const [expandedDays, setExpandedDays] = useState(new Set<string>());
   const [activeView, setActiveView] = useState<'overview' | 'behavior'>('overview');
 
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -111,7 +112,7 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewMode, selectedDate, customDays]);
 
   const toggleDayExpansion = (date: string) => {
     const newExpanded = new Set(expandedDays);
@@ -159,7 +160,7 @@ export default function AnalyticsDashboard() {
     if ((session?.user as any)?.id) {
       loadAnalyticsData();
     }
-  }, [session, viewMode, selectedDate, customDays]);
+  }, [session, viewMode, selectedDate, customDays, loadAnalyticsData]);
 
   if (!session) {
     return (
@@ -477,9 +478,11 @@ export default function AnalyticsDashboard() {
                                 className="bg-gray-700/30 rounded-lg p-4 flex items-center justify-between"
                               >
                                 <div className="flex items-center space-x-4">
-                                  <img
+                                  <Image
                                     src={`https://cdn.discordapp.com/avatars/${user.userId}/${user.avatar}.png`}
                                     alt={user.username}
+                                    width={40}
+                                    height={40}
                                     className="w-10 h-10 rounded-full"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';

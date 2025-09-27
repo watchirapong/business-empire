@@ -61,6 +61,10 @@ export async function GET(
     const serverDataCollection = mongoose.connection.collection('serverdatas');
     const serverData = await serverDataCollection.findOne({ userId: userId });
 
+    // Also check usernamehistories for nickname
+    const usernameHistoryCollection = mongoose.connection.collection('usernamehistories');
+    const usernameHistory = await usernameHistoryCollection.findOne({ userId: userId });
+
     // Count user's games
     const gamesCount = await Game.countDocuments({ 'author.userId': userId, isActive: true });
 
@@ -72,10 +76,13 @@ export async function GET(
       globalName: userData.globalName
     };
 
+    // Get nickname from usernamehistories as primary source
+    const nickname = usernameHistory?.currentNickname || serverData?.nickname || null;
+
     return NextResponse.json({
       success: true,
       user,
-      nickname: serverData?.nickname || null,
+      nickname,
       gamesCount
     });
 

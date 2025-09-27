@@ -67,7 +67,7 @@ const defaultGachaItems = [
 ];
 
 // POST - Seed default gacha items (admin only)
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - Check seeding status
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     

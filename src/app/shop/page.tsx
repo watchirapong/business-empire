@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { isAdmin } from '@/lib/admin-config';
 
 // Utility function to extract YouTube video ID from URL
@@ -79,8 +80,8 @@ export default function ShopPage() {
   const [cart, setCart] = useState<ShopItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin' | 'stardustcoin'>('hamstercoin');
-  const [balance, setBalance] = useState<{hamstercoin: number, stardustcoin: number}>({hamstercoin: 0, stardustcoin: 0});
+  const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin'>('hamstercoin');
+  const [balance, setBalance] = useState<{hamstercoin: number}>({hamstercoin: 0});
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [youtubeTitles, setYoutubeTitles] = useState<Record<string, string>>({});
@@ -219,7 +220,7 @@ export default function ShopPage() {
       }
       
     const total = getTotalPrice();
-    const currentBalance = selectedCurrency === 'hamstercoin' ? balance.hamstercoin : balance.stardustcoin;
+    const currentBalance = balance.hamstercoin;
 
     if (currentBalance < total) {
       alert(`Insufficient ${selectedCurrency} balance! You need ${total} coins but only have ${currentBalance}.`);
@@ -253,7 +254,7 @@ export default function ShopPage() {
       // Update balance and clear cart
       setBalance(prev => ({
         ...prev,
-        [selectedCurrency]: prev[selectedCurrency] - total
+        hamstercoin: prev.hamstercoin - total
       }));
 
       // Find the first purchased item for the success modal
@@ -371,43 +372,8 @@ export default function ShopPage() {
               <span className="text-yellow-300 ml-1">Hamster Coins</span>
             </div>
             
-            {/* StardustCoin Balance */}
-            <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
-              selectedCurrency === 'stardustcoin' 
-                ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-500/50 ring-2 ring-purple-500/30' 
-                : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30'
-            }`}>
-              <span className="text-2xl mr-2">✨</span>
-              <span className="text-purple-400 font-bold text-xl">{balance.stardustcoin.toLocaleString()}</span>
-              <span className="text-purple-300 ml-1">StardustCoin</span>
-            </div>
           </div>
           
-          {/* Currency Selector */}
-          <div className="mt-4 flex justify-center">
-            <div className="bg-white/10 rounded-lg p-2 flex space-x-2">
-              <button
-                onClick={() => setSelectedCurrency('hamstercoin')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                  selectedCurrency === 'hamstercoin'
-                    ? 'bg-yellow-500 text-white'
-                    : 'bg-white/10 text-yellow-300 hover:bg-white/20'
-                }`}
-              >
-                🪙 Pay with HamsterCoin
-              </button>
-              <button
-                onClick={() => setSelectedCurrency('stardustcoin')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                  selectedCurrency === 'stardustcoin'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-white/10 text-purple-300 hover:bg-white/20'
-                }`}
-              >
-                ✨ Pay with StardustCoin
-              </button>
-            </div>
-          </div>
           
           {/* Search Bar */}
           <div className="mt-6 max-w-md mx-auto">
@@ -480,9 +446,11 @@ export default function ShopPage() {
                 )}
                 <div className="mb-4 relative">
                   {item.image.startsWith('/') ? (
-                    <img
+                    <Image
                       src={item.image}
                       alt={item.name}
+                      width={96}
+                      height={96}
                       className={`w-24 h-24 object-cover rounded-lg mx-auto border ${
                         item.requiresRole
                           ? 'border-yellow-400/60 shadow-lg shadow-yellow-500/40'
@@ -977,9 +945,11 @@ export default function ShopPage() {
                 {/* Item Image */}
                 <div className="mb-6">
                   {purchasedItem.image && purchasedItem.image.startsWith('/') ? (
-                    <img 
+                    <Image 
                       src={purchasedItem.image} 
                       alt={purchasedItem.name}
+                      width={96}
+                      height={96}
                       className="w-24 h-24 object-cover rounded-lg mx-auto border border-white/20 shadow-lg"
                     />
                   ) : (

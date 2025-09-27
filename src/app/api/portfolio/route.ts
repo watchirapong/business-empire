@@ -64,7 +64,7 @@ portfolioSchema.pre('save', function(this: any, next: any) {
 const Portfolio = mongoose.models.Portfolio || mongoose.model('Portfolio', portfolioSchema);
 
 // GET - Retrieve user's portfolio
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     

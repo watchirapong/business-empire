@@ -1,19 +1,20 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { isAdmin, isAdminWithDB } from '@/lib/admin-config';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 
 // Lazy load heavy components to improve initial load time
 const HouseManager = lazy(() => import('@/components/admin/HouseManager'));
-const StardustCoinManager = lazy(() => import('@/components/admin/StardustCoinManager'));
 const AnalyticsDashboard = lazy(() => import('@/components/admin/AnalyticsDashboard'));
 const ShopAnalytics = lazy(() => import('@/components/admin/ShopAnalytics'));
 const UserPurchaseAnalytics = lazy(() => import('@/components/admin/UserPurchaseAnalytics'));
 const AdminManagement = lazy(() => import('@/components/admin/AdminManagement'));
 const LobbyManagement = lazy(() => import('@/components/admin/LobbyManagement'));
+const ClassManagementDashboard = lazy(() => import('@/components/ClassManagementDashboard'));
 
 interface UserData {
   _id: string;
@@ -28,6 +29,13 @@ interface UserData {
   voiceJoinCount?: number;
   totalVoiceTime?: number;
   currentNickname?: string;
+  isCurrentlyInVoice?: boolean;
+  wasInVoiceToday?: boolean;
+  currentVoiceChannel?: string;
+  currentVoiceJoinTime?: string;
+  timeInCurrentVoice?: number;
+  roles?: string[];
+  roleCount?: number;
 }
 
 interface CurrencyData {
@@ -105,11 +113,17 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'stardustcoin' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management' | 'remind' | 'class-management'>('users');
   const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
   const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
-  // Removed unused voice activity states since we moved to dedicated dashboard
+  // Voice tracking filters for user management
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'real_user' | 'suspicious_user'>('all');
+  const [voiceStatusFilter, setVoiceStatusFilter] = useState<'all' | 'currently_in_voice' | 'was_in_voice_today' | 'not_in_voice_today'>('all');
+  
+  
+  const [sortBy, setSortBy] = useState<'default' | 'username' | 'join_date' | 'voice_activity' | 'role'>('default');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
   const [gachaItems, setGachaItems] = useState<any[]>([]);
   const [showGachaForm, setShowGachaForm] = useState(false);
   const [editingGachaItem, setEditingGachaItem] = useState<any>(null);
@@ -250,6 +264,11 @@ export default function AdminPage() {
 
   // Helper function to get display name (nickname > globalName > username)
   const getDisplayName = (user: UserData) => {
+    // Prioritize currentNickname from API data
+    if (user.currentNickname) {
+      return user.currentNickname;
+    }
+    // Fallback to userNicknames from separate API calls
     if (userNicknames[user.discordId]) {
       return userNicknames[user.discordId];
     }
@@ -308,16 +327,7 @@ export default function AdminPage() {
     checkAdminAccess();
   }, [session, status, router]);
 
-  // Separate useEffect to load assessment data when switching to assessment tabs
-  useEffect(() => {
-    if (activeTab === 'assessment' || activeTab.startsWith('assessment-')) {
-      console.log('Admin Panel - Loading assessment data for tab:', activeTab);
-      loadAssessmentQuestions();
-      loadAssessmentAnswers();
-      loadAssessmentUsers();
-      loadAssessmentSettings();
-    }
-  }, [activeTab]);
+
 
   const loadAllUsers = async () => {
     setIsLoading(true);
@@ -362,6 +372,17 @@ export default function AdminPage() {
       console.error('Error loading gacha items:', error);
     }
   };
+
+  // Separate useEffect to load assessment data when switching to assessment tabs
+  useEffect(() => {
+    if (activeTab === 'assessment' || activeTab.startsWith('assessment-')) {
+      console.log('Admin Panel - Loading assessment data for tab:', activeTab);
+      loadAssessmentQuestions();
+      loadAssessmentAnswers();
+      loadAssessmentUsers();
+      loadAssessmentSettings();
+    }
+  }, [activeTab]);
 
   // Assessment loading functions
   const loadAssessmentQuestions = async () => {
@@ -517,6 +538,66 @@ export default function AdminPage() {
       setIsLoading(false);
     }
   };
+
+  // Filter users based on voice status and role modules
+  const getFilteredUsers = () => {
+    let filtered = searchResults;
+
+    // Apply voice status filter
+    if (voiceStatusFilter === 'currently_in_voice') {
+      filtered = filtered.filter(user => user.isCurrentlyInVoice);
+    } else if (voiceStatusFilter === 'was_in_voice_today') {
+      filtered = filtered.filter(user => user.wasInVoiceToday);
+    } else if (voiceStatusFilter === 'not_in_voice_today') {
+      filtered = filtered.filter(user => !user.wasInVoiceToday);
+    }
+
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'username':
+          const nameA = (a.globalName || a.username).toLowerCase();
+          const nameB = (b.globalName || b.username).toLowerCase();
+          comparison = nameA.localeCompare(nameB);
+          break;
+        case 'join_date':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'voice_activity':
+          const voiceA = a.voiceJoinCount || 0;
+          const voiceB = b.voiceJoinCount || 0;
+          comparison = voiceA - voiceB;
+          break;
+        case 'role':
+          const roleCountA = a.roleCount || 0;
+          const roleCountB = b.roleCount || 0;
+          comparison = roleCountA - roleCountB;
+          break;
+        default:
+          // Default sorting by creation date
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
 
   const getUserCurrency = async (userId: string) => {
     setIsLoading(true);
@@ -1302,16 +1383,6 @@ export default function AdminPage() {
             🏠 Houses
           </button>
           <button
-            onClick={() => setActiveTab('stardustcoin')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
-              activeTab === 'stardustcoin'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
-            }`}
-          >
-            ✨ StardustCoin
-          </button>
-          <button
             onClick={() => setActiveTab('analytics')}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'analytics'
@@ -1376,6 +1447,26 @@ export default function AdminPage() {
             }`}
           >
             🏛️ Lobby Management
+          </button>
+          <button
+            onClick={() => setActiveTab('remind')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'remind'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            📨 Remind
+          </button>
+          <button
+            onClick={() => setActiveTab('class-management')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'class-management'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🎓 Class Management
           </button>
           </div>
         </div>
@@ -1546,7 +1637,7 @@ export default function AdminPage() {
               <div className="flex gap-4">
                 <input
                   type="text"
-                                      placeholder="Search by username, global name, or nickname... (leave empty to show all)"
+                                      placeholder="Search by username, global name, nickname, or username history... (leave empty to show all)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
@@ -1569,15 +1660,80 @@ export default function AdminPage() {
                   Show All
                 </button>
               </div>
+              <div className="mt-3 text-sm text-gray-400">
+                💡 <strong>Search Tips:</strong> You can search by current username, global name, server nickname, or any previous username from their history. 
+                The search will find users even if they&apos;ve changed their username multiple times.
+              </div>
+            </div>
+
+            {/* Role Filter Modules & Sorting */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
+
+              {/* Quick Voice Status Filter */}
+              <div className="flex gap-4 flex-wrap mb-4">
+                <select
+                  value={voiceStatusFilter}
+                  onChange={(e) => setVoiceStatusFilter(e.target.value as any)}
+                  className="bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-400"
+                >
+                  <option value="all">All Users</option>
+                  <option value="currently_in_voice">Currently in Voice</option>
+                  <option value="was_in_voice_today">Was in Voice Today</option>
+                  <option value="not_in_voice_today">Not in Voice Today</option>
+                </select>
+                
+                <div className="flex items-center gap-2 text-sm text-gray-300">
+                  <span className="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                  <span>Currently in Voice</span>
+                  <span className="w-3 h-3 bg-green-500 rounded-full ml-4"></span>
+                  <span>Was in Voice Today</span>
+                  <span className="w-3 h-3 bg-red-500 rounded-full ml-4"></span>
+                  <span>Not in Voice Today</span>
+                </div>
+              </div>
+
+              {/* Sorting Controls */}
+              <div className="flex gap-4 flex-wrap mb-4">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-400"
+                >
+                  <option value="default">Sort by Join Date</option>
+                  <option value="username">Sort by Username</option>
+                  <option value="join_date">Sort by Join Date</option>
+                  <option value="voice_activity">Sort by Voice Activity</option>
+                  <option value="role">Sort by Role</option>
+                </select>
+                
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as any)}
+                  className="bg-gray-800/50 border border-orange-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-400"
+                >
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+              </div>
+
+              {/* Role Filter Module Manager */}
+
             </div>
 
             {/* Users List */}
             {searchResults.length > 0 && (
               <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-2xl border border-orange-500/20 p-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-white">
-                    👥 Users ({searchResults.length} found)
-                  </h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      👥 Users ({getFilteredUsers().length} found)
+                    </h3>
+                    {voiceStatusFilter !== 'all' && (
+                      <div className="text-sm text-gray-400 mt-1">
+                        Active filters: Voice Status
+                      </div>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={expandAllUsers}
@@ -1594,7 +1750,7 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="grid gap-4 max-h-[800px] overflow-y-auto">
-                  {searchResults.map((user) => {
+                  {getFilteredUsers().map((user) => {
                     const isExpanded = expandedUsers.has(user._id);
                     const isSelected = selectedUser?._id === user._id;
                     
@@ -1614,9 +1770,11 @@ export default function AdminPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                              <img
+                              <Image
                                 src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png`}
                                 alt={user.username}
+                                width={48}
+                                height={48}
                                 className="w-12 h-12 rounded-full"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = 'https://cdn.discordapp.com/embed/avatars/0.png';
@@ -1632,6 +1790,13 @@ export default function AdminPage() {
                                 {(user.currentNickname || userNicknames[user.discordId]) && (
                                   <div className="text-orange-400 text-sm font-semibold">
                                     🏷️ Server Nickname: {user.currentNickname || userNicknames[user.discordId]}
+                                  </div>
+                                )}
+                                
+                                {/* Show if user has a different display name than username */}
+                                {getDisplayName(user) !== user.username && !user.currentNickname && !userNicknames[user.discordId] && (
+                                  <div className="text-blue-400 text-sm">
+                                    📝 Display Name: {getDisplayName(user)}
                                   </div>
                                 )}
                                 
@@ -1654,6 +1819,29 @@ export default function AdminPage() {
                                   {user.hasVoiceActivity && (
                                     <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full text-xs font-medium">
                                       🔊 {user.voiceJoinCount || 0} joins • {Math.round((user.totalVoiceTime || 0) / 60)}h voice
+                                    </span>
+                                  )}
+                                  
+                                  {/* Current voice status */}
+                                  {user.isCurrentlyInVoice && (
+                                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full text-xs font-medium">
+                                      🎤 Live in {user.currentVoiceChannel} • {user.timeInCurrentVoice}m
+                                    </span>
+                                  )}
+                                  
+                                  {/* Today's voice activity */}
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    user.wasInVoiceToday 
+                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  }`}>
+                                    {user.wasInVoiceToday ? '✓ Today' : '✗ Today'}
+                                  </span>
+                                  
+                                  {/* Role information */}
+                                  {user.roles && user.roles.length > 0 && (
+                                    <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-1 rounded-full text-xs font-medium">
+                                      🎭 {user.roleCount} role{user.roleCount !== 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>
@@ -2133,9 +2321,11 @@ export default function AdminPage() {
                             <div className="text-2xl relative">
                               {newGachaItem.image.startsWith('/') ? (
                                 <>
-                                  <img 
+                                  <Image 
                                     src={newGachaItem.image} 
                                     alt="Preview"
+                                    width={32}
+                                    height={32}
                                     className="w-8 h-8 object-cover rounded"
                                   />
                                   <button
@@ -2321,9 +2511,11 @@ export default function AdminPage() {
                           <div className="text-3xl relative">
                             {item.image.startsWith('/') ? (
                               <>
-                                <img 
+                                <Image 
                                   src={item.image} 
                                   alt={item.name}
+                                  width={48}
+                                  height={48}
                                   className="w-12 h-12 object-cover rounded-lg"
                                 />
                                 <button
@@ -2576,9 +2768,11 @@ export default function AdminPage() {
                         onClick={() => selectUserForAchievement(user)}
                       >
                         <div className="flex items-center space-x-3">
-                          <img
+                          <Image
                             src={getDiscordAvatarUrl(user.discordId, user.avatar)}
                             alt="Avatar"
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full"
                           />
                           <div>
@@ -2724,12 +2918,6 @@ export default function AdminPage() {
           </Suspense>
         )}
 
-        {/* StardustCoin Management Tab */}
-        {activeTab === 'stardustcoin' && (
-          <Suspense fallback={<div className="text-center p-8">Loading StardustCoin Manager...</div>}>
-            <StardustCoinManager />
-          </Suspense>
-        )}
 
         {/* Analytics Dashboard Tab */}
         {activeTab === 'analytics' && (
@@ -3280,9 +3468,11 @@ export default function AdminPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                             {questionForm.questionImages.map((imageUrl, index) => (
                               <div key={index} className="relative">
-                                <img 
+                                <Image 
                                   src={imageUrl} 
                                   alt={`Question image ${index + 1}`}
+                                  width={100}
+                                  height={100}
                                   className="w-full h-20 object-cover rounded border border-gray-500"
                                 />
                                 <button
@@ -3561,9 +3751,11 @@ export default function AdminPage() {
                               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {question.questionImages.map((imageUrl: string, index: number) => (
                                   <div key={index} className="relative">
-                                    <img 
+                                    <Image 
                                       src={imageUrl} 
                                       alt={`Question image ${index + 1}`} 
+                                      width={100}
+                                      height={96}
                                       className="w-full h-24 object-cover rounded border border-gray-500"
                                     />
                                     <button
@@ -3583,9 +3775,11 @@ export default function AdminPage() {
                           {(!question.questionImages || question.questionImages.length === 0) && question.questionImage && (
                             <div className="mb-3">
                               <div className="relative inline-block">
-                                <img 
+                                <Image 
                                   src={question.questionImage} 
                                   alt="Question image" 
+                                  width={200}
+                                  height={200}
                                   className="max-w-xs rounded border border-gray-500"
                                 />
                                 <button
@@ -3804,9 +3998,11 @@ export default function AdminPage() {
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                           {answer.questionImages.map((imageUrl: string, index: number) => (
                                             <div key={index} className="relative">
-                                              <img 
+                                              <Image 
                                                 src={imageUrl} 
                                                 alt={`Question image ${index + 1}`} 
+                                                width={100}
+                                                height={80}
                                                 className="w-full h-20 object-cover rounded border border-gray-500"
                                                 onError={(e) => {
                                                   console.error('Failed to load question image:', imageUrl);
@@ -3833,9 +4029,11 @@ export default function AdminPage() {
                                           Question Image:
                                         </div>
                                         <div className="relative inline-block">
-                                          <img 
+                                          <Image 
                                             src={answer.questionImage} 
                                             alt="Question image" 
+                                            width={200}
+                                            height={200}
                                             className="max-w-xs rounded border border-gray-500"
                                             onError={(e) => {
                                               console.error('Failed to load question image:', answer.questionImage);
@@ -4056,9 +4254,11 @@ export default function AdminPage() {
                           </p>
                           {answer.questionImage && (
                             <div className="relative inline-block">
-                              <img 
+                              <Image 
                                 src={answer.questionImage} 
                                 alt="Question" 
+                                width={200}
+                                height={200}
                                 className="max-w-xs h-auto rounded-lg border border-gray-500"
                               />
                               <button
@@ -4411,6 +4611,26 @@ export default function AdminPage() {
           </>
         )}
 
+        {/* Admin Management Tab */}
+        {activeTab === 'admin-management' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Admin Management...</div>}>
+            <AdminManagement />
+          </Suspense>
+        )}
+
+        {/* Lobby Management Tab */}
+        {activeTab === 'lobby-management' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Lobby Management...</div>}>
+            <LobbyManagement />
+          </Suspense>
+        )}
+
+        {/* Class Management Tab */}
+        {activeTab === 'class-management' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Class Management...</div>}>
+            <ClassManagementDashboard />
+          </Suspense>
+        )}
       </div>
 
       {/* Full-screen Image Modal */}
@@ -4426,33 +4646,17 @@ export default function AdminPage() {
             >
               ×
             </button>
-            <img
+            <Image
               src={fullscreenImage}
               alt="Full screen view"
+              width={800}
+              height={600}
               className="max-w-full max-h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
       )}
-
-      {/* Admin Management and Lobby Management Tabs (ensure above background overlay) */}
-      <div className="relative z-10">
-        {/* Admin Management Tab */}
-        {activeTab === 'admin-management' && (
-          <Suspense fallback={<div className="text-center p-8">Loading Admin Management...</div>}>
-            <AdminManagement />
-          </Suspense>
-        )}
-
-        {/* Lobby Management Tab */}
-        {activeTab === 'lobby-management' && (
-          <Suspense fallback={<div className="text-center p-8">Loading Lobby Management...</div>}>
-            <LobbyManagement />
-          </Suspense>
-        )}
-
-      </div>
     </div>
   );
 }

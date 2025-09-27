@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
 import mongoose from 'mongoose';
 import PurchaseHistory from '@/models/PurchaseHistory';
-import ShopItem from '@/models/ShopItem';
 
 interface ShopAnalytics {
   overview: {
@@ -46,7 +45,6 @@ interface ShopAnalytics {
   }>;
   currencyBreakdown: {
     hamstercoin: { count: number; revenue: number };
-    stardustcoin: { count: number; revenue: number };
   };
   dailySales: Array<{
     date: string;
@@ -289,10 +287,6 @@ async function generateAnalytics(
       hamstercoin: {
         count: purchases.length, // Fallback to total purchases
         revenue: totalRevenue     // Fallback to total revenue
-      },
-      stardustcoin: {
-        count: 0,
-        revenue: 0
       }
     };
 
@@ -464,7 +458,6 @@ function generateCSVExport(analytics: ShopAnalytics): string {
   csvRows.push('');
   csvRows.push('Currency,Purchase Count,Revenue');
   csvRows.push(`HamsterCoin,${analytics.currencyBreakdown.hamstercoin.count},${analytics.currencyBreakdown.hamstercoin.revenue}`);
-  csvRows.push(`StardustCoin,${analytics.currencyBreakdown.stardustcoin.count},${analytics.currencyBreakdown.stardustcoin.revenue}`);
   csvRows.push('');
 
   // Daily Sales

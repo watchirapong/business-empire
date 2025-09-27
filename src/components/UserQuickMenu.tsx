@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import Image from 'next/image';
 
 interface UserQuickMenuProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ const UserQuickMenu: React.FC<UserQuickMenuProps> = ({
         <div className="px-6 py-6 border-b border-gray-200/60">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <img src={avatarUrl} alt="Profile" className="w-14 h-14 rounded-full ring-2 ring-orange-400/60" />
+              <Image src={avatarUrl} alt="Profile" width={56} height={56} className="w-14 h-14 rounded-full ring-2 ring-orange-400/60" />
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white" aria-label="ออนไลน์"></div>
             </div>
             <div className="min-w-0 flex-1">

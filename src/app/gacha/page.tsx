@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 import TicketBalance from '@/components/TicketBalance';
 
@@ -430,9 +431,11 @@ export default function GachaPage() {
               
               <div className="mb-6">
                 {lastPulledItem.image.startsWith('/') ? (
-                  <img 
+                  <Image 
                     src={lastPulledItem.image} 
                     alt={lastPulledItem.name}
+                    width={128}
+                    height={128}
                     className="w-32 h-32 object-cover rounded-xl mx-auto mb-4 border-4 border-purple-500/50"
                   />
                 ) : (

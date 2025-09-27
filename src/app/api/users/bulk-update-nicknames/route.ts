@@ -229,7 +229,7 @@ const cleanupOldJobs = () => {
 };
 
 // POST - Bulk update nicknames for all users in database
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     

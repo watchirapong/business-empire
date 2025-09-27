@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 interface LeaderboardEntry {
   userId: string;
@@ -196,9 +197,11 @@ export default function Leaderboard() {
                     index === 2 ? 'ring-orange-300/40' :
                     'ring-white/10'
                   }`}>
-                    <img
+                    <Image
                       src={entry.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                       alt={entry.username}
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -231,9 +234,11 @@ export default function Leaderboard() {
               </div>
               <div className="relative">
                 <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-red-300/40">
-                  <img
+                  <Image
                     src={currentUser.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                     alt={currentUser.username}
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                   />
                 </div>
