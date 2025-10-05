@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth-config';
 import mongoose from 'mongoose';
-import User from '@/models/User';
 
 export async function GET() {
   try {
@@ -26,6 +25,8 @@ export async function GET() {
       );
     }
 
+    // Dynamic import to avoid model compilation issues
+    const User = (await import('@/models/User')).default;
     const user = await User.findOne({ discordId: userId });
 
     if (!user) {
@@ -103,6 +104,8 @@ export async function POST(request: NextRequest) {
     if (communication !== undefined) updateData['stats.communication'] = communication;
     if (selfLearning !== undefined) updateData['stats.selfLearning'] = selfLearning;
 
+    // Dynamic import to avoid model compilation issues
+    const User = (await import('@/models/User')).default;
     const user = await User.findOneAndUpdate(
       { discordId: userId },
       { $set: updateData },

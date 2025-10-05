@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2,
+    "successRate": 80,
+    "duration": 0.504
+  },
+  "tests": [
+    {
+      "name": "Application Health",
+      "passed": true,
+      "message": "Application is running",
+      "timestamp": "2025-10-02T20:25:39.117Z"
+    },
+    {
+      "name": "Project Manager Page Load",
+      "passed": true,
+      "message": "Page loads successfully",
+      "timestamp": "2025-10-02T20:25:39.163Z"
+    },
+    {
+      "name": "User Authentication",
+      "passed": true,
+      "message": "Authentication system is working",
+      "timestamp": "2025-10-02T20:25:39.177Z"
+    },
+    {
+      "name": "Project Creation API",
+      "passed": true,
+      "message": "Project creation API is accessible",
+      "timestamp": "2025-10-02T20:25:39.210Z"
+    },
+    {
+      "name": "Task Creation API",
+      "passed": false,
+      "message": "Task creation API failed",
+      "timestamp": "2025-10-02T20:25:39.236Z"
+    },
+    {
+      "name": "User Management API",
+      "passed": true,
+      "message": "User management API is working",
+      "timestamp": "2025-10-02T20:25:39.324Z"
+    },
+    {
+      "name": "API Endpoint: /api/projects",
+      "passed": false,
+      "message": "Endpoint failed",
+      "timestamp": "2025-10-02T20:25:39.357Z"
+    },
+    {
+      "name": "API Endpoint: /api/tasks",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.403Z"
+    },
+    {
+      "name": "API Endpoint: /api/users/all",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.462Z"
+    },
+    {
+      "name": "API Endpoint: /api/project-templates",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.476Z"
+    }
+  ],
+  "timestamp": "2025-10-02T20:25:39.477Z"
+}

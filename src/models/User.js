@@ -49,6 +49,12 @@ const userSchema = new mongoose.Schema({
     communication: { type: Number, default: 1, min: 1, max: 100 },
     selfLearning: { type: Number, default: 1, min: 1, max: 100 }
   },
+  preferences: {
+    theme: { type: String, default: 'light' },
+    notifications: { type: Boolean, default: true },
+    timezone: { type: String, default: 'UTC' },
+    language: { type: String, default: 'en' }
+  },
   createdAt: {
     type: Date,
     default: Date.now

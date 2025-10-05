@@ -1,0 +1,820 @@
+{
+  "timestamp": "2025-10-02T20:25:39Z",
+  "application": "Business Empire Project Manager",
+  "designDocument": "PROJECT_MANAGEMENT_SYSTEM_DESIGN.md",
+  "testSuites": {
+    "test-report": {
+  "summary": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2,
+    "successRate": 80,
+    "duration": 0.504
+  },
+  "tests": [
+    {
+      "name": "Application Health",
+      "passed": true,
+      "message": "Application is running",
+      "timestamp": "2025-10-02T20:25:39.117Z"
+    },
+    {
+      "name": "Project Manager Page Load",
+      "passed": true,
+      "message": "Page loads successfully",
+      "timestamp": "2025-10-02T20:25:39.163Z"
+    },
+    {
+      "name": "User Authentication",
+      "passed": true,
+      "message": "Authentication system is working",
+      "timestamp": "2025-10-02T20:25:39.177Z"
+    },
+    {
+      "name": "Project Creation API",
+      "passed": true,
+      "message": "Project creation API is accessible",
+      "timestamp": "2025-10-02T20:25:39.210Z"
+    },
+    {
+      "name": "Task Creation API",
+      "passed": false,
+      "message": "Task creation API failed",
+      "timestamp": "2025-10-02T20:25:39.236Z"
+    },
+    {
+      "name": "User Management API",
+      "passed": true,
+      "message": "User management API is working",
+      "timestamp": "2025-10-02T20:25:39.324Z"
+    },
+    {
+      "name": "API Endpoint: /api/projects",
+      "passed": false,
+      "message": "Endpoint failed",
+      "timestamp": "2025-10-02T20:25:39.357Z"
+    },
+    {
+      "name": "API Endpoint: /api/tasks",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.403Z"
+    },
+    {
+      "name": "API Endpoint: /api/users/all",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.462Z"
+    },
+    {
+      "name": "API Endpoint: /api/project-templates",
+      "passed": true,
+      "message": "Endpoint is accessible",
+      "timestamp": "2025-10-02T20:25:39.476Z"
+    }
+  ],
+  "timestamp": "2025-10-02T20:25:39.477Z"
+}
+,
+    "api-design-validation-report": {
+  "type": "api-design-validation",
+  "summary": {
+    "total": 45,
+    "passed": 45,
+    "failed": 0,
+    "successRate": 100,
+    "duration": 1.034
+  },
+  "categories": {
+    "Authentication API": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Projects API": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Tasks API": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Users API": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Notifications API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Project Templates API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Time Tracking API": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "File Upload API": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Comments API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Analytics API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    }
+  },
+  "tests": [
+    {
+      "name": "Authentication API - User Registration",
+      "passed": true,
+      "message": "POST /api/auth/register responded with 400",
+      "timestamp": "2025-10-02T20:25:32.813Z"
+    },
+    {
+      "name": "Authentication API - User Login",
+      "passed": true,
+      "message": "POST /api/auth/login responded with 400",
+      "timestamp": "2025-10-02T20:25:32.862Z"
+    },
+    {
+      "name": "Authentication API - Token Refresh",
+      "passed": true,
+      "message": "POST /api/auth/refresh responded with 400",
+      "timestamp": "2025-10-02T20:25:32.876Z"
+    },
+    {
+      "name": "Authentication API - User Logout",
+      "passed": true,
+      "message": "POST /api/auth/logout responded with 200",
+      "timestamp": "2025-10-02T20:25:32.887Z"
+    },
+    {
+      "name": "Authentication API - Session Check",
+      "passed": true,
+      "message": "GET /api/auth/session responded with 200",
+      "timestamp": "2025-10-02T20:25:32.903Z"
+    },
+    {
+      "name": "Projects API - Get All Projects",
+      "passed": true,
+      "message": "GET /api/projects responded with 400",
+      "timestamp": "2025-10-02T20:25:32.915Z"
+    },
+    {
+      "name": "Projects API - Create Project",
+      "passed": true,
+      "message": "POST /api/projects responded with 400",
+      "timestamp": "2025-10-02T20:25:32.929Z"
+    },
+    {
+      "name": "Projects API - Get Project by ID",
+      "passed": true,
+      "message": "GET /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.939Z"
+    },
+    {
+      "name": "Projects API - Update Project",
+      "passed": true,
+      "message": "PUT /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.950Z"
+    },
+    {
+      "name": "Projects API - Delete Project",
+      "passed": true,
+      "message": "DELETE /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.961Z"
+    },
+    {
+      "name": "Projects API - Add Project Member",
+      "passed": true,
+      "message": "POST /api/projects/123/members responded with 400",
+      "timestamp": "2025-10-02T20:25:32.970Z"
+    },
+    {
+      "name": "Tasks API - Get All Tasks",
+      "passed": true,
+      "message": "GET /api/tasks responded with 200",
+      "timestamp": "2025-10-02T20:25:32.991Z"
+    },
+    {
+      "name": "Tasks API - Create Task",
+      "passed": true,
+      "message": "POST /api/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.007Z"
+    },
+    {
+      "name": "Tasks API - Get Task by ID",
+      "passed": true,
+      "message": "GET /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.017Z"
+    },
+    {
+      "name": "Tasks API - Update Task",
+      "passed": true,
+      "message": "PUT /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.030Z"
+    },
+    {
+      "name": "Tasks API - Delete Task",
+      "passed": true,
+      "message": "DELETE /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.041Z"
+    },
+    {
+      "name": "Tasks API - Get Project Tasks",
+      "passed": true,
+      "message": "GET /api/projects/123/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.059Z"
+    },
+    {
+      "name": "Tasks API - Create Project Task",
+      "passed": true,
+      "message": "POST /api/projects/123/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.072Z"
+    },
+    {
+      "name": "Users API - Get User Profile",
+      "passed": true,
+      "message": "GET /api/users/profile responded with 400",
+      "timestamp": "2025-10-02T20:25:33.085Z"
+    },
+    {
+      "name": "Users API - Update User Profile",
+      "passed": true,
+      "message": "PUT /api/users/profile responded with 400",
+      "timestamp": "2025-10-02T20:25:33.094Z"
+    },
+    {
+      "name": "Users API - Search Users",
+      "passed": true,
+      "message": "GET /api/users/search responded with 400",
+      "timestamp": "2025-10-02T20:25:33.103Z"
+    },
+    {
+      "name": "Users API - Get All Users",
+      "passed": true,
+      "message": "GET /api/users/all responded with 200",
+      "timestamp": "2025-10-02T20:25:33.219Z"
+    },
+    {
+      "name": "Users API - Get User Stats",
+      "passed": true,
+      "message": "GET /api/users/stats responded with 401",
+      "timestamp": "2025-10-02T20:25:33.242Z"
+    },
+    {
+      "name": "Notifications API - Get Notifications",
+      "passed": true,
+      "message": "GET /api/notifications responded with 400",
+      "timestamp": "2025-10-02T20:25:33.301Z"
+    },
+    {
+      "name": "Notifications API - Create Notification",
+      "passed": true,
+      "message": "POST /api/notifications responded with 400",
+      "timestamp": "2025-10-02T20:25:33.315Z"
+    },
+    {
+      "name": "Notifications API - Mark Notification as Read",
+      "passed": true,
+      "message": "PUT /api/notifications/123/read responded with 400",
+      "timestamp": "2025-10-02T20:25:33.347Z"
+    },
+    {
+      "name": "Notifications API - Delete Notification",
+      "passed": true,
+      "message": "DELETE /api/notifications/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.366Z"
+    },
+    {
+      "name": "Project Templates API - Get Project Templates",
+      "passed": true,
+      "message": "GET /api/project-templates responded with 200",
+      "timestamp": "2025-10-02T20:25:33.380Z"
+    },
+    {
+      "name": "Project Templates API - Create Project Template",
+      "passed": true,
+      "message": "POST /api/project-templates responded with 400",
+      "timestamp": "2025-10-02T20:25:33.388Z"
+    },
+    {
+      "name": "Project Templates API - Get Template by ID",
+      "passed": true,
+      "message": "GET /api/project-templates/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.396Z"
+    },
+    {
+      "name": "Project Templates API - Use Template",
+      "passed": true,
+      "message": "POST /api/project-templates/123/use responded with 400",
+      "timestamp": "2025-10-02T20:25:33.408Z"
+    },
+    {
+      "name": "Time Tracking API - Get Time Entries",
+      "passed": true,
+      "message": "GET /api/tasks/123/time-entries responded with 400",
+      "timestamp": "2025-10-02T20:25:33.417Z"
+    },
+    {
+      "name": "Time Tracking API - Create Time Entry",
+      "passed": true,
+      "message": "POST /api/tasks/123/time-entries responded with 400",
+      "timestamp": "2025-10-02T20:25:33.428Z"
+    },
+    {
+      "name": "Time Tracking API - Get Time Tracking Summary",
+      "passed": true,
+      "message": "GET /api/time-tracking/summary responded with 200",
+      "timestamp": "2025-10-02T20:25:33.440Z"
+    },
+    {
+      "name": "File Upload API - Get Task Attachments",
+      "passed": true,
+      "message": "GET /api/tasks/123/attachments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.450Z"
+    },
+    {
+      "name": "File Upload API - Upload Task Attachment",
+      "passed": true,
+      "message": "POST /api/tasks/123/attachments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.461Z"
+    },
+    {
+      "name": "File Upload API - Delete Attachment",
+      "passed": true,
+      "message": "DELETE /api/attachments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.470Z"
+    },
+    {
+      "name": "Comments API - Get Task Comments",
+      "passed": true,
+      "message": "GET /api/tasks/123/comments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.480Z"
+    },
+    {
+      "name": "Comments API - Add Task Comment",
+      "passed": true,
+      "message": "POST /api/tasks/123/comments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.492Z"
+    },
+    {
+      "name": "Comments API - Update Comment",
+      "passed": true,
+      "message": "PUT /api/comments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.501Z"
+    },
+    {
+      "name": "Comments API - Delete Comment",
+      "passed": true,
+      "message": "DELETE /api/comments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.509Z"
+    },
+    {
+      "name": "Analytics API - Get Project Progress Analytics",
+      "passed": true,
+      "message": "GET /api/analytics/project-progress responded with 200",
+      "timestamp": "2025-10-02T20:25:33.529Z"
+    },
+    {
+      "name": "Analytics API - Get Team Performance Analytics",
+      "passed": true,
+      "message": "GET /api/analytics/team-performance responded with 200",
+      "timestamp": "2025-10-02T20:25:33.541Z"
+    },
+    {
+      "name": "Analytics API - Get Time Analysis",
+      "passed": true,
+      "message": "GET /api/analytics/time-analysis responded with 200",
+      "timestamp": "2025-10-02T20:25:33.551Z"
+    },
+    {
+      "name": "Analytics API - Get Custom Reports",
+      "passed": true,
+      "message": "GET /api/analytics/custom-reports responded with 200",
+      "timestamp": "2025-10-02T20:25:33.566Z"
+    }
+  ],
+  "timestamp": "2025-10-02T20:25:33.568Z"
+}
+,
+    "design-validation-report": {
+  "type": "design-validation",
+  "summary": {
+    "total": 49,
+    "passed": 10,
+    "failed": 39,
+    "successRate": 20.4,
+    "duration": 4.547
+  },
+  "categories": {
+    "System Overview": {
+      "total": 3,
+      "passed": 2,
+      "failed": 1,
+      "successRate": "66.7"
+    },
+    "Project Management": {
+      "total": 5,
+      "passed": 0,
+      "failed": 5,
+      "successRate": "0.0"
+    },
+    "Todo List System": {
+      "total": 4,
+      "passed": 0,
+      "failed": 4,
+      "successRate": "0.0"
+    },
+    "Task Management": {
+      "total": 7,
+      "passed": 0,
+      "failed": 7,
+      "successRate": "0.0"
+    },
+    "User Assignment": {
+      "total": 6,
+      "passed": 0,
+      "failed": 6,
+      "successRate": "0.0"
+    },
+    "Deadline Management": {
+      "total": 1,
+      "passed": 0,
+      "failed": 1,
+      "successRate": "0.0"
+    },
+    "Database Schema": {
+      "total": 4,
+      "passed": 2,
+      "failed": 2,
+      "successRate": "50.0"
+    },
+    "User Interface": {
+      "total": 6,
+      "passed": 1,
+      "failed": 5,
+      "successRate": "16.7"
+    },
+    "User Experience": {
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "successRate": "0.0"
+    },
+    "Technical Architecture": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "successRate": "50.0"
+    },
+    "Advanced Features": {
+      "total": 3,
+      "passed": 1,
+      "failed": 2,
+      "successRate": "33.3"
+    },
+    "Security & Privacy": {
+      "total": 3,
+      "passed": 1,
+      "failed": 2,
+      "successRate": "33.3"
+    },
+    "Performance & Scalability": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "successRate": "100.0"
+    }
+  },
+  "tests": [
+    {
+      "name": "System Overview - Web-based System",
+      "passed": true,
+      "message": "System is web-based and accessible",
+      "timestamp": "2025-10-02T20:25:35.196Z"
+    },
+    {
+      "name": "System Overview - Target Users Support",
+      "passed": true,
+      "message": "Supports project management for teams and individuals",
+      "timestamp": "2025-10-02T20:25:35.870Z"
+    },
+    {
+      "name": "System Overview - Core Features",
+      "passed": false,
+      "message": "Some core features are missing",
+      "timestamp": "2025-10-02T20:25:35.879Z"
+    },
+    {
+      "name": "Project Management - Create Projects",
+      "passed": false,
+      "message": "Create project button not found",
+      "timestamp": "2025-10-02T20:25:36.514Z"
+    },
+    {
+      "name": "Project Management - Project Categories",
+      "passed": false,
+      "message": "Project categories are not supported",
+      "timestamp": "2025-10-02T20:25:36.516Z"
+    },
+    {
+      "name": "Project Management - Project Templates",
+      "passed": false,
+      "message": "Project templates are not available",
+      "timestamp": "2025-10-02T20:25:36.519Z"
+    },
+    {
+      "name": "Project Management - Project Archiving",
+      "passed": false,
+      "message": "Project archiving is not supported",
+      "timestamp": "2025-10-02T20:25:36.525Z"
+    },
+    {
+      "name": "Project Management - Project Sharing",
+      "passed": false,
+      "message": "Project sharing is not supported",
+      "timestamp": "2025-10-02T20:25:36.528Z"
+    },
+    {
+      "name": "Todo List System - Multiple Lists per Project",
+      "passed": false,
+      "message": "Multiple lists per project are not supported",
+      "timestamp": "2025-10-02T20:25:36.530Z"
+    },
+    {
+      "name": "Todo List System - List Organization",
+      "passed": false,
+      "message": "List organization is not supported",
+      "timestamp": "2025-10-02T20:25:36.535Z"
+    },
+    {
+      "name": "Todo List System - List Templates",
+      "passed": false,
+      "message": "List templates are not available",
+      "timestamp": "2025-10-02T20:25:36.538Z"
+    },
+    {
+      "name": "Todo List System - List Sharing",
+      "passed": false,
+      "message": "List sharing is not supported",
+      "timestamp": "2025-10-02T20:25:36.540Z"
+    },
+    {
+      "name": "Task Management - Task Creation",
+      "passed": false,
+      "message": "Create task button not found",
+      "timestamp": "2025-10-02T20:25:36.543Z"
+    },
+    {
+      "name": "Task Management - Task Priorities",
+      "passed": false,
+      "message": "Task priorities are not supported",
+      "timestamp": "2025-10-02T20:25:36.545Z"
+    },
+    {
+      "name": "Task Management - Task Status",
+      "passed": false,
+      "message": "Task status management is not supported",
+      "timestamp": "2025-10-02T20:25:36.548Z"
+    },
+    {
+      "name": "Task Management - Task Dependencies",
+      "passed": false,
+      "message": "Task dependencies are not supported",
+      "timestamp": "2025-10-02T20:25:36.550Z"
+    },
+    {
+      "name": "Task Management - Task Comments",
+      "passed": false,
+      "message": "Task comments are not supported",
+      "timestamp": "2025-10-02T20:25:36.552Z"
+    },
+    {
+      "name": "Task Management - Task Attachments",
+      "passed": false,
+      "message": "Task attachments are not supported",
+      "timestamp": "2025-10-02T20:25:36.554Z"
+    },
+    {
+      "name": "Task Management - Task Tags",
+      "passed": false,
+      "message": "Task tags are not supported",
+      "timestamp": "2025-10-02T20:25:36.557Z"
+    },
+    {
+      "name": "User Assignment - User Roles",
+      "passed": false,
+      "message": "User roles are not supported",
+      "timestamp": "2025-10-02T20:25:36.559Z"
+    },
+    {
+      "name": "User Assignment - Task Assignment",
+      "passed": false,
+      "message": "Task assignment is not supported",
+      "timestamp": "2025-10-02T20:25:36.561Z"
+    },
+    {
+      "name": "User Assignment - Team Management",
+      "passed": false,
+      "message": "Team management is not supported",
+      "timestamp": "2025-10-02T20:25:36.563Z"
+    },
+    {
+      "name": "User Assignment - User Profiles",
+      "passed": false,
+      "message": "User profiles are not supported",
+      "timestamp": "2025-10-02T20:25:36.565Z"
+    },
+    {
+      "name": "User Assignment - Activity Feed",
+      "passed": false,
+      "message": "Activity feed is not supported",
+      "timestamp": "2025-10-02T20:25:36.567Z"
+    },
+    {
+      "name": "User Assignment - Mention System",
+      "passed": false,
+      "message": "Mention system is not supported",
+      "timestamp": "2025-10-02T20:25:36.569Z"
+    },
+    {
+      "name": "Deadline Management",
+      "passed": false,
+      "message": "Error: locator.count: Unexpected token \"=\" while parsing css selector \"input[type=\"date\"], input[placeholder*=\"Due date\"], text=Due Date\". Did you mean to CSS.escape it?",
+      "timestamp": "2025-10-02T20:25:36.571Z"
+    },
+    {
+      "name": "Database Schema - Users Table",
+      "passed": true,
+      "message": "Users Table API is accessible",
+      "timestamp": "2025-10-02T20:25:36.784Z"
+    },
+    {
+      "name": "Database Schema - Projects Table",
+      "passed": false,
+      "message": "Projects Table API is not accessible",
+      "timestamp": "2025-10-02T20:25:36.825Z"
+    },
+    {
+      "name": "Database Schema - Tasks Table",
+      "passed": true,
+      "message": "Tasks Table API is accessible",
+      "timestamp": "2025-10-02T20:25:36.879Z"
+    },
+    {
+      "name": "Database Schema - Notifications Table",
+      "passed": false,
+      "message": "Notifications Table API is not accessible",
+      "timestamp": "2025-10-02T20:25:36.889Z"
+    },
+    {
+      "name": "User Interface - Main Layout Structure",
+      "passed": true,
+      "message": "Main layout structure is present",
+      "timestamp": "2025-10-02T20:25:36.898Z"
+    },
+    {
+      "name": "User Interface - Project Dashboard",
+      "passed": false,
+      "message": "Project dashboard is missing",
+      "timestamp": "2025-10-02T20:25:36.901Z"
+    },
+    {
+      "name": "User Interface - Task List View",
+      "passed": false,
+      "message": "Task list view is missing",
+      "timestamp": "2025-10-02T20:25:36.903Z"
+    },
+    {
+      "name": "User Interface - Kanban Board View",
+      "passed": false,
+      "message": "Kanban board view is missing",
+      "timestamp": "2025-10-02T20:25:36.905Z"
+    },
+    {
+      "name": "User Interface - Calendar View",
+      "passed": false,
+      "message": "Calendar view is missing",
+      "timestamp": "2025-10-02T20:25:36.910Z"
+    },
+    {
+      "name": "User Interface - Task Detail Modal",
+      "passed": false,
+      "message": "Task detail modal is missing",
+      "timestamp": "2025-10-02T20:25:36.912Z"
+    },
+    {
+      "name": "User Experience - New User Onboarding",
+      "passed": false,
+      "message": "New user onboarding is missing",
+      "timestamp": "2025-10-02T20:25:36.915Z"
+    },
+    {
+      "name": "User Experience - Daily Workflow Support",
+      "passed": false,
+      "message": "Daily workflow support is missing",
+      "timestamp": "2025-10-02T20:25:36.916Z"
+    },
+    {
+      "name": "User Experience - Project Lifecycle Support",
+      "passed": false,
+      "message": "Project lifecycle support is missing",
+      "timestamp": "2025-10-02T20:25:36.918Z"
+    },
+    {
+      "name": "Technical Architecture - Frontend Stack",
+      "passed": false,
+      "message": "Modern frontend framework is not detected",
+      "timestamp": "2025-10-02T20:25:36.923Z"
+    },
+    {
+      "name": "Technical Architecture - API Design",
+      "passed": true,
+      "message": "API design is implemented",
+      "timestamp": "2025-10-02T20:25:37.034Z"
+    },
+    {
+      "name": "Advanced Features - Analytics & Reporting",
+      "passed": false,
+      "message": "Analytics and reporting are missing",
+      "timestamp": "2025-10-02T20:25:37.037Z"
+    },
+    {
+      "name": "Advanced Features - Integration Capabilities",
+      "passed": false,
+      "message": "Integration capabilities are missing",
+      "timestamp": "2025-10-02T20:25:37.039Z"
+    },
+    {
+      "name": "Advanced Features - Mobile Support",
+      "passed": true,
+      "message": "Mobile support is present",
+      "timestamp": "2025-10-02T20:25:38.052Z"
+    },
+    {
+      "name": "Security & Privacy - Authentication",
+      "passed": false,
+      "message": "Authentication is missing",
+      "timestamp": "2025-10-02T20:25:38.065Z"
+    },
+    {
+      "name": "Security & Privacy - Authorization",
+      "passed": false,
+      "message": "Authorization is missing",
+      "timestamp": "2025-10-02T20:25:38.068Z"
+    },
+    {
+      "name": "Security & Privacy - Data Security (HTTPS)",
+      "passed": true,
+      "message": "HTTPS is enabled",
+      "timestamp": "2025-10-02T20:25:38.068Z"
+    },
+    {
+      "name": "Performance & Scalability - Page Load Performance",
+      "passed": true,
+      "message": "Page loads in 582ms (good performance)",
+      "timestamp": "2025-10-02T20:25:38.650Z"
+    },
+    {
+      "name": "Performance & Scalability - Caching",
+      "passed": true,
+      "message": "Caching appears to be working",
+      "timestamp": "2025-10-02T20:25:38.654Z"
+    }
+  ],
+  "timestamp": "2025-10-02T20:25:38.656Z"
+}
+  },
+  "masterSummary": {
+    "totalTests": 0,
+    "passedTests": 0,
+    "failedTests": 0,
+    "successRate": 0,
+    "testSuitesRun": 3
+  }
+}

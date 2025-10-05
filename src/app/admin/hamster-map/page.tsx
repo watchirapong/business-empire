@@ -312,9 +312,7 @@ export default function HamsterMapAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          assetPointReward: {
-            amount: addAssetPointAmount
-          }
+          amount: addAssetPointAmount
         })
       });
 

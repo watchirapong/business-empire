@@ -72,4 +72,4 @@ userSchema.methods.updateLastLogin = function() {
   return this.save();
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

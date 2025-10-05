@@ -15,6 +15,7 @@ const UserPurchaseAnalytics = lazy(() => import('@/components/admin/UserPurchase
 const AdminManagement = lazy(() => import('@/components/admin/AdminManagement'));
 const LobbyManagement = lazy(() => import('@/components/admin/LobbyManagement'));
 const ClassManagementDashboard = lazy(() => import('@/components/ClassManagementDashboard'));
+const AdminProjectsOverview = lazy(() => import('@/components/AdminProjectsOverview'));
 
 interface UserData {
   _id: string;
@@ -113,7 +114,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management' | 'remind' | 'class-management'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management' | 'remind' | 'class-management' | 'projects'>('users');
   const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
   const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
   // Voice tracking filters for user management
@@ -1467,6 +1468,16 @@ export default function AdminPage() {
             }`}
           >
             🎓 Class Management
+          </button>
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'projects'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            📋 Projects Overview
           </button>
           </div>
         </div>
@@ -4629,6 +4640,13 @@ export default function AdminPage() {
         {activeTab === 'class-management' && (
           <Suspense fallback={<div className="text-center p-8">Loading Class Management...</div>}>
             <ClassManagementDashboard />
+          </Suspense>
+        )}
+
+        {/* Projects Overview Tab */}
+        {activeTab === 'projects' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Projects Overview...</div>}>
+            <AdminProjectsOverview />
           </Suspense>
         )}
       </div>

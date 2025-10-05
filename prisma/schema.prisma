@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  username  String   @unique
+  password  String
+  firstName String
+  lastName  String
+  avatar    String?
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ownedProjects    Project[]     @relation("ProjectOwner")
+  projectMembers   ProjectMember[]
+  assignedTasks    Task[]        @relation("TaskAssignee")
+  createdTasks     Task[]        @relation("TaskCreator")
+  taskComments     TaskComment[]
+  notifications    Notification[]
+  taskAttachments  TaskAttachment[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  color       String   @default("#3498db")
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ownerId     String @db.ObjectId
+  owner       User   @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members     ProjectMember[]
+  todoLists   TodoList[]
+  tasks       Task[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  role      String   @default("member") // owner, admin, member, viewer
+  joinedAt  DateTime @default(now())
+
+  // Relations
+  projectId String @db.ObjectId
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String @db.ObjectId
+  user      User   @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model TodoList {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  projectId String @db.ObjectId
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById String @db.ObjectId
+  createdBy   User   @relation("TodoListCreator", fields: [createdById], references: [id])
+  tasks      Task[]
+
+  @@map("todo_lists")
+}
+
+model Task {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  priority    String    @default("medium") // high, medium, low
+  status      String    @default("not_started") // not_started, in_progress, completed, on_hold, cancelled
+  dueDate     DateTime?
+  completedAt DateTime?
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  todoListId String @db.ObjectId
+  todoList   TodoList @relation(fields: [todoListId], references: [id], onDelete: Cascade)
+  projectId  String @db.ObjectId
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedToId String? @db.ObjectId
+  assignedTo   User?   @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdById String @db.ObjectId
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  taskId String @db.ObjectId
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  fileName String
+  filePath String
+  fileSize Int
+  uploadedAt DateTime @default(now())
+
+  // Relations
+  taskId String @db.ObjectId
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedById String @db.ObjectId
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  @@map("task_attachments")
+}
+
+model Notification {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  type    String // deadline_reminder, task_assigned, comment_added, project_invite, etc.
+  title   String
+  message String
+  isRead  Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}

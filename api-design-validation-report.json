@@ -1,0 +1,345 @@
+{
+  "type": "api-design-validation",
+  "summary": {
+    "total": 45,
+    "passed": 45,
+    "failed": 0,
+    "successRate": 100,
+    "duration": 1.034
+  },
+  "categories": {
+    "Authentication API": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Projects API": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Tasks API": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Users API": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Notifications API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Project Templates API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Time Tracking API": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "File Upload API": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Comments API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    },
+    "Analytics API": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "successRate": "100.0"
+    }
+  },
+  "tests": [
+    {
+      "name": "Authentication API - User Registration",
+      "passed": true,
+      "message": "POST /api/auth/register responded with 400",
+      "timestamp": "2025-10-02T20:25:32.813Z"
+    },
+    {
+      "name": "Authentication API - User Login",
+      "passed": true,
+      "message": "POST /api/auth/login responded with 400",
+      "timestamp": "2025-10-02T20:25:32.862Z"
+    },
+    {
+      "name": "Authentication API - Token Refresh",
+      "passed": true,
+      "message": "POST /api/auth/refresh responded with 400",
+      "timestamp": "2025-10-02T20:25:32.876Z"
+    },
+    {
+      "name": "Authentication API - User Logout",
+      "passed": true,
+      "message": "POST /api/auth/logout responded with 200",
+      "timestamp": "2025-10-02T20:25:32.887Z"
+    },
+    {
+      "name": "Authentication API - Session Check",
+      "passed": true,
+      "message": "GET /api/auth/session responded with 200",
+      "timestamp": "2025-10-02T20:25:32.903Z"
+    },
+    {
+      "name": "Projects API - Get All Projects",
+      "passed": true,
+      "message": "GET /api/projects responded with 400",
+      "timestamp": "2025-10-02T20:25:32.915Z"
+    },
+    {
+      "name": "Projects API - Create Project",
+      "passed": true,
+      "message": "POST /api/projects responded with 400",
+      "timestamp": "2025-10-02T20:25:32.929Z"
+    },
+    {
+      "name": "Projects API - Get Project by ID",
+      "passed": true,
+      "message": "GET /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.939Z"
+    },
+    {
+      "name": "Projects API - Update Project",
+      "passed": true,
+      "message": "PUT /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.950Z"
+    },
+    {
+      "name": "Projects API - Delete Project",
+      "passed": true,
+      "message": "DELETE /api/projects/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:32.961Z"
+    },
+    {
+      "name": "Projects API - Add Project Member",
+      "passed": true,
+      "message": "POST /api/projects/123/members responded with 400",
+      "timestamp": "2025-10-02T20:25:32.970Z"
+    },
+    {
+      "name": "Tasks API - Get All Tasks",
+      "passed": true,
+      "message": "GET /api/tasks responded with 200",
+      "timestamp": "2025-10-02T20:25:32.991Z"
+    },
+    {
+      "name": "Tasks API - Create Task",
+      "passed": true,
+      "message": "POST /api/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.007Z"
+    },
+    {
+      "name": "Tasks API - Get Task by ID",
+      "passed": true,
+      "message": "GET /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.017Z"
+    },
+    {
+      "name": "Tasks API - Update Task",
+      "passed": true,
+      "message": "PUT /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.030Z"
+    },
+    {
+      "name": "Tasks API - Delete Task",
+      "passed": true,
+      "message": "DELETE /api/tasks/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.041Z"
+    },
+    {
+      "name": "Tasks API - Get Project Tasks",
+      "passed": true,
+      "message": "GET /api/projects/123/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.059Z"
+    },
+    {
+      "name": "Tasks API - Create Project Task",
+      "passed": true,
+      "message": "POST /api/projects/123/tasks responded with 400",
+      "timestamp": "2025-10-02T20:25:33.072Z"
+    },
+    {
+      "name": "Users API - Get User Profile",
+      "passed": true,
+      "message": "GET /api/users/profile responded with 400",
+      "timestamp": "2025-10-02T20:25:33.085Z"
+    },
+    {
+      "name": "Users API - Update User Profile",
+      "passed": true,
+      "message": "PUT /api/users/profile responded with 400",
+      "timestamp": "2025-10-02T20:25:33.094Z"
+    },
+    {
+      "name": "Users API - Search Users",
+      "passed": true,
+      "message": "GET /api/users/search responded with 400",
+      "timestamp": "2025-10-02T20:25:33.103Z"
+    },
+    {
+      "name": "Users API - Get All Users",
+      "passed": true,
+      "message": "GET /api/users/all responded with 200",
+      "timestamp": "2025-10-02T20:25:33.219Z"
+    },
+    {
+      "name": "Users API - Get User Stats",
+      "passed": true,
+      "message": "GET /api/users/stats responded with 401",
+      "timestamp": "2025-10-02T20:25:33.242Z"
+    },
+    {
+      "name": "Notifications API - Get Notifications",
+      "passed": true,
+      "message": "GET /api/notifications responded with 400",
+      "timestamp": "2025-10-02T20:25:33.301Z"
+    },
+    {
+      "name": "Notifications API - Create Notification",
+      "passed": true,
+      "message": "POST /api/notifications responded with 400",
+      "timestamp": "2025-10-02T20:25:33.315Z"
+    },
+    {
+      "name": "Notifications API - Mark Notification as Read",
+      "passed": true,
+      "message": "PUT /api/notifications/123/read responded with 400",
+      "timestamp": "2025-10-02T20:25:33.347Z"
+    },
+    {
+      "name": "Notifications API - Delete Notification",
+      "passed": true,
+      "message": "DELETE /api/notifications/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.366Z"
+    },
+    {
+      "name": "Project Templates API - Get Project Templates",
+      "passed": true,
+      "message": "GET /api/project-templates responded with 200",
+      "timestamp": "2025-10-02T20:25:33.380Z"
+    },
+    {
+      "name": "Project Templates API - Create Project Template",
+      "passed": true,
+      "message": "POST /api/project-templates responded with 400",
+      "timestamp": "2025-10-02T20:25:33.388Z"
+    },
+    {
+      "name": "Project Templates API - Get Template by ID",
+      "passed": true,
+      "message": "GET /api/project-templates/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.396Z"
+    },
+    {
+      "name": "Project Templates API - Use Template",
+      "passed": true,
+      "message": "POST /api/project-templates/123/use responded with 400",
+      "timestamp": "2025-10-02T20:25:33.408Z"
+    },
+    {
+      "name": "Time Tracking API - Get Time Entries",
+      "passed": true,
+      "message": "GET /api/tasks/123/time-entries responded with 400",
+      "timestamp": "2025-10-02T20:25:33.417Z"
+    },
+    {
+      "name": "Time Tracking API - Create Time Entry",
+      "passed": true,
+      "message": "POST /api/tasks/123/time-entries responded with 400",
+      "timestamp": "2025-10-02T20:25:33.428Z"
+    },
+    {
+      "name": "Time Tracking API - Get Time Tracking Summary",
+      "passed": true,
+      "message": "GET /api/time-tracking/summary responded with 200",
+      "timestamp": "2025-10-02T20:25:33.440Z"
+    },
+    {
+      "name": "File Upload API - Get Task Attachments",
+      "passed": true,
+      "message": "GET /api/tasks/123/attachments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.450Z"
+    },
+    {
+      "name": "File Upload API - Upload Task Attachment",
+      "passed": true,
+      "message": "POST /api/tasks/123/attachments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.461Z"
+    },
+    {
+      "name": "File Upload API - Delete Attachment",
+      "passed": true,
+      "message": "DELETE /api/attachments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.470Z"
+    },
+    {
+      "name": "Comments API - Get Task Comments",
+      "passed": true,
+      "message": "GET /api/tasks/123/comments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.480Z"
+    },
+    {
+      "name": "Comments API - Add Task Comment",
+      "passed": true,
+      "message": "POST /api/tasks/123/comments responded with 400",
+      "timestamp": "2025-10-02T20:25:33.492Z"
+    },
+    {
+      "name": "Comments API - Update Comment",
+      "passed": true,
+      "message": "PUT /api/comments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.501Z"
+    },
+    {
+      "name": "Comments API - Delete Comment",
+      "passed": true,
+      "message": "DELETE /api/comments/123 responded with 400",
+      "timestamp": "2025-10-02T20:25:33.509Z"
+    },
+    {
+      "name": "Analytics API - Get Project Progress Analytics",
+      "passed": true,
+      "message": "GET /api/analytics/project-progress responded with 200",
+      "timestamp": "2025-10-02T20:25:33.529Z"
+    },
+    {
+      "name": "Analytics API - Get Team Performance Analytics",
+      "passed": true,
+      "message": "GET /api/analytics/team-performance responded with 200",
+      "timestamp": "2025-10-02T20:25:33.541Z"
+    },
+    {
+      "name": "Analytics API - Get Time Analysis",
+      "passed": true,
+      "message": "GET /api/analytics/time-analysis responded with 200",
+      "timestamp": "2025-10-02T20:25:33.551Z"
+    },
+    {
+      "name": "Analytics API - Get Custom Reports",
+      "passed": true,
+      "message": "GET /api/analytics/custom-reports responded with 200",
+      "timestamp": "2025-10-02T20:25:33.566Z"
+    }
+  ],
+  "timestamp": "2025-10-02T20:25:33.568Z"
+}

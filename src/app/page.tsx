@@ -220,7 +220,7 @@ export default function HomePage() {
         {/* Modern Menu Section - Only show when logged in */}
         {session && (
           <div className="max-w-7xl mx-auto space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-8">
 
               {/* Modern Hamster Shop Card */}
               <button
@@ -360,10 +360,33 @@ export default function HomePage() {
                 </div>
               </button>
 
+              {/* Project Manager Card */}
+              <button
+                onClick={() => handleMenuClick('/project-manager')}
+                className="group glass-card rounded-3xl p-8 hover:border-indigo-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom stagger-7 relative overflow-hidden"
+              >
+                {/* Background gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                {/* Floating particles */}
+                <div className="absolute top-4 right-4 w-2 h-2 bg-indigo-400/40 rounded-full animate-ping animation-delay-1000"></div>
+                <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-purple-300/60 rounded-full animate-ping animation-delay-2000"></div>
+
+                <div className="text-center w-full flex flex-col items-center justify-center relative z-10">
+                  <div className="text-7xl mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 flex justify-center animate-bounce-in">📋</div>
+                  <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-300 transition-colors duration-300 text-center leading-tight">
+                    Project Manager
+                  </h3>
+                  <p className="text-gray-400 text-sm group-hover:text-indigo-200 transition-colors duration-300 text-center leading-relaxed">
+                    จัดการโปรเจคและงาน
+                  </p>
+                </div>
+              </button>
+
               {/* Guest Login Card */}
               <button
                 onClick={() => handleMenuClick('/guest-login')}
-                className="group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom stagger-7 relative overflow-hidden"
+                className="group glass-card rounded-3xl p-8 hover:border-orange-400/60 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 w-full flex flex-col items-center justify-center animate-slide-in-bottom stagger-8 relative overflow-hidden"
               >
                 {/* Background gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
