@@ -47,6 +47,7 @@ export default function ShopPage() {
     name: '',
     description: '',
     price: 0,
+    image: '/api/uploads/default-item.png', // Default image
     category: 'cosmetic',
     contentType: 'none' as 'none' | 'text' | 'link' | 'file' | 'youtube',
     allowMultiplePurchases: true,
@@ -102,6 +103,7 @@ export default function ShopPage() {
           name: '',
           description: '',
           price: 0,
+          image: '/api/uploads/default-item.png',
           category: 'cosmetic',
           contentType: 'none',
           allowMultiplePurchases: true,

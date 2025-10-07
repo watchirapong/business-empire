@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Validate required fields
-    if (!name || !description || !price || !image || !category) {
+    if (!name || !description || !price || !category) {
       console.error('Missing required fields validation failed');
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       name,
       description,
       price: parseFloat(price),
-      image,
+      image: image || '/api/uploads/default-item.png',
       category,
       contentType: contentType || 'none',
       textContent: textContent || '',
