@@ -10,6 +10,9 @@ interface LeaderboardEntry {
   avatar: string;
   totalEarned: number;
   rank: number;
+  discordNickname?: string;
+  globalName?: string;
+  roles?: string[];
 }
 
 export default function Leaderboard() {
@@ -207,9 +210,23 @@ export default function Leaderboard() {
                   </div>
                 </div>
 
-                {/* Username */}
+                {/* Username and Discord Info */}
                 <div className={`flex-1 font-medium ${nameStyle}`}>
-                  {entry.username}
+                  <div className="truncate">
+                    {entry.username}
+                  </div>
+                  {/* Discord nickname display */}
+                  {entry.discordNickname && entry.discordNickname !== entry.username && (
+                    <div className="text-xs text-blue-300 truncate">
+                      🏷️ {entry.discordNickname}
+                    </div>
+                  )}
+                  {/* Global name display if different */}
+                  {entry.globalName && entry.globalName !== entry.username && entry.globalName !== entry.discordNickname && (
+                    <div className="text-xs text-green-300 truncate">
+                      🌍 {entry.globalName}
+                    </div>
+                  )}
                 </div>
 
                 {/* Total Earned */}
@@ -244,7 +261,21 @@ export default function Leaderboard() {
                 </div>
               </div>
               <div className="flex-1 font-medium text-red-200">
-                {currentUser.username} <span className="text-red-300 font-semibold">(YOU)</span>
+                <div className="truncate">
+                  {currentUser.username} <span className="text-red-300 font-semibold">(YOU)</span>
+                </div>
+                {/* Discord nickname display for current user */}
+                {currentUser.discordNickname && currentUser.discordNickname !== currentUser.username && (
+                  <div className="text-xs text-blue-300 truncate">
+                    🏷️ {currentUser.discordNickname}
+                  </div>
+                )}
+                {/* Global name display for current user */}
+                {currentUser.globalName && currentUser.globalName !== currentUser.username && currentUser.globalName !== currentUser.discordNickname && (
+                  <div className="text-xs text-green-300 truncate">
+                    🌍 {currentUser.globalName}
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-1 font-semibold text-red-200">
                 <span>{currentUser.totalEarned.toLocaleString()}</span>

@@ -325,6 +325,13 @@ export default function ShopPage() {
           >
               📦 View Purchase History
           </button>
+          
+          <button
+              onClick={() => router.push('/skill-tree-shop')}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-2 rounded-lg transition-all"
+          >
+              🌳 Skill Tree Shop
+          </button>
 
             {isShopAdmin && (
               <button

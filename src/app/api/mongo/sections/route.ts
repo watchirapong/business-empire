@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
     
     const body = await request.json();
-    const { name, description, projectId, createdById } = body;
+    const { name, description, projectId, createdById, color } = body;
 
     if (!name || !projectId || !createdById) {
       return NextResponse.json({ error: 'Name, project ID, and created by ID are required' }, { status: 400 });
@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
       description,
       projectId,
       createdById,
-      position
+      position,
+      color: color || '#3498db'
     });
 
     await section.save();

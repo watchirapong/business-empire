@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import SystemSettings from '@/models/SystemSettings';
 
@@ -13,10 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     let settings = await SystemSettings.findOne();
     
@@ -52,12 +50,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { phase2Open, allowFriendAnswers, maxImageSize, allowedImageTypes } = body;
+    const {
+      assessmentEnabled,
+      phase1Enabled,
+      phase2Enabled,
+      maxAttempts,
+      timeLimit,
+      autoSave,
+      notifications
+    } = body;
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     let settings = await SystemSettings.findOne();
     
@@ -66,22 +69,34 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update settings
-    if (phase2Open !== undefined) settings.phase2Open = phase2Open;
-    if (allowFriendAnswers !== undefined) settings.allowFriendAnswers = allowFriendAnswers;
-    if (maxImageSize !== undefined) settings.maxImageSize = maxImageSize;
-    if (allowedImageTypes !== undefined) settings.allowedImageTypes = allowedImageTypes;
+    if (assessmentEnabled !== undefined) {
+      settings.assessmentEnabled = assessmentEnabled;
+    }
+    if (phase1Enabled !== undefined) {
+      settings.phase1Enabled = phase1Enabled;
+    }
+    if (phase2Enabled !== undefined) {
+      settings.phase2Enabled = phase2Enabled;
+    }
+    if (maxAttempts !== undefined) {
+      settings.maxAttempts = maxAttempts;
+    }
+    if (timeLimit !== undefined) {
+      settings.timeLimit = timeLimit;
+    }
+    if (autoSave !== undefined) {
+      settings.autoSave = autoSave;
+    }
+    if (notifications !== undefined) {
+      settings.notifications = notifications;
+    }
 
+    settings.updatedAt = new Date();
     await settings.save();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Settings updated successfully',
-      settings: {
-        id: settings._id,
-        phase2Open: settings.phase2Open,
-        allowFriendAnswers: settings.allowFriendAnswers,
-        maxImageSize: settings.maxImageSize,
-        allowedImageTypes: settings.allowedImageTypes
-      }
+      settings: settings.toObject()
     });
 
   } catch (error) {

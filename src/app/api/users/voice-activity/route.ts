@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isAdmin } from '@/lib/admin-config';
 import DiscordBot from '@/lib/discord-bot';
 
 // GET - Get user's voice activity
@@ -16,17 +17,17 @@ export async function GET(request: NextRequest) {
     const targetUserId = searchParams.get('userId');
     
     // Users can only get their own voice activity or admins can get any
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
-    const isAdmin = ADMIN_USER_IDS.includes((session.user as any).id);
+    const userId = (session.user as any).id;
+    const isAdminUser = isAdmin(userId);
     
-    if (!isAdmin && targetUserId !== (session.user as any).id) {
+    if (!isAdminUser && targetUserId !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const userId = targetUserId || (session.user as any).id;
+    const requestedUserId = targetUserId || userId;
 
     // Get voice activity data
-    const voiceData = await DiscordBot.getUserVoiceActivity(userId);
+    const voiceData = await DiscordBot.getUserVoiceActivity(requestedUserId);
     const serverInfo = DiscordBot.getServerInfo();
 
     if (!voiceData) {
@@ -34,6 +35,47 @@ export async function GET(request: NextRequest) {
         error: 'Failed to fetch voice activity data',
         message: 'No voice activity found for this user'
       }, { status: 404 });
+    }
+
+    // Try to enhance the data with Discord nicknames if available
+    try {
+      const connectDB = (await import('@/lib/mongodb')).default;
+      await connectDB();
+      
+      const mongoose = await import('mongoose');
+      let EnhancedUser;
+      
+      try {
+        EnhancedUser = mongoose.model('EnhancedUser');
+        
+        const enhancedUser = await EnhancedUser.findOne({ discordId: requestedUserId });
+        if (enhancedUser) {
+          // Add enhanced display name to voice data
+          const displayName = enhancedUser.discordServerData?.nickname || 
+                             enhancedUser.globalName || 
+                             enhancedUser.username;
+          
+          if (voiceData.voiceActivity) {
+            voiceData.voiceActivity.displayName = displayName;
+            voiceData.voiceActivity.discordNickname = enhancedUser.discordServerData?.nickname;
+          }
+          
+          // Update voice sessions with enhanced names
+          if (voiceData.voiceSessions && Array.isArray(voiceData.voiceSessions)) {
+            voiceData.voiceSessions = voiceData.voiceSessions.map((session: any) => ({
+              ...session,
+              displayName,
+              discordNickname: enhancedUser.discordServerData?.nickname
+            }));
+          }
+        }
+      } catch (error) {
+        // Enhanced user model not available, use legacy data
+        console.log('Enhanced user model not available, using legacy data');
+      }
+    } catch (error) {
+      console.error('Error enhancing voice data:', error);
+      // Continue with original data if enhancement fails
     }
 
     return NextResponse.json({

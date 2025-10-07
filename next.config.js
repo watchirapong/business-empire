@@ -17,7 +17,7 @@ const nextConfig = {
   },
 
   // Optimize build output
-  output: 'standalone',
+  // output: 'standalone', // Temporarily disabled for build fix
 
   // Image configuration for external domains
   images: {

@@ -622,6 +622,11 @@ textarea::placeholder {
   justify-content: space-between;
 }
 
+.organization-selector .font-medium {
+  color: white !important;
+  font-weight: 600;
+}
+
 .organization-dropdown {
   background: white;
   border: 1px solid #e1e5e9;
@@ -637,10 +642,12 @@ textarea::placeholder {
   cursor: pointer;
   border-bottom: 1px solid #f1f3f4;
   transition: background-color 0.2s ease;
+  color: #1a1a1a !important;
 }
 
 .organization-item:hover {
   background-color: #f8f9fa;
+  color: #1a1a1a !important;
 }
 
 .organization-item:last-child {
@@ -649,7 +656,16 @@ textarea::placeholder {
 
 .organization-item.active {
   background-color: #e3f2fd;
-  color: #1976d2;
+  color: #1976d2 !important;
+}
+
+.organization-item .font-medium {
+  color: #1a1a1a !important;
+  font-weight: 600;
+}
+
+.organization-item.active .font-medium {
+  color: #1976d2 !important;
 }
 
 .organization-modal {

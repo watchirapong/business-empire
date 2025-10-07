@@ -1,21 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
-      return;
-    }
-    
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
 
 // House Points Schema
 const housePointsSchema = new mongoose.Schema({
@@ -56,8 +41,6 @@ export async function GET() {
     const houses = await HousePoints.find({})
       .sort({ points: -1 })
       .lean();
-
-    // Return existing houses (no auto-creation of default houses)
 
     return NextResponse.json({
       success: true,

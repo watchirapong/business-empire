@@ -7,7 +7,7 @@ db = db.getSiblingDB('business-empire');
 // Create a user for the application
 db.createUser({
   user: 'app_user',
-  pwd: 'app_password',
+  pwd: '!Huey0608300',
   roles: [
     {
       role: 'readWrite',

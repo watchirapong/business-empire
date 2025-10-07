@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
 // Define schemas locally for API routes
@@ -14,11 +15,6 @@ const achievementSchema = new mongoose.Schema({
 });
 
 const Achievement = mongoose.models.Achievement || mongoose.model('Achievement', achievementSchema);
-
-async function connectDB() {
-  if (mongoose.connections[0].readyState) return;
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-}
 
 export async function GET() {
   try {
@@ -67,24 +63,25 @@ export async function PUT(request: NextRequest) {
   try {
     await connectDB();
     
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const body = await request.json();
+    const { id, title, description, icon, rarity, category, coinReward, isActive } = body;
     
     if (!id) {
       return NextResponse.json({ error: 'Achievement ID is required' }, { status: 400 });
     }
     
-    const body = await request.json();
-    const { title, description, icon, rarity, category, coinReward } = body;
-    
-    // Basic validation
-    if (!title || !description) {
-      return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
-    }
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (icon !== undefined) updateData.icon = icon;
+    if (rarity !== undefined) updateData.rarity = rarity;
+    if (category !== undefined) updateData.category = category;
+    if (coinReward !== undefined) updateData.coinReward = coinReward;
+    if (isActive !== undefined) updateData.isActive = isActive;
     
     const achievement = await Achievement.findByIdAndUpdate(
       id,
-      { title, description, icon, rarity, category, coinReward },
+      updateData,
       { new: true, runValidators: true }
     );
     

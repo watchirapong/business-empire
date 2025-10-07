@@ -5,7 +5,28 @@ import { useSession } from 'next-auth/react';
 import './project-manager.css';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { useNotifications } from '@/hooks/useNotifications';
-// Removed DnD Kit imports - using custom mouse-based drag and drop
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   Plus, 
   Search, 
@@ -47,8 +68,6 @@ interface Project {
   }>;
   createdAt: string;
   updatedAt: string;
-  sections?: Section[];
-  unassignedTasks?: Task[];
 }
 
 interface Section {
@@ -61,18 +80,17 @@ interface Section {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
-  tasks?: Task[];
 }
 
 interface Task {
   _id: string;
   title: string;
   description?: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: 'P1' | 'P2' | 'P3' | 'P4';
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
   dueDate?: string;
   sectionId?: string;
-  projectId: string | { _id: string; name: string; color: string; icon: string };
+  projectId: string;
   assignedToId?: string;
   createdById: string;
   labels: Array<{
@@ -117,7 +135,7 @@ export default function ProjectManager() {
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<string>('low');
+  const [newTaskPriority, setNewTaskPriority] = useState<string>('P4');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showAddSection, setShowAddSection] = useState(false);
@@ -135,7 +153,7 @@ export default function ProjectManager() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState('');
-  const [editTaskPriority, setEditTaskPriority] = useState<string>('low');
+  const [editTaskPriority, setEditTaskPriority] = useState<string>('P4');
   const [editTaskDueDate, setEditTaskDueDate] = useState('');
   
   // Organization state
@@ -154,14 +172,17 @@ export default function ProjectManager() {
   // Drag and Drop state
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null);
-  const [openSectionMenu, setOpenSectionMenu] = useState<string | null>(null);
   
   // Notifications
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
   
-  // Removed DnD Kit sensors - using custom mouse-based drag and drop
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const currentProject = projects.find(p => p._id === selectedProject);
   const currentOrganization = organizations.find(o => o._id === selectedOrganization);
@@ -186,8 +207,8 @@ export default function ProjectManager() {
     }
   };
 
-  // Task Component (no longer sortable with DnD Kit)
-  const TaskComponent = ({ task, onToggle, onEdit, onDelete, isEditing, editTitle, editPriority, editDueDate, onEditChange, onEditSave, onEditCancel }: {
+  // Sortable Task Component
+  const SortableTask = ({ task, onToggle, onEdit, onDelete, isEditing, editTitle, editPriority, editDueDate, onEditChange, onEditSave, onEditCancel }: {
     task: Task;
     onToggle: (id: string) => void;
     onEdit: (id: string) => void;
@@ -200,141 +221,116 @@ export default function ProjectManager() {
     onEditSave: (id: string) => void;
     onEditCancel: () => void;
   }) => {
-    const isCurrentlyDragging = isDragging && activeTask?._id === task._id;
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: task._id });
 
-    const getPriorityColor = (priority: string) => {
-      switch (priority) {
-        case 'urgent': return 'bg-red-500';
-        case 'high': return 'bg-orange-500';
-        case 'medium': return 'bg-blue-500';
-        case 'low': return 'bg-gray-400';
-        default: return 'bg-gray-400';
-      }
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
     };
 
     return (
       <div
-        data-task-id={task._id}
-        onMouseDown={(e) => handleMouseDown(e, task)}
-        className={`mb-2 ${isCurrentlyDragging ? 'dragging opacity-50' : 'cursor-grab active:cursor-grabbing'}`}
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="bg-white rounded-lg p-3 border border-gray-200 task-card card-shadow new-task cursor-grab active:cursor-grabbing"
       >
         {isEditing ? (
-          <div className="bg-white rounded-full border border-gray-200 p-3 shadow-sm">
-            <div className="space-y-3">
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => onEditChange('title', e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
+              autoFocus
+            />
+            <div className="flex space-x-2">
+              <select
+                value={editPriority}
+                onChange={(e) => onEditChange('priority', e.target.value)}
+                className="px-2 py-1 text-xs border border-gray-300 rounded"
+              >
+                <option value="P1">P1 - Urgent</option>
+                <option value="P2">P2 - High</option>
+                <option value="P3">P3 - Medium</option>
+                <option value="P4">P4 - Low</option>
+              </select>
               <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => onEditChange('title', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Task title"
-                autoFocus
+                type="datetime-local"
+                value={editDueDate}
+                onChange={(e) => onEditChange('dueDate', e.target.value)}
+                className="px-2 py-1 text-xs border border-gray-300 rounded"
               />
-              <div className="flex space-x-2">
-                <select
-                  value={editPriority}
-                  onChange={(e) => onEditChange('priority', e.target.value)}
-                  className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-                <input
-                  type="datetime-local"
-                  value={editDueDate}
-                  onChange={(e) => onEditChange('dueDate', e.target.value)}
-                  className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => onEditSave(task._id)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={onEditCancel}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
+            </div>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => onEditSave(task._id)}
+                className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Save
+              </button>
+              <button
+                onClick={onEditCancel}
+                className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-full border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow duration-200 cursor-grab active:cursor-grabbing">
-            <div className="flex items-center space-x-3">
-              {/* Checkbox */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggle(task._id);
-                }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                className="flex-shrink-0"
-              >
-                {task.isCompleted ? (
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                ) : (
-                  <Circle className="w-5 h-5 text-gray-400 hover:text-gray-600" />
-                )}
-              </button>
-
-              {/* Task Content */}
-              <div className="flex-1 min-w-0">
-                <div className={`text-sm font-medium ${task.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+          <div className="flex items-start space-x-3">
+            <button
+              onClick={() => onToggle(task._id)}
+              className="flex-shrink-0 mt-0.5 task-checkbox"
+            >
+              {task.isCompleted ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : (
+                <Circle className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm ${task.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                   {task.title}
+                </span>
+                <span className={`text-xs px-1 py-0.5 rounded ${
+                  task.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                  task.priority === 'P2' ? 'bg-orange-100 text-orange-800' :
+                  task.priority === 'P3' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {task.priority}
+                </span>
+              </div>
+              {task.dueDate && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Due: {new Date(task.dueDate).toLocaleDateString()}
                 </div>
-                {task.dueDate && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-
-              {/* Priority Indicator */}
-              <div className={`w-2 h-2 rounded-full ${getPriorityColor(task.priority)}`}></div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onEdit(task._id);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-all duration-200"
-                  title="Edit task"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🔥 Delete button clicked for task:', task._id);
-                    onDelete(task._id);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 transition-all duration-200"
-                  title="Delete task"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              )}
+            </div>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => onEdit(task._id)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <Edit className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => onDelete(task._id)}
+                className="p-1 text-gray-400 hover:text-red-600"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
             </div>
           </div>
         )}
@@ -342,69 +338,67 @@ export default function ProjectManager() {
     );
   };
 
-  // Simple Section Component (no longer using DnD Kit)
-  const SectionComponent = ({ section, children }: { section: Section; children: React.ReactNode }) => {
-    const isDragOver = isDragging && activeTask && activeTask.sectionId !== section._id;
-    
-    return (
-      <div
-        data-section-id={section._id}
-        className={`flex-shrink-0 w-80 ${isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed rounded-lg' : ''}`}
-      >
-        <div className="section-column p-4 min-h-96">
-          {children}
-        </div>
-      </div>
-    );
-  };
-
   // Fetch projects for the current user
-  // Fetch projects with all data (sections and tasks) for the current user
   const fetchProjects = async () => {
     if (!session?.user || !(session.user as any).id) {
-      console.log('❌ No session or user ID, skipping project fetch');
+      setLoading(false);
       return;
     }
     
-    console.log('🔄 Fetching projects with data for user:', (session.user as any).id);
-    
     try {
-      const response = await fetch(`/api/mongo/projects?userId=${(session.user as any).id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-cache',
-      });
-      
-      console.log('📡 Projects API response status:', response.status);
+      console.log('🔄 Fetching projects for user:', (session.user as any).id);
+      const response = await fetch(`/api/projects?userId=${(session.user as any).id}`);
       
       if (response.ok) {
         const projectsData = await response.json();
-        console.log('✅ Projects with data fetched successfully:', projectsData.length, 'projects');
+        console.log('✅ Projects fetched successfully:', projectsData.length);
         setProjects(projectsData);
         
-        // Extract sections and tasks from the first project for now
-        if (projectsData.length > 0) {
-          const firstProject = projectsData[0];
-          setSections(firstProject.sections || []);
-          setTasks(firstProject.unassignedTasks || []);
-          
-          // Auto-select first project if none selected
-          if (!selectedProject) {
-            console.log('🎯 Auto-selecting first project:', firstProject._id);
-            setSelectedProject(firstProject._id);
-          }
+        // Auto-select first project if none selected
+        if (!selectedProject && projectsData.length > 0) {
+          setSelectedProject(projectsData[0]._id);
         }
       } else {
         console.error('❌ Failed to fetch projects, status:', response.status);
+        setProjects([]);
       }
     } catch (error) {
       console.error('❌ Error fetching projects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Removed fetchSections and fetchTasks - now using direct MongoDB API that fetches everything at once
+  // Fetch sections for the selected project
+  const fetchSections = async () => {
+    if (!selectedProject) return;
+    
+    try {
+      const response = await fetch(`/api/sections?projectId=${selectedProject}`);
+      if (response.ok) {
+        const sectionsData = await response.json();
+        setSections(sectionsData);
+      }
+    } catch (error) {
+      console.error('Error fetching sections:', error);
+    }
+  };
+
+  // Fetch tasks for the selected project
+  const fetchTasks = async () => {
+    if (!selectedProject) return;
+    
+    try {
+      const response = await fetch(`/api/tasks?projectId=${selectedProject}`);
+      if (response.ok) {
+        const tasksData = await response.json();
+        setTasks(tasksData);
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
 
   // Load data on component mount and when project changes
   useEffect(() => {
@@ -414,60 +408,32 @@ export default function ProjectManager() {
     }
   }, [session?.user]);
 
-  // When selectedProject changes, update sections and tasks from the projects data
   useEffect(() => {
-    if (selectedProject && projects.length > 0) {
-      const currentProject = projects.find(p => p._id === selectedProject);
-      if (currentProject) {
-        setSections(currentProject.sections || []);
-        setTasks(currentProject.unassignedTasks || []);
-      }
+    if (selectedProject) {
+      fetchSections();
+      fetchTasks();
     }
-  }, [selectedProject, projects]);
+  }, [selectedProject]);
 
   // Set loading to false after initial data load
   useEffect(() => {
-    if (projects.length > 0 || !session?.user) {
+    // Set loading to false once we have session data (regardless of project count)
+    if (session?.user) {
       setLoading(false);
     }
-  }, [projects, session?.user]);
+  }, [session?.user, projects]);
 
-  // Removed this useEffect since we now get all data in one call
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('⏰ Loading timeout reached, setting loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
 
-  // Removed this useEffect to prevent infinite loops
-  // Tasks are fetched when selectedProject changes, which is sufficient
-
-  // Temporarily disabled auto-assignment to prevent loops
-  // Auto-assign unassigned tasks to the first section
-  // useEffect(() => {
-  //   if (tasks.length > 0 && sections.length > 0) {
-  //     const unassignedTasks = tasks.filter(task => !task.sectionId);
-  //     if (unassignedTasks.length > 0) {
-  //       console.log('🔄 Auto-assigning unassigned tasks to first section');
-  //       const firstSection = sections[0];
-  //       unassignedTasks.forEach(async (task) => {
-  //         try {
-  //           const response = await fetch(`/api/tasks/${task._id}`, {
-  //             method: 'PUT',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //             body: JSON.stringify({
-  //               sectionId: firstSection._id
-  //             }),
-  //     });
-
-  //     if (response.ok) {
-  //             const updatedTask = await response.json();
-  //             setTasks(prev => prev.map(t => t._id === task._id ? updatedTask : t));
-  //     }
-  //   } catch (error) {
-  //           console.error('Error assigning task to section:', error);
-  //         }
-  //       });
-  //     }
-  //   }
-  // }, [tasks, sections]);
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   // Real-time collaboration
   const handleRealtimeUpdate = (update: any) => {
@@ -519,14 +485,27 @@ export default function ProjectManager() {
     }
   };
 
-  // Temporarily disabled real-time updates to prevent constant fetching
-  // useRealtimeUpdates(selectedProject, handleRealtimeUpdate);
+  // Enable real-time updates for selected project
+  useRealtimeUpdates(selectedProject, handleRealtimeUpdate);
 
   const handleAddTask = async (sectionId: string) => {
-    if (!newTaskTitle.trim() || !selectedProject || !session?.user) return;
+    if (!newTaskTitle.trim()) {
+      alert('Please enter a task title');
+      return;
+    }
+    
+    if (!selectedProject) {
+      alert('Please select a project first');
+      return;
+    }
+    
+    if (!session?.user) {
+      alert('Please log in to create tasks');
+      return;
+    }
     
     try {
-      const response = await fetch('/api/mongo/tasks', {
+      const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -544,73 +523,40 @@ export default function ProjectManager() {
 
       if (response.ok) {
         const newTask = await response.json();
-        
-        // Add the new task to the appropriate section or unassigned tasks
-        if (sectionId) {
-          // Add to section
-          setSections(prev => prev.map(section => 
-            section._id === sectionId 
-              ? { ...section, tasks: [...(section.tasks || []), newTask] }
-              : section
-          ));
-        } else {
-          // Add to unassigned tasks
-          setTasks(prev => [...prev, newTask]);
-        }
-        
+        setTasks(prev => [...prev, newTask]);
         setNewTaskTitle('');
-        setNewTaskPriority('low');
+        setNewTaskPriority('P4');
         setNewTaskDueDate('');
         setSelectedSection(null);
       } else {
-        console.error('Failed to create task');
+        const errorData = await response.json();
+        alert(`Failed to create task: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error creating task:', error);
+      alert('Network error. Please try again.');
     }
   };
 
   const handleToggleTask = async (taskId: string) => {
-    // Find task in unassigned tasks or sections
-    let task = tasks.find(t => t._id === taskId);
-    if (!task) {
-      // Look in sections
-      for (const section of sections) {
-        if (section.tasks) {
-          task = section.tasks.find(t => t._id === taskId);
-          if (task) break;
-        }
-      }
-    }
-    
+    const task = tasks.find(t => t._id === taskId);
     if (!task) return;
 
     try {
-      const response = await fetch('/api/mongo/tasks', {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          taskId: taskId,
-          updates: {
-            isCompleted: !task.isCompleted,
-            status: !task.isCompleted ? 'completed' : 'not_started'
-          }
+          isCompleted: !task.isCompleted,
+          status: !task.isCompleted ? 'completed' : 'not_started'
         }),
       });
 
       if (response.ok) {
         const updatedTask = await response.json();
-        
-        // Update in unassigned tasks
         setTasks(prev => prev.map(t => t._id === taskId ? updatedTask : t));
-        
-        // Update in sections
-        setSections(prev => prev.map(section => ({
-          ...section,
-          tasks: section.tasks ? section.tasks.map(t => t._id === taskId ? updatedTask : t) : []
-        })));
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -621,36 +567,24 @@ export default function ProjectManager() {
     if (!editTaskTitle.trim()) return;
 
     try {
-      const response = await fetch('/api/mongo/tasks', {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          taskId: taskId,
-          updates: {
-            title: editTaskTitle.trim(),
-            priority: editTaskPriority,
-            dueDate: editTaskDueDate || null
-          }
+          title: editTaskTitle.trim(),
+          priority: editTaskPriority,
+          dueDate: editTaskDueDate || null
         }),
       });
 
       if (response.ok) {
         const updatedTask = await response.json();
-        
-        // Update in unassigned tasks
         setTasks(prev => prev.map(t => t._id === taskId ? updatedTask : t));
-        
-        // Update in sections
-        setSections(prev => prev.map(section => ({
-          ...section,
-          tasks: section.tasks ? section.tasks.map(t => t._id === taskId ? updatedTask : t) : []
-        })));
-        
         setEditingTask(null);
         setEditTaskTitle('');
-        setEditTaskPriority('low');
+        setEditTaskPriority('P4');
         setEditTaskDueDate('');
       }
     } catch (error) {
@@ -659,72 +593,36 @@ export default function ProjectManager() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    console.log('🔥 handleDeleteTask called with taskId:', taskId);
-    
-    if (!confirm('Are you sure you want to delete this task?')) {
-      console.log('❌ User cancelled deletion');
-      return;
-    }
-    
-    console.log('🗑️ Deleting task:', taskId);
+    if (!confirm('Are you sure you want to delete this task?')) return;
 
     try {
-      const response = await fetch(`/api/mongo/tasks?taskId=${taskId}`, {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
       });
 
-      console.log('📡 Delete API response status:', response.status);
-
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Task deleted successfully:', result);
-        
-        // Remove task from unassigned tasks
-        setTasks(prev => {
-          const filtered = prev.filter(t => t._id !== taskId);
-          console.log('📋 Updated unassigned tasks:', filtered.length);
-          return filtered;
-        });
-        
-        // Remove task from sections
-        setSections(prev => prev.map(section => {
-          const updatedSection = {
-            ...section,
-            tasks: section.tasks ? section.tasks.filter(t => t._id !== taskId) : []
-          };
-          console.log('📋 Updated section tasks for', section.name, ':', updatedSection.tasks.length);
-          return updatedSection;
-        }));
-
-        // Also update projects data to ensure consistency
-        setProjects(prev => prev.map(project => {
-          if (project._id === selectedProject) {
-            return {
-              ...project,
-              sections: project.sections ? project.sections.map(section => ({
-                ...section,
-                tasks: section.tasks ? section.tasks.filter(t => t._id !== taskId) : []
-              })) : [],
-              unassignedTasks: project.unassignedTasks ? project.unassignedTasks.filter(t => t._id !== taskId) : []
-            };
-          }
-          return project;
-        }));
-
-        console.log('🔄 UI state updated after task deletion');
-      } else {
-        const error = await response.json();
-        console.error('❌ Failed to delete task:', error);
-        alert('Failed to delete task. Please try again.');
+        setTasks(prev => prev.filter(t => t._id !== taskId));
       }
     } catch (error) {
-      console.error('❌ Error deleting task:', error);
-      alert('Error deleting task. Please try again.');
+      console.error('Error deleting task:', error);
     }
   };
 
   const handleAddSection = async () => {
-    if (!newSectionName.trim() || !selectedProject || !session?.user) return;
+    if (!newSectionName.trim()) {
+      alert('Please enter a section name');
+      return;
+    }
+    
+    if (!selectedProject) {
+      alert('Please select a project first');
+      return;
+    }
+    
+    if (!session?.user) {
+      alert('Please log in to create sections');
+      return;
+    }
     
     try {
       const response = await fetch('/api/sections', {
@@ -745,10 +643,50 @@ export default function ProjectManager() {
         setNewSectionName('');
         setShowAddSection(false);
       } else {
-        console.error('Failed to create section');
+        const errorData = await response.json();
+        alert(`Failed to create section: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error creating section:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleDeleteAllSections = async () => {
+    if (!selectedProject) {
+      alert('Please select a project first');
+      return;
+    }
+    
+    if (!session?.user) {
+      alert('Please log in to delete sections');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete ALL sections? This action cannot be undone and will also delete all tasks in these sections.')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/sections?projectId=${selectedProject}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSections([]);
+        setTasks([]); // Also clear tasks since they belong to sections
+        alert(`Successfully deleted ${result.deletedCount} sections`);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete sections: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting sections:', error);
+      alert('Network error. Please try again.');
     }
   };
 
@@ -786,276 +724,83 @@ export default function ProjectManager() {
   };
 
   // Drag and Drop handlers
-  // New mouse-based drag and drop handlers
-  const handleMouseDown = (event: React.MouseEvent, task: Task) => {
-    // Only start drag if clicking on the task body, not buttons
-    if ((event.target as HTMLElement).closest('button')) {
-      return;
-    }
-    
-    console.log('🖱️ Mouse down on task:', task.title);
-    setDragStartPosition({ x: event.clientX, y: event.clientY });
-    setActiveTask(task);
-    setDraggedTask(task);
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const task = tasks.find(t => t._id === active.id);
+    setActiveTask(task || null);
+    setDraggedTask(task || null);
   };
 
-  // Global mouse move handler
-  useEffect(() => {
-    const handleGlobalMouseMove = (event: MouseEvent) => {
-      if (!dragStartPosition || !activeTask) return;
-      
-      const distance = Math.sqrt(
-        Math.pow(event.clientX - dragStartPosition.x, 2) + 
-        Math.pow(event.clientY - dragStartPosition.y, 2)
-      );
-      
-      // Start drag only if mouse moved more than 5 pixels
-      if (distance > 5 && !isDragging) {
-        console.log('🚀 Starting drag for task:', activeTask.title);
-        setIsDragging(true);
-      }
-    };
-
-    const handleGlobalMouseUp = async (event: MouseEvent) => {
-      if (!activeTask) {
-        setActiveTask(null);
-        setDraggedTask(null);
-        setIsDragging(false);
-        setDragStartPosition(null);
-        return;
-      }
-
-      if (!isDragging) {
-        // Mouse up without dragging - just a click, cancel
-        console.log('🖱️ Mouse up without drag - canceling');
-        setActiveTask(null);
-        setDraggedTask(null);
-        setIsDragging(false);
-        setDragStartPosition(null);
-        return;
-      }
-
-      console.log('🎯 Mouse up - completing drag for task:', activeTask.title);
-
-      // Find drop target
-      const dropTarget = document.elementFromPoint(event.clientX, event.clientY);
-      if (!dropTarget) {
-        console.log('❌ No drop target found');
-        setActiveTask(null);
-        setDraggedTask(null);
-        setIsDragging(false);
-        setDragStartPosition(null);
-        return;
-      }
-
-      // Check if dropping on a section or task
-      const sectionElement = dropTarget.closest('[data-section-id]');
-      const taskElement = dropTarget.closest('[data-task-id]');
-      
-      let targetSectionId = null;
-      
-      if (sectionElement) {
-        targetSectionId = sectionElement.getAttribute('data-section-id');
-        console.log('📍 Dropping on section:', targetSectionId);
-      } else if (taskElement) {
-        const taskId = taskElement.getAttribute('data-task-id');
-        console.log('📍 Dropping on task:', taskId);
-        // Find which section this task belongs to
-        for (const section of sections) {
-          if (section.tasks && section.tasks.some(t => t._id === taskId)) {
-            targetSectionId = section._id;
-            break;
-          }
-        }
-      }
-
-      if (targetSectionId && targetSectionId !== activeTask.sectionId) {
-        console.log('🔄 Moving task from', activeTask.sectionId, 'to', targetSectionId);
-        // Move task to new section
-        try {
-          const response = await fetch('/api/mongo/tasks', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              taskId: activeTask._id,
-              updates: {
-                sectionId: targetSectionId,
-                position: 0
-              }
-            }),
-          });
-
-          if (response.ok) {
-            const updatedTask = await response.json();
-            console.log('✅ Task moved successfully:', updatedTask);
-            
-            // Remove from source location
-            if (activeTask.sectionId) {
-              setSections(prev => prev.map(section => 
-                section._id === activeTask.sectionId 
-                  ? { ...section, tasks: section.tasks ? section.tasks.filter(t => t._id !== activeTask._id) : [] }
-                  : section
-              ));
-            } else {
-              setTasks(prev => prev.filter(t => t._id !== activeTask._id));
-            }
-            
-            // Add to target location
-            setSections(prev => prev.map(section => 
-              section._id === targetSectionId 
-                ? { ...section, tasks: [...(section.tasks || []), updatedTask] }
-                : section
-            ));
-          } else {
-            console.error('❌ Failed to move task');
-          }
-        } catch (error) {
-          console.error('❌ Error moving task:', error);
-        }
-      } else if (targetSectionId === activeTask.sectionId && taskElement) {
-        // Reordering within the same section
-        const targetTaskId = taskElement.getAttribute('data-task-id');
-        if (targetTaskId && targetTaskId !== activeTask._id) {
-          console.log('🔄 Reordering task within same section');
-          await handleReorderTask(activeTask._id, targetTaskId, targetSectionId);
-        } else {
-          console.log('ℹ️ Dropped on same task or invalid target');
-        }
-      } else {
-        console.log('ℹ️ No valid drop target or same section');
-      }
-
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !activeTask) {
       setActiveTask(null);
       setDraggedTask(null);
-      setIsDragging(false);
-      setDragStartPosition(null);
-    };
-
-    if (activeTask) {
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [activeTask, isDragging, sections, dragStartPosition]);
-
-  // Close section menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (openSectionMenu && !(event.target as Element).closest('.section-menu')) {
-        setOpenSectionMenu(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openSectionMenu]);
-
-  // Removed handleMouseLeave - drag continues even when mouse leaves task area
-
-  // Handle section deletion
-  const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm('Are you sure you want to delete this section? All tasks in this section will be moved to unassigned.')) {
       return;
     }
 
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    
+    // Find the task being dragged
+    const draggedTask = tasks.find(t => t._id === activeId);
+    if (!draggedTask) return;
+
+    // Check if dropping on a section or another task
+    const overSection = sections.find(s => s._id === overId);
+    const overTask = tasks.find(t => t._id === overId);
+    
+    let newSectionId = draggedTask.sectionId;
+    let newPosition = draggedTask.position;
+    
+    if (overSection) {
+      // Dropping on a section - move to end of that section
+      newSectionId = overSection._id;
+      const sectionTasks = tasks.filter(t => t.sectionId === overSection._id);
+      newPosition = sectionTasks.length;
+    } else if (overTask) {
+      // Dropping on another task - insert at that position
+      newSectionId = overTask.sectionId;
+      newPosition = overTask.position;
+    }
+
+    // Update task position via API
     try {
-      console.log('🗑️ Deleting section:', sectionId);
-      
-      const response = await fetch(`/api/mongo/sections`, {
-        method: 'DELETE',
+      const response = await fetch('/api/tasks/reorder', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ sectionId }),
+        body: JSON.stringify({
+          taskId: activeId,
+          newPosition,
+          newSectionId,
+          projectId: selectedProject
+        }),
       });
 
       if (response.ok) {
-        console.log('✅ Section deleted successfully');
-        
-        // Move all tasks from this section to unassigned
-        const section = sections.find(s => s._id === sectionId);
-        if (section && section.tasks) {
-          const movePromises = section.tasks.map(task => 
-            fetch('/api/mongo/tasks', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                taskId: task._id,
-                updates: { sectionId: null }
-              })
-            })
-          );
-          await Promise.all(movePromises);
-        }
-        
         // Update local state
-        setSections(prev => prev.filter(s => s._id !== sectionId));
-        setOpenSectionMenu(null);
-        
-        // Refresh projects to show moved tasks in unassigned
-        await fetchProjects();
-      } else {
-        console.error('❌ Failed to delete section');
-        alert('Failed to delete section. Please try again.');
+        setTasks(prev => {
+          const newTasks = [...prev];
+          const taskIndex = newTasks.findIndex(t => t._id === activeId);
+          if (taskIndex !== -1) {
+            newTasks[taskIndex] = {
+              ...newTasks[taskIndex],
+              sectionId: newSectionId,
+              position: newPosition
+            };
+          }
+          return newTasks;
+        });
       }
     } catch (error) {
-      console.error('❌ Error deleting section:', error);
-      alert('Error deleting section. Please try again.');
+      console.error('Error reordering task:', error);
     }
-  };
 
-  // Handle task reordering within the same section
-  const handleReorderTask = async (draggedTaskId: string, targetTaskId: string, sectionId: string) => {
-    try {
-      console.log('🔄 Reordering task:', draggedTaskId, 'before/after:', targetTaskId);
-      
-      // Get current tasks in the section
-      const section = sections.find(s => s._id === sectionId);
-      if (!section || !section.tasks) return;
-      
-      const currentTasks = [...section.tasks];
-      const draggedIndex = currentTasks.findIndex(t => t._id === draggedTaskId);
-      const targetIndex = currentTasks.findIndex(t => t._id === targetTaskId);
-      
-      if (draggedIndex === -1 || targetIndex === -1) return;
-      
-      // Remove dragged task from its current position
-      const [draggedTask] = currentTasks.splice(draggedIndex, 1);
-      
-      // Insert at new position (before the target task)
-      currentTasks.splice(targetIndex, 0, draggedTask);
-      
-      // Update positions in database
-      const updatePromises = currentTasks.map((task, index) => 
-        fetch('/api/mongo/tasks', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskId: task._id,
-            updates: { position: index }
-          })
-        })
-      );
-      
-      await Promise.all(updatePromises);
-      
-      // Update local state
-      setSections(prev => prev.map(section => 
-        section._id === sectionId 
-          ? { ...section, tasks: currentTasks }
-          : section
-      ));
-      
-      console.log('✅ Task reordered successfully');
-    } catch (error) {
-      console.error('❌ Error reordering task:', error);
-    }
+    setActiveTask(null);
+    setDraggedTask(null);
   };
 
   // Organization handlers
@@ -1115,17 +860,7 @@ export default function ProjectManager() {
 
   // Get tasks for a specific section with search and filter
   const getTasksForSection = (sectionId: string) => {
-    console.log('🔍 Getting tasks for section:', sectionId);
-    
-    // Find the section and get its tasks
-    const section = sections.find(s => s._id === sectionId);
-    if (!section || !section.tasks) {
-      console.log('📋 No section or tasks found for section:', sectionId);
-      return [];
-    }
-    
-    let filteredTasks = section.tasks;
-    console.log('📋 Tasks for this section:', filteredTasks);
+    let filteredTasks = tasks.filter(task => task.sectionId === sectionId);
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -1145,7 +880,6 @@ export default function ProjectManager() {
       filteredTasks = filteredTasks.filter(task => task.status === filterStatus);
     }
     
-    console.log('📋 Final filtered tasks:', filteredTasks);
     return filteredTasks;
   };
 
@@ -1204,7 +938,7 @@ export default function ProjectManager() {
                 <span className="text-gray-400">▼</span>
             </div>
           </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500 breadcrumbs">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
               <span>Hamster Hub</span>
               <span>/</span>
               {currentOrganization && (
@@ -1247,7 +981,7 @@ export default function ProjectManager() {
                 
                 {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="notifications-dropdown">
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b border-gray-200">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -1317,7 +1051,7 @@ export default function ProjectManager() {
             </div>
             <button className="p-2 text-gray-400 hover:text-gray-600">
               <Share2 className="w-5 h-5" />
-                </button>
+            </button>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <BarChart3 className="w-4 h-4" />
               <span>Display: 1</span>
@@ -1325,8 +1059,8 @@ export default function ProjectManager() {
             <button className="p-2 text-gray-400 hover:text-gray-600">
               <MoreHorizontal className="w-5 h-5" />
                 </button>
-              </div>
-            </div>
+          </div>
+        </div>
       </header>
 
       <div className="flex main-layout">
@@ -1348,15 +1082,15 @@ export default function ProjectManager() {
                   <span className="text-lg">{currentOrganization?.icon || '🏢'}</span>
                   <span className="font-medium">{currentOrganization?.name || 'Select Organization'}</span>
                 </div>
-                  <button
+                <button
                   onClick={() => setShowOrganizationDropdown(!showOrganizationDropdown)}
                   className="text-white hover:text-gray-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                  </button>
-                </div>
+                </button>
+              </div>
               
               {/* Organization Dropdown */}
               {showOrganizationDropdown && (
@@ -1376,10 +1110,10 @@ export default function ProjectManager() {
                           <div className="font-medium">{org.name}</div>
                           {org.description && (
                             <div className="text-xs text-gray-500">{org.description}</div>
-            )}
-          </div>
+                          )}
+                        </div>
                         <div className="flex space-x-1">
-                  <button
+                <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteOrganization(org._id);
@@ -1387,10 +1121,10 @@ export default function ProjectManager() {
                             className="p-1 text-gray-400 hover:text-red-600"
                           >
                             <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
+                </button>
+                        </div>
                       </div>
-                      </div>
+                    </div>
                   ))}
                   <div
                     className="organization-item border-t border-gray-200"
@@ -1402,15 +1136,15 @@ export default function ProjectManager() {
                     <div className="flex items-center space-x-2 text-blue-600">
                       <Plus className="w-4 h-4" />
                       <span className="font-medium">Create Organization</span>
-                      </div>
-                      </div>
                     </div>
-              )}
                   </div>
-
-                  {/* Quick Actions */}
+                </div>
+              )}
+            </div>
+            
+            {/* Quick Actions */}
             <div className="space-y-2 mb-8">
-              <button 
+                <button
                 onClick={() => {
                   if (projects.length === 0) {
                     setShowProjectModal(true);
@@ -1425,7 +1159,7 @@ export default function ProjectManager() {
               >
                 <Plus className="w-4 h-4" />
                 <span className="font-medium">Add task</span>
-                      </button>
+              </button>
               
               <div className="space-y-1">
                 <div className="relative">
@@ -1434,7 +1168,7 @@ export default function ProjectManager() {
                     placeholder="Search tasks..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent search-input"
+                    className="w-full px-3 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                 </div>
@@ -1442,16 +1176,16 @@ export default function ProjectManager() {
                   <Inbox className="w-4 h-4" />
                   <span>Inbox</span>
                   <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">2</span>
-                      </button>
+                </button>
                 <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                   <Calendar className="w-4 h-4" />
                   <span>05 Today</span>
-                      </button>
+                </button>
                 <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                   <Calendar className="w-4 h-4" />
                   <span>Upcoming</span>
-                      </button>
-                <button 
+                </button>
+                <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -1461,7 +1195,7 @@ export default function ProjectManager() {
                 
                 {/* Filter Panel */}
                 {showFilters && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-3 filter-dropdowns">
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
                       <select
@@ -1470,12 +1204,12 @@ export default function ProjectManager() {
                         className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
                       >
                         <option value="all">All Priorities</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
+                        <option value="P1">P1 - Urgent</option>
+                        <option value="P2">P2 - High</option>
+                        <option value="P3">P3 - Medium</option>
+                        <option value="P4">P4 - Low</option>
                       </select>
-                      </div>
+                    </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                       <select
@@ -1490,8 +1224,8 @@ export default function ProjectManager() {
                         <option value="on_hold">On Hold</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
-                      </div>
-                    <button
+                    </div>
+                <button
                       onClick={() => {
                         setSearchQuery('');
                         setFilterPriority('all');
@@ -1501,14 +1235,14 @@ export default function ProjectManager() {
                     >
                       Clear Filters
                     </button>
-                      </div>
+                  </div>
                 )}
                 <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                   <MoreHorizontal className="w-4 h-4" />
                   <span>More</span>
                 </button>
-                  </div>
-                </div>
+              </div>
+            </div>
 
             {/* My Projects */}
             <div>
@@ -1518,7 +1252,7 @@ export default function ProjectManager() {
                 <div className="space-y-1">
                 {projects.length > 0 ? (
                   projects.map((project) => (
-                    <button
+                  <button
                       key={project._id}
                       onClick={() => setSelectedProject(project._id)}
                       className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors project-item ${
@@ -1532,7 +1266,7 @@ export default function ProjectManager() {
                       <span className="text-lg">{project.icon}</span>
                       <span className="flex-1 text-left">{project.name}</span>
                       <span className="text-sm text-gray-500">{getProjectTaskCount(project._id)}</span>
-                    </button>
+                  </button>
                   ))
                 ) : (
                   <div className="text-center py-4">
@@ -1544,214 +1278,205 @@ export default function ProjectManager() {
                 <div className="mt-2 text-xs text-gray-500">
                   <span>Hamster H...</span>
                   <span className="ml-2">USED: {projects.length}/5</span>
-              </div>
+          </div>
                 
-                <button 
+                  <button
                   onClick={() => setShowProjectModal(true)}
                   className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
+                  >
                   <Plus className="w-4 h-4" />
                   <span>Add project</span>
-                </button>
-              </div>
-            </div>
+                  </button>
+                    </div>
+                  </div>
 
             {/* Help & Resources */}
             <div className="mt-8">
               <button className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                 <HelpCircle className="w-4 h-4" />
                 <span>Help & resources</span>
-                  </button>
-                </div>
+                      </button>
+                    </div>
                   </div>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 p-6">
-          {/* Organization Creation Modal */}
-          {showOrganizationModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="organization-modal">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Organization</h3>
-                <div className="organization-form">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+          {currentProject && (
+            <div>Current Project Content</div>
+          )}
+        </main>
+
+        {showOrganizationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="organization-modal">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Organization</h3>
+              <div className="organization-form">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                  <input
+                    type="text"
+                    value={newOrganizationName}
+                    onChange={(e) => setNewOrganizationName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter organization name"
+                  />
+                      </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                  <textarea
+                    value={newOrganizationDescription}
+                    onChange={(e) => setNewOrganizationDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter organization description"
+                    rows={3}
+                  />
+                      </div>
+                <div className="flex space-x-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                     <input
                       type="text"
-                      value={newOrganizationName}
-                      onChange={(e) => setNewOrganizationName(e.target.value)}
+                      value={newOrganizationIcon}
+                      onChange={(e) => setNewOrganizationIcon(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter organization name"
+                      placeholder="🏢"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                    <textarea
-                      value={newOrganizationDescription}
-                      onChange={(e) => setNewOrganizationDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter organization description"
-                      rows={3}
+                      </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <input
+                      type="color"
+                      value={newOrganizationColor}
+                      onChange={(e) => setNewOrganizationColor(e.target.value)}
+                      className="w-full h-10 border border-gray-300 rounded-lg"
                     />
-                  </div>
-                  <div className="flex space-x-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                      <input
-                        type="text"
-                        value={newOrganizationIcon}
-                        onChange={(e) => setNewOrganizationIcon(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="🏢"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                      <input
-                        type="color"
-                        value={newOrganizationColor}
-                        onChange={(e) => setNewOrganizationColor(e.target.value)}
-                        className="w-full h-10 border border-gray-300 rounded-lg"
-                      />
                     </div>
                   </div>
                 </div>
-                <div className="organization-actions">
-                  <button 
-                    onClick={handleAddOrganization}
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Create Organization
-                  </button>
-                    <button
-                      onClick={() => {
-                      setShowOrganizationModal(false);
-                      setNewOrganizationName('');
-                      setNewOrganizationDescription('');
-                      setNewOrganizationColor('#667eea');
-                      setNewOrganizationIcon('🏢');
-                    }}
-                    className="flex-1 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      Cancel
+              <div className="organization-actions">
+                <button 
+                  onClick={handleAddOrganization}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Create Organization
+                    </button>
+                <button 
+                  onClick={() => {
+                    setShowOrganizationModal(false);
+                    setNewOrganizationName('');
+                    setNewOrganizationDescription('');
+                    setNewOrganizationColor('#667eea');
+                    setNewOrganizationIcon('🏢');
+                  }}
+                  className="flex-1 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Cancel
                     </button>
                   </div>
                 </div>
               </div>
             )}
-          {currentProject ? (
+
+        {currentProject ? (
               <div>
-              {/* Project Header */}
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {/* Project Header */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-2xl font-bold text-gray-900">
                   {currentProject.name}
                 </h1>
-                <p className="text-gray-500">
-                  {tasks.filter(task => task.projectId === currentProject._id).length} tasks
+                {sections.length > 0 && (
+                  <button
+                    onClick={handleDeleteAllSections}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                  >
+                    Delete All Sections
+                  </button>
+                )}
+              </div>
+              <p className="text-gray-500">
+                {tasks.filter(task => task.projectId === currentProject._id).length} tasks
                 </p>
               </div>
 
-              {/* Kanban Board */}
-              <div className="flex space-x-6 overflow-x-auto kanban-board">
-                {/* Show unassigned tasks first if any exist */}
-                {selectedProject && tasks.filter(task => {
-                  const taskProjectId = typeof task.projectId === 'string' ? task.projectId : (task.projectId as any)._id;
-                  return taskProjectId === selectedProject && !task.sectionId;
-                }).length > 0 && (
-                  <SectionComponent key="unassigned" section={{ _id: 'unassigned', name: 'Unassigned Tasks' } as Section}>
-                    {/* Section Header */}
-                    <div className="flex items-center justify-between mb-4 section-header">
-                      <h3 className="font-semibold text-gray-900">Unassigned Tasks</h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">{selectedProject ? tasks.filter(task => {
-                          const taskProjectId = typeof task.projectId === 'string' ? task.projectId : (task.projectId as any)._id;
-                          return taskProjectId === selectedProject && !task.sectionId;
-                        }).length : 0}</span>
-                        <button className="p-1 text-gray-400 hover:text-gray-600">
-                          <MoreHorizontal className="w-4 h-4" />
-                    </button>
+            {/* Kanban Board */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="flex space-x-6 overflow-x-auto kanban-board" data-version="v2.0">
+                {/* Add Section Button - POSITIONED ON LEFT SIDE */}
+                {showAddSection ? (
+                  <div className="flex-shrink-0 w-80">
+                    <div className="bg-gray-50 rounded-lg p-4 min-h-96">
+                        <input
+                          type="text"
+                        placeholder="Section name"
+                        value={newSectionName}
+                        onChange={(e) => setNewSectionName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAddSection();
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm mb-4"
+                          autoFocus
+                        />
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={handleAddSection}
+                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                        >
+                          Add section
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAddSection(false);
+                            setNewSectionName('');
+                          }}
+                          className="px-3 py-1 text-gray-500 text-sm hover:text-gray-700 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                    {/* Unassigned Tasks */}
-                    {/* Removed SortableContext - using custom drag and drop */}
-                      <div className="space-y-2 mb-4">
-                        {selectedProject ? tasks.filter(task => {
-                          const taskProjectId = typeof task.projectId === 'string' ? task.projectId : (task.projectId as any)._id;
-                          return taskProjectId === selectedProject && !task.sectionId;
-                        }).map((task) => (
-                          <TaskComponent
-                            key={task._id}
-                            task={task}
-                            onToggle={handleToggleTask}
-                            onEdit={(id) => {
-                              setEditingTask(id);
-                              setEditTaskTitle(task.title);
-                              setEditTaskPriority(task.priority);
-                              setEditTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '');
-                            }}
-                            onDelete={handleDeleteTask}
-                            isEditing={editingTask === task._id}
-                            editTitle={editTaskTitle}
-                            editPriority={editTaskPriority}
-                            editDueDate={editTaskDueDate}
-                            onEditChange={(field, value) => {
-                              if (field === 'title') setEditTaskTitle(value);
-                              if (field === 'priority') setEditTaskPriority(value);
-                              if (field === 'dueDate') setEditTaskDueDate(value);
-                            }}
-                            onEditSave={handleEditTask}
-                            onEditCancel={() => {
-                              setEditingTask(null);
-                              setEditTaskTitle('');
-                              setEditTaskPriority('low');
-                              setEditTaskDueDate('');
-                            }}
-                          />
-                        )) : null}
-              </div>
-                    {/* Removed SortableContext closing tag */}
-                  </SectionComponent>
-            )}
-
+                ) : (
+                        <button
+                    onClick={() => setShowAddSection(true)}
+                    className="flex-shrink-0 w-80 bg-gray-100 hover:bg-gray-200 rounded-lg p-4 min-h-96 flex items-center justify-center transition-colors"
+                        >
+                    <div className="flex items-center space-x-2 text-gray-500">
+                      <Plus className="w-4 h-4" />
+                      <span className="text-sm">Add section</span>
+                    </div>
+                        </button>
+                )}
+                
                 {sections.map((section) => {
                   const sectionTasks = getTasksForSection(section._id);
-              return (
-                    <SectionComponent key={section._id} section={section}>
+                  return (
+                    <div key={section._id} className="flex-shrink-0 w-80">
+                      <div className="section-column p-4 min-h-96">
                         {/* Section Header */}
-                        <div className="flex items-center justify-between mb-4 section-header">
+                        <div className="flex items-center justify-between mb-4">
                           <h3 className="font-semibold text-gray-900">{section.name}</h3>
                           <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-500">{sectionTasks.length}</span>
-                            <div className="relative section-menu">
-                              <button 
-                                onClick={() => setOpenSectionMenu(openSectionMenu === section._id ? null : section._id)}
-                                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </button>
-                              
-                              {/* Dropdown Menu */}
-                              {openSectionMenu === section._id && (
-                                <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-32">
-                                  <button
-                                    onClick={() => handleDeleteSection(section._id)}
-                                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center space-x-2"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Delete section</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <button className="p-1 text-gray-400 hover:text-gray-600">
+                              <MoreHorizontal className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
                         {/* Tasks */}
-                        {/* Removed SortableContext - using custom drag and drop */}
+                        <SortableContext items={sectionTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
                           <div className="space-y-2 mb-4">
                             {sectionTasks.map((task) => (
-                              <TaskComponent
+                              <SortableTask
                                 key={task._id}
                                 task={task}
                                 onToggle={handleToggleTask}
@@ -1775,49 +1500,49 @@ export default function ProjectManager() {
                                 onEditCancel={() => {
                                   setEditingTask(null);
                                   setEditTaskTitle('');
-                                  setEditTaskPriority('low');
+                                  setEditTaskPriority('P4');
                                   setEditTaskDueDate('');
                                 }}
                               />
                             ))}
-                          </div>
-                        {/* Removed SortableContext closing tag */}
+                </div>
+                        </SortableContext>
 
                         {/* Add Task Button */}
                         {selectedSection === section._id ? (
-                        <div className="space-y-2">
+                          <div className="space-y-2">
                     <input
                       type="text"
-                        placeholder="Task name"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                        handleAddTask(section._id);
-                        }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm task-input"
+                              placeholder="Task name"
+                              value={newTaskTitle}
+                              onChange={(e) => setNewTaskTitle(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddTask(section._id);
+                                }
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm task-input"
                       autoFocus
                     />
-                        <div className="flex space-x-2">
-                        <select
-                        value={newTaskPriority}
-                        onChange={(e) => setNewTaskPriority(e.target.value)}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                        >
-                          <option value="urgent">Urgent</option>
-                          <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                        </select>
-                        <input
-                        type="datetime-local"
-                          value={newTaskDueDate}
-                        onChange={(e) => setNewTaskDueDate(e.target.value)}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                            placeholder="Due date"
-                    />
-                  </div>
+                            <div className="flex space-x-2">
+                      <select
+                                value={newTaskPriority}
+                                onChange={(e) => setNewTaskPriority(e.target.value)}
+                                className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
+                              >
+                                <option value="P1">P1 - Urgent</option>
+                                <option value="P2">P2 - High</option>
+                                <option value="P3">P3 - Medium</option>
+                                <option value="P4">P4 - Low</option>
+                      </select>
+                      <input
+                                type="datetime-local"
+                                value={newTaskDueDate}
+                                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
+                                placeholder="Due date"
+                      />
+                    </div>
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleAddTask(section._id)}
@@ -1829,7 +1554,7 @@ export default function ProjectManager() {
                       onClick={() => {
                                   setSelectedSection(null);
                                   setNewTaskTitle('');
-                                  setNewTaskPriority('low');
+                                  setNewTaskPriority('P4');
                                   setNewTaskDueDate('');
                                 }}
                                 className="px-3 py-1 text-gray-500 text-sm hover:text-gray-700 transition-colors"
@@ -1841,153 +1566,140 @@ export default function ProjectManager() {
                         ) : (
                     <button
                             onClick={() => setSelectedSection(section._id)}
-                            className="w-full flex items-center justify-center space-x-2 text-gray-500 hover:text-gray-700 py-3 px-4 rounded-full border border-dashed border-gray-300 hover:border-gray-400 transition-colors"
+                            className="w-full flex items-center space-x-2 text-gray-500 hover:text-gray-700 py-2 transition-colors"
                     >
                             <Plus className="w-4 h-4" />
-                            <span className="text-sm font-medium">Add task</span>
+                            <span className="text-sm">Add task</span>
                     </button>
                         )}
-                    </SectionComponent>
-              );
-                })}
                   </div>
-                
-                {/* Removed DragOverlay - using custom drag and drop */}
-
-                {/* Add Section Button */}
-                {showAddSection ? (
-                  <div className="flex-shrink-0 w-80">
-                    <div className="bg-gray-50 rounded-lg p-4 min-h-96">
-                    <input
-                      type="text"
-                        placeholder="Section name"
-                        value={newSectionName}
-                        onChange={(e) => setNewSectionName(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleAddSection();
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm mb-4"
-                      autoFocus
-                    />
-                      <div className="flex space-x-2">
-                      <button
-                          onClick={handleAddSection}
-                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
-                          >
-                          Add section
-                      </button>
-                    <button
-                      onClick={() => {
-                            setShowAddSection(false);
-                            setNewSectionName('');
-                      }}
-                          className="px-3 py-1 text-gray-500 text-sm hover:text-gray-700 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowAddSection(true)}
-                    className="flex-shrink-0 w-80 bg-gray-100 hover:bg-gray-200 rounded-lg p-6 min-h-32 flex items-center justify-center transition-colors"
-                          >
-                    <div className="flex items-center space-x-2 text-gray-500">
-                      <Plus className="w-5 h-5" />
-                      <span className="text-base font-medium">Add section</span>
-                        </div>
-                          </button>
-                        )}
-              </div>
-          ) : projects.length === 0 ? (
-          <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-          <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Welcome to your Project Manager!</h2>
-          <p className="text-gray-500 mb-6">Get started by creating your first project to organize your tasks.</p>
-                        <button 
-          onClick={() => setShowProjectModal(true)}
-            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
-                        >
-            Create Your First Project
-                        </button>
-                      </div>
-                    </div>
-          ) : (
-            <div className="flex items-center justify-center h-96">
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">No project selected</h2>
-                <p className="text-gray-500 mb-4">Select a project from the sidebar to view its tasks.</p>
-                <button
-                  onClick={() => setSelectedProject(projects[0]._id)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Select First Project
-                </button>
-                  </div>
-              </div>
-          )}
-        </main>
-
-      {/* Project Creation Modal */}
-      {showProjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Project</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                <input
-                  type="text"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter project name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                <input
-                  type="text"
-                  value={newProjectIcon}
-                  onChange={(e) => setNewProjectIcon(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="📁"
-                />
                 </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <input
-                  type="color"
-                  value={newProjectColor}
-                  onChange={(e) => setNewProjectColor(e.target.value)}
-                  className="w-full h-10 border border-gray-300 rounded-lg"
-                />
+                  );
+                })}
               </div>
+              
+              {/* Drag Overlay */}
+              <DragOverlay>
+                {activeTask ? (
+                  <div className="bg-white rounded-lg p-3 border border-gray-200 task-card card-shadow new-task opacity-90 rotate-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {activeTask.isCompleted ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-sm ${activeTask.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                            {activeTask.title}
+                          </span>
+                          <span className={`text-xs px-1 py-0.5 rounded ${
+                            activeTask.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                            activeTask.priority === 'P2' ? 'bg-orange-100 text-orange-800' :
+                            activeTask.priority === 'P3' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {activeTask.priority}
+                          </span>
+                        </div>
+                        {activeTask.dueDate && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Due: {new Date(activeTask.dueDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+
+                  </div>
+        ) : !currentProject && projects.length === 0 ? (
+          /* Welcome Screen - Perfectly Centered */
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full">
+            <div className="text-center max-w-lg mx-auto px-4">
+              <div className="text-8xl mb-8">📋</div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">Welcome to your Project Manager!</h2>
+              <p className="text-xl text-gray-600 mb-10 leading-relaxed">Get started by creating your first project to organize your tasks and boost your productivity.</p>
+              <button 
+                onClick={() => setShowProjectModal(true)}
+                className="px-10 py-5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-semibold text-xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 transition-all duration-300"
+              >
+                Create Your First Project
+              </button>
             </div>
-            <div className="flex space-x-3 mt-6">
+          </div>
+        ) : !currentProject && projects.length > 0 ? (
+          /* Select Project Screen - Perfectly Centered */
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full">
+            <div className="text-center max-w-lg mx-auto px-4">
+              <div className="text-8xl mb-8">📋</div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">Select a Project</h2>
+              <p className="text-xl text-gray-600 mb-10 leading-relaxed">Choose a project from the sidebar to view its tasks and start organizing your work.</p>
+            </div>
+          </div>
+        ) : null}
+
+
+        {/* Project Creation Modal */}
+        {showProjectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Project</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Enter project name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                  <input
+                    type="text"
+                    value={newProjectIcon}
+                    onChange={(e) => setNewProjectIcon(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="📁"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                  <input
+                    type="color"
+                    value={newProjectColor}
+                    onChange={(e) => setNewProjectColor(e.target.value)}
+                    className="w-full h-10 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
                       <button 
-                onClick={handleAddProject}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  onClick={handleAddProject}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                       >
                         Create Project
                       </button>
                     <button 
-                onClick={() => {
-                  setShowProjectModal(false);
-                  setNewProjectName('');
-                  setNewProjectColor('#3498db');
-                  setNewProjectIcon('📁');
-                }}
-                className="flex-1 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Cancel
+                  onClick={() => {
+                    setShowProjectModal(false);
+                    setNewProjectName('');
+                    setNewProjectColor('#3498db');
+                    setNewProjectIcon('📁');
+                  }}
+                  className="flex-1 px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Cancel
                     </button>
                   </div>
-          </div>
+            </div>
               </div>
             )}
           </div>

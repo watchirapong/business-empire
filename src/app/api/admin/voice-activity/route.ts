@@ -1,84 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import mongoose from 'mongoose';
-import DiscordBot from '@/lib/discord-bot';
-import { getBot } from '@/lib/start-bot';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  if (mongoose.connections[0].readyState) {
-    console.log('MongoDB already connected');
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI!);
-  console.log('MongoDB connected successfully');
-};
-
-// Voice Activity Schema
-const VoiceActivitySchema = new mongoose.Schema({
-  userId: { type: String, required: true },
-  username: String,
-  globalName: String,
-  avatar: String,
-  voiceJoinCount: { type: Number, default: 0 },
-  totalVoiceTime: { type: Number, default: 0 },
-  lastVoiceJoin: Date,
-  lastVoiceLeave: Date,
-  userType: { type: String, enum: ['real_user', 'suspicious_user'], default: 'suspicious_user' },
-  isActive: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const VoiceActivity = mongoose.models.VoiceActivity || mongoose.model('VoiceActivity', VoiceActivitySchema);
+import { authOptions } from '@/lib/auth';
+import connectDB from '@/lib/mongodb';
+import { isAdmin } from '@/lib/admin-config';
 
 export async function GET(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
     // Try to get user ID from session
-    let userId = (session.user as any)?.id;
+    const userId = (session.user as any)?.id;
     
-    // If no user ID in session, try to get it from email
-    if (!userId && session.user?.email) {
-      try {
-        await connectDB();
-        const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
-          discordId: String,
-          username: String,
-          email: String,
-          avatar: String,
-          discriminator: String,
-          globalName: String,
-          accessToken: String,
-          refreshToken: String,
-          lastLogin: Date,
-          loginCount: Number,
-          isActive: Boolean,
-          createdAt: { type: Date, default: Date.now },
-          updatedAt: { type: Date, default: Date.now }
-        }));
-        
-        const user = await User.findOne({ email: session.user.email });
-        if (user) {
-          userId = user.discordId;
-        }
-      } catch (error) {
-        console.error('Error finding user by email:', error);
-      }
-    }
-
-    if (!ADMIN_USER_IDS.includes(userId)) {
+    if (!isAdmin(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 
     await connectDB();
+    
+    const mongoose = await import('mongoose');
+
+    // Voice Activity Schema
+    const VoiceActivitySchema = new mongoose.Schema({
+      userId: { type: String, required: true },
+      username: String,
+      globalName: String,
+      avatar: String,
+      voiceJoinCount: { type: Number, default: 0 },
+      totalVoiceTime: { type: Number, default: 0 },
+      lastVoiceJoin: Date,
+      lastVoiceLeave: Date,
+      userType: { type: String, enum: ['real_user', 'suspicious_user'], default: 'suspicious_user' },
+      isActive: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now }
+    });
+
+    const VoiceActivity = mongoose.models.VoiceActivity || mongoose.model('VoiceActivity', VoiceActivitySchema);
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter'); // 'all', 'real_user', 'suspicious_user'
@@ -101,42 +63,74 @@ export async function GET(request: NextRequest) {
     const stats = await VoiceActivity.aggregate([
       {
         $group: {
-          _id: '$userType',
-          count: { $sum: 1 },
+          _id: null,
+          totalVoiceTime: { $sum: '$totalVoiceTime' },
           totalJoins: { $sum: '$voiceJoinCount' },
-          totalTime: { $sum: '$totalVoiceTime' },
-          avgJoins: { $avg: '$voiceJoinCount' },
-          avgTime: { $avg: '$totalVoiceTime' }
+          avgVoiceTime: { $avg: '$totalVoiceTime' },
+          avgJoins: { $avg: '$voiceJoinCount' }
         }
       }
     ]);
 
-    // Get actual bot instance for real-time info, fallback to static info
-    const bot = getBot();
-    const serverInfo = bot ? bot.getServerInfo() : DiscordBot.getServerInfo();
-    
-    console.log('Bot instance available:', !!bot);
-    console.log('Server info:', serverInfo);
+    // Try to get enhanced user data for better display names
+    let EnhancedUser: any;
+    try {
+      EnhancedUser = mongoose.model('EnhancedUser');
+    } catch (error) {
+      // Enhanced user model not available
+    }
+
+    // Enhance voice activities with better display names
+    const enhancedVoiceActivities = await Promise.all(
+      voiceActivities.map(async (activity: any) => {
+        let displayName = activity.username;
+        let discordNickname = null;
+
+        if (EnhancedUser) {
+          try {
+            const enhancedUser = await EnhancedUser.findOne({ discordId: activity.userId });
+            if (enhancedUser) {
+              displayName = enhancedUser.discordServerData?.nickname || 
+                           enhancedUser.globalName || 
+                           enhancedUser.username || 
+                           activity.username;
+              discordNickname = enhancedUser.discordServerData?.nickname;
+            }
+          } catch (error) {
+            console.error('Error fetching enhanced user data:', error);
+          }
+        }
+
+        return {
+          ...activity.toObject(),
+          displayName,
+          discordNickname,
+          source: EnhancedUser ? 'enhanced' : 'legacy'
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
       data: {
-        voiceActivities,
+        voiceActivities: enhancedVoiceActivities,
         statistics: {
           totalUsers,
           realUsers,
           suspiciousUsers,
-          breakdown: stats
-        },
-        serverInfo
+          totalVoiceTime: stats[0]?.totalVoiceTime || 0,
+          totalJoins: stats[0]?.totalJoins || 0,
+          avgVoiceTime: Math.round(stats[0]?.avgVoiceTime || 0),
+          avgJoins: Math.round(stats[0]?.avgJoins || 0)
+        }
       }
     });
 
   } catch (error) {
-    console.error('Get voice activity error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get voice activity data' },
-      { status: 500 }
-    );
+    console.error('Error fetching voice activity:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch voice activity',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

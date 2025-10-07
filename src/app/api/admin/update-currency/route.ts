@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { isAdmin, isAdminWithDB } from '@/lib/admin-config';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-// Connect to MongoDB
-const connectDB = async () => {
-  if (mongoose.connections[0].readyState) {
-    console.log('MongoDB already connected');
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI!);
-  console.log('MongoDB connected successfully');
-};
+// Using imported connectDB from @/lib/mongodb
 
 // Currency Schema
 const CurrencySchema = new mongoose.Schema({
@@ -46,31 +41,18 @@ const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917'];
+    const session = await getServerSession(authOptions);
 
-    if (!session) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 });
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Try to get user ID from session
-    let userId = (session.user as any)?.id;
+    const userId = (session.user as any).id;
     
-    // If no user ID in session, try to get it from email
-    if (!userId && session.user?.email) {
-      try {
-        await connectDB();
-        const user = await User.findOne({ email: session.user.email });
-        if (user) {
-          userId = user.discordId;
-        }
-      } catch (error) {
-        console.error('Error finding user by email:', error);
-      }
-    }
-
-    if (!ADMIN_USER_IDS.includes(userId)) {
-      return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
+    // Check if user is admin
+    const isUserAdmin = await isAdminWithDB(userId);
+    if (!isUserAdmin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     await connectDB();

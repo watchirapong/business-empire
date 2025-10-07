@@ -1,57 +1,200 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
-import Task from '@/models/Task';
-import { getUserNickname, getUserNicknames } from '@/lib/user-utils';
 
-// Connect to MongoDB
-const connectDB = async () => {
+// Task Schema
+const taskSchema = new mongoose.Schema({
+  taskName: { type: String, required: true },
+  description: { type: String, required: true },
+  reward: { type: Number, required: true },
+  image: { type: String, required: true },
+  postedBy: {
+    id: { type: String, required: true },
+    nickname: { type: String, required: true }
+  },
+  acceptedBy: [{
+    id: { type: String, required: true },
+    nickname: { type: String, required: true },
+    acceptedAt: { type: Date, default: Date.now }
+  }],
+  status: { 
+    type: String, 
+    enum: ['open', 'in-progress', 'completed', 'cancelled'], 
+    default: 'open' 
+  },
+  winners: [{
+    id: { type: String, required: true },
+    nickname: { type: String, required: true },
+    reward: { type: Number, required: true }
+  }],
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date }
+});
+
+const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
+
+// Helper function to get user nickname from enhanced user model or legacy system
+const getUserNickname = async (userId: string): Promise<string | null> => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
-      return;
+    // Try to use enhanced user model first
+    let EnhancedUser;
+    let User: any;
+    
+    try {
+      EnhancedUser = mongoose.model('EnhancedUser');
+    } catch (error) {
+      User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
+        discordId: String,
+        username: String,
+        globalName: String
+      }));
     }
-    await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('MongoDB Connected successfully');
+
+    if (EnhancedUser) {
+      // Use enhanced user model
+      const user = await EnhancedUser.findOne({ discordId: userId });
+      if (user) {
+        // Priority: Discord nickname > globalName > username
+        return user.discordServerData?.nickname || 
+               user.globalName || 
+               user.username || 
+               `User${userId.slice(-4)}`;
+      }
+    } else {
+      // Legacy system
+      const user = await User.findOne({ discordId: userId });
+      if (user) {
+        return user.globalName || user.username || `User${userId.slice(-4)}`;
+      }
+    }
+
+    return null;
   } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
+    console.error('Error getting user nickname:', error);
+    return null;
   }
 };
 
-// Currency schema (re-defined here for API route context)
-const currencySchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
-  hamsterCoins: { type: Number, default: 0 },
-  totalEarned: { type: Number, default: 0 },
-  totalSpent: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const Currency = mongoose.models.Currency || mongoose.model('Currency', currencySchema);
-
-// Get or create user currency
+// Helper function to get user currency from enhanced user model or legacy system
 const getUserCurrency = async (userId: string) => {
   try {
-    let currency = await Currency.findOne({ userId });
+    // Try to use enhanced user model first
+    let EnhancedUser;
+    let Currency: any;
     
-    if (!currency) {
-      currency = new Currency({
-        userId,
-        hamsterCoins: 0,
-        totalEarned: 0
-      });
-      
-      await currency.save();
+    try {
+      EnhancedUser = mongoose.model('EnhancedUser');
+    } catch (error) {
+      Currency = mongoose.models.Currency || mongoose.model('Currency', new mongoose.Schema({
+        userId: { type: String, required: true, unique: true },
+        hamsterCoins: { type: Number, default: 0 },
+        totalEarned: { type: Number, default: 0 },
+        totalSpent: { type: Number, default: 0 },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
+      }));
     }
-    
-    return currency;
+
+    if (EnhancedUser) {
+      // Use enhanced user model
+      const user = await EnhancedUser.findOne({ discordId: userId });
+      if (user) {
+        return {
+          hamsterCoins: user.currency?.hamsterCoins || 0,
+          totalEarned: user.currency?.totalEarned || 0,
+          totalSpent: user.currency?.totalSpent || 0,
+          save: async () => {
+            user.updatedAt = new Date();
+            await user.save();
+          }
+        };
+      } else {
+        // Create new enhanced user with default currency
+        const newUser = new EnhancedUser({
+          discordId: userId,
+          username: 'Unknown',
+          email: `${userId}@discord.local`,
+          currency: {
+            hamsterCoins: 100,
+            totalEarned: 100,
+            totalSpent: 0
+          }
+        });
+        await newUser.save();
+        return {
+          hamsterCoins: 100,
+          totalEarned: 100,
+          totalSpent: 0,
+          save: async () => {
+            newUser.updatedAt = new Date();
+            await newUser.save();
+          }
+        };
+      }
+    } else {
+      // Legacy system
+      let currency = await Currency.findOne({ userId });
+      if (!currency) {
+        currency = new Currency({
+          userId,
+          hamsterCoins: 0,
+          totalEarned: 0,
+          totalSpent: 0
+        });
+        await currency.save();
+      }
+      return currency;
+    }
   } catch (error) {
     console.error('Error getting user currency:', error);
     throw error;
   }
+};
+
+// Helper function to get multiple user nicknames
+const getUserNicknames = async (userIds: string[]): Promise<Record<string, string>> => {
+  const nicknames: Record<string, string> = {};
+  
+  try {
+    // Try to use enhanced user model first
+    let EnhancedUser;
+    let User: any;
+    
+    try {
+      EnhancedUser = mongoose.model('EnhancedUser');
+    } catch (error) {
+      User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
+        discordId: String,
+        username: String,
+        globalName: String
+      }));
+    }
+
+    if (EnhancedUser) {
+      // Use enhanced user model
+      const users = await EnhancedUser.find({ discordId: { $in: userIds } });
+      users.forEach((user: any) => {
+        const nickname = user.discordServerData?.nickname || 
+                        user.globalName || 
+                        user.username || 
+                        `User${user.discordId.slice(-4)}`;
+        nicknames[user.discordId] = nickname;
+      });
+    } else {
+      // Legacy system
+      const users = await User.find({ discordId: { $in: userIds } });
+      users.forEach((user: any) => {
+        const nickname = user.globalName || user.username || `User${user.discordId.slice(-4)}`;
+        nicknames[user.discordId] = nickname;
+      });
+    }
+  } catch (error) {
+    console.error('Error getting user nicknames:', error);
+  }
+  
+  return nicknames;
 };
 
 export async function GET(request: NextRequest) {
@@ -131,35 +274,28 @@ export async function GET(request: NextRequest) {
     const userIdArray = Array.from(userIds);
     const nicknames = await getUserNicknames(userIdArray);
 
-    // Update tasks with nicknames
-    const tasksWithNicknames = tasks.map((task: any) => {
-      const updatedTask = { ...task };
+    // Update tasks with current nicknames
+    const tasksWithNicknames = tasks.map((task: any) => ({
+      ...task,
+      postedBy: {
+        ...task.postedBy,
+        currentNickname: nicknames[task.postedBy.id] || task.postedBy.nickname
+      },
+      acceptedBy: task.acceptedBy?.map((acceptor: any) => ({
+        ...acceptor,
+        currentNickname: nicknames[acceptor.id] || acceptor.nickname
+      })) || [],
+      winners: task.winners?.map((winner: any) => ({
+        ...winner,
+        currentNickname: nicknames[winner.id] || winner.nickname
+      })) || []
+    }));
 
-      // Update postedBy nickname
-      if (updatedTask.postedBy?.id) {
-        updatedTask.postedBy.nickname = nicknames[updatedTask.postedBy.id] || 'Unknown User';
-      }
-
-      // Update acceptedBy nicknames
-      if (updatedTask.acceptedBy && Array.isArray(updatedTask.acceptedBy)) {
-        updatedTask.acceptedBy = updatedTask.acceptedBy.map((acceptor: any) => ({
-          ...acceptor,
-          nickname: nicknames[acceptor.id] || 'Unknown User'
-        }));
-      }
-
-      // Update winners nicknames
-      if (updatedTask.winners && Array.isArray(updatedTask.winners)) {
-        updatedTask.winners = updatedTask.winners.map((winner: any) => ({
-          ...winner,
-          nickname: nicknames[winner.id] || 'Unknown User'
-        }));
-      }
-
-      return updatedTask;
+    return NextResponse.json({ 
+      tasks: tasksWithNicknames,
+      source: 'enhanced'
     });
 
-    return NextResponse.json({ tasks: tasksWithNicknames });
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

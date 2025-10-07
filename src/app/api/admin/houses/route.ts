@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
-      return;
-    }
-    
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
+import { authOptions } from '@/lib/auth';
+import connectDB from '@/lib/mongodb';
+import { isAdmin } from '@/lib/admin-config';
+import mongoose from 'mongoose';
 
 // House Points Schema
 const housePointsSchema = new mongoose.Schema({
@@ -39,8 +26,7 @@ const housePointsSchema = new mongoose.Schema({
   },
   updatedBy: {
     type: String,
-    required: false,
-    default: 'system'
+    required: true
   },
   updateReason: {
     type: String,
@@ -50,53 +36,20 @@ const housePointsSchema = new mongoose.Schema({
 
 const HousePoints = mongoose.models.HousePoints || mongoose.model('HousePoints', housePointsSchema);
 
-// User Schema for email lookup
-const UserSchema = new mongoose.Schema({
-  discordId: String,
-  username: String,
-  email: String,
-  avatar: String,
-  discriminator: String,
-  globalName: String,
-  accessToken: String,
-  refreshToken: String,
-  lastLogin: Date,
-  loginCount: Number,
-  isActive: Boolean,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.models.User || mongoose.model('User', UserSchema);
-
 // GET - List all houses
 export async function GET() {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
     // Try to get user ID from session
-    let userId = (session.user as any)?.id;
+    const userId = (session.user as any)?.id;
     
-    // If no user ID in session, try to get it from email
-    if (!userId && session.user?.email) {
-      try {
-        await connectDB();
-        const user = await User.findOne({ email: session.user.email });
-        if (user) {
-          userId = user.discordId;
-        }
-      } catch (error) {
-        console.error('Error finding user by email:', error);
-      }
-    }
-
-    if (!ADMIN_USER_IDS.includes(userId)) {
+    if (!isAdmin(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 
@@ -124,30 +77,16 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
     // Try to get user ID from session
-    let userId = (session.user as any)?.id;
+    const userId = (session.user as any)?.id;
     
-    // If no user ID in session, try to get it from email
-    if (!userId && session.user?.email) {
-      try {
-        await connectDB();
-        const user = await User.findOne({ email: session.user.email });
-        if (user) {
-          userId = user.discordId;
-        }
-      } catch (error) {
-        console.error('Error finding user by email:', error);
-      }
-    }
-
-    if (!ADMIN_USER_IDS.includes(userId)) {
+    if (!isAdmin(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 
@@ -193,8 +132,7 @@ export async function POST(request: NextRequest) {
     const newHouse = new HousePoints({
       houseName: houseName.trim(),
       points: initialPoints,
-      lastUpdated: new Date(),
-      updatedBy: userId || 'admin',
+      updatedBy: userId,
       updateReason: 'House created'
     });
 
@@ -202,8 +140,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `House "${houseName.trim()}" created successfully`,
-      house: newHouse
+      house: newHouse,
+      message: `House "${houseName}" created successfully with ${initialPoints} points`
     });
 
   } catch (error) {
@@ -219,30 +157,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Check admin authorization
-    const session = await getServerSession();
-    const ADMIN_USER_IDS = ['898059066537029692', '664458019442262018', '547402456363958273', '535471828525776917', '315548736388333568'];
+    const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
     // Try to get user ID from session
-    let userId = (session.user as any)?.id;
+    const userId = (session.user as any)?.id;
     
-    // If no user ID in session, try to get it from email
-    if (!userId && session.user?.email) {
-      try {
-        await connectDB();
-        const user = await User.findOne({ email: session.user.email });
-        if (user) {
-          userId = user.discordId;
-        }
-      } catch (error) {
-        console.error('Error finding user by email:', error);
-      }
-    }
-
-    if (!ADMIN_USER_IDS.includes(userId)) {
+    if (!isAdmin(userId)) {
       return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
     }
 

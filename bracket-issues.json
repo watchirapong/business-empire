@@ -1,0 +1,4890 @@
+[
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 168,
+    "index": 5527,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 168,
+    "message": "Bracket mismatch at line 168: expected ')' but found '>' (opening bracket at line 168)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 168,
+    "index": 5554,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 111,
+    "message": "Bracket mismatch at line 168: expected '}' but found ')' (opening bracket at line 111)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 169,
+    "index": 5609,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 169,
+    "message": "Bracket mismatch at line 169: expected ')' but found '>' (opening bracket at line 169)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 169,
+    "index": 5641,
+    "message": "Unexpected closing bracket ')' at line 169"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 172,
+    "index": 5730,
+    "message": "Unexpected closing bracket '>' at line 172"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 182,
+    "index": 6160,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 182,
+    "message": "Bracket mismatch at line 182: expected ')' but found '>' (opening bracket at line 182)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 182,
+    "index": 6163,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 177,
+    "message": "Bracket mismatch at line 182: expected '}' but found ')' (opening bracket at line 177)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 189,
+    "index": 6337,
+    "message": "Unexpected closing bracket '}' at line 189"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 194,
+    "index": 6593,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 192,
+    "message": "Bracket mismatch at line 194: expected '}' but found '>' (opening bracket at line 192)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 195,
+    "index": 6627,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 192,
+    "message": "Bracket mismatch at line 195: expected ')' but found '>' (opening bracket at line 192)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 196,
+    "index": 6663,
+    "message": "Unexpected closing bracket '>' at line 196"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 201,
+    "index": 6819,
+    "message": "Unexpected closing bracket '>' at line 201"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 202,
+    "index": 6857,
+    "message": "Unexpected closing bracket '>' at line 202"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 203,
+    "index": 6887,
+    "message": "Unexpected closing bracket '>' at line 203"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 204,
+    "index": 6897,
+    "message": "Unexpected closing bracket '}' at line 204"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 204,
+    "index": 6898,
+    "message": "Unexpected closing bracket ')' at line 204"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 204,
+    "index": 6901,
+    "message": "Unexpected closing bracket '>' at line 204"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 207,
+    "index": 7031,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 204,
+    "message": "Bracket mismatch at line 207: expected '}' but found '>' (opening bracket at line 204)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 220,
+    "index": 7374,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 220,
+    "message": "Bracket mismatch at line 220: expected '}' but found '>' (opening bracket at line 220)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 220,
+    "index": 7400,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 218,
+    "message": "Bracket mismatch at line 220: expected '>' but found '}' (opening bracket at line 218)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 222,
+    "index": 7521,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 217,
+    "message": "Bracket mismatch at line 222: expected ')' but found '>' (opening bracket at line 217)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 229,
+    "index": 7787,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 229,
+    "message": "Bracket mismatch at line 229: expected '}' but found '>' (opening bracket at line 229)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 229,
+    "index": 7826,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 226,
+    "message": "Bracket mismatch at line 229: expected '>' but found '}' (opening bracket at line 226)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 233,
+    "index": 8035,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 223,
+    "message": "Bracket mismatch at line 233: expected ')' but found '>' (opening bracket at line 223)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 237,
+    "index": 8180,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 237,
+    "message": "Bracket mismatch at line 237: expected '}' but found '>' (opening bracket at line 237)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 237,
+    "index": 8222,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 235,
+    "message": "Bracket mismatch at line 237: expected '>' but found '}' (opening bracket at line 235)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 239,
+    "index": 8367,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 223,
+    "message": "Bracket mismatch at line 239: expected '}' but found '>' (opening bracket at line 223)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 248,
+    "index": 8747,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 248,
+    "message": "Bracket mismatch at line 248: expected '}' but found '>' (opening bracket at line 248)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 248,
+    "index": 8788,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 245,
+    "message": "Bracket mismatch at line 248: expected '>' but found '}' (opening bracket at line 245)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 250,
+    "index": 8934,
+    "message": "Unexpected closing bracket '>' at line 250"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 254,
+    "index": 9059,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 254,
+    "message": "Bracket mismatch at line 254: expected '}' but found '>' (opening bracket at line 254)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 254,
+    "index": 9081,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 253,
+    "message": "Bracket mismatch at line 254: expected '>' but found '}' (opening bracket at line 253)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 256,
+    "index": 9191,
+    "message": "Unexpected closing bracket '>' at line 256"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 268,
+    "index": 9533,
+    "message": "Unexpected closing bracket ')' at line 268"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 273,
+    "index": 9849,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 273,
+    "message": "Bracket mismatch at line 273: expected '}' but found '>' (opening bracket at line 273)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 277,
+    "index": 9985,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 272,
+    "message": "Bracket mismatch at line 277: expected '>' but found '}' (opening bracket at line 272)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 278,
+    "index": 10021,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 278,
+    "message": "Bracket mismatch at line 278: expected '}' but found '>' (opening bracket at line 278)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 281,
+    "index": 10119,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 268,
+    "message": "Bracket mismatch at line 281: expected ')' but found '}' (opening bracket at line 268)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 283,
+    "index": 10177,
+    "message": "Unexpected closing bracket '>' at line 283"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 309,
+    "index": 11222,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 309,
+    "message": "Bracket mismatch at line 309: expected '}' but found '>' (opening bracket at line 309)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 313,
+    "index": 11364,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 308,
+    "message": "Bracket mismatch at line 313: expected '>' but found '}' (opening bracket at line 308)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 314,
+    "index": 11402,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 314,
+    "message": "Bracket mismatch at line 314: expected '}' but found '>' (opening bracket at line 314)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 317,
+    "index": 11506,
+    "message": "Unexpected closing bracket '}' at line 317"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 320,
+    "index": 11686,
+    "message": "Unexpected closing bracket '>' at line 320"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 324,
+    "index": 11817,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 324,
+    "message": "Bracket mismatch at line 324: expected '}' but found '>' (opening bracket at line 324)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 329,
+    "index": 12042,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 323,
+    "message": "Bracket mismatch at line 329: expected '>' but found '}' (opening bracket at line 323)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 330,
+    "index": 12080,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 330,
+    "message": "Bracket mismatch at line 330: expected '}' but found '>' (opening bracket at line 330)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 333,
+    "index": 12184,
+    "message": "Unexpected closing bracket '}' at line 333"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 336,
+    "index": 12364,
+    "message": "Unexpected closing bracket '>' at line 336"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 342,
+    "index": 12506,
+    "message": "Unexpected closing bracket ')' at line 342"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 342,
+    "index": 12507,
+    "message": "Unexpected closing bracket '}' at line 342"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 344,
+    "index": 12526,
+    "message": "Unexpected closing bracket ')' at line 344"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 345,
+    "index": 12531,
+    "message": "Unexpected closing bracket '}' at line 345"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 348,
+    "index": 12692,
+    "message": "Unexpected closing bracket '>' at line 348"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 365,
+    "index": 13269,
+    "message": "Unexpected closing bracket '>' at line 365"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 395,
+    "index": 14331,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 395,
+    "message": "Bracket mismatch at line 395: expected ')' but found '>' (opening bracket at line 395)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 395,
+    "index": 14334,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 389,
+    "message": "Bracket mismatch at line 395: expected '}' but found ')' (opening bracket at line 389)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 412,
+    "index": 14936,
+    "message": "Unexpected closing bracket '}' at line 412"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 417,
+    "index": 15121,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 417,
+    "message": "Bracket mismatch at line 417: expected ')' but found '>' (opening bracket at line 417)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 422,
+    "index": 15255,
+    "message": "Unexpected closing bracket ')' at line 422"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 425,
+    "index": 15323,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 425,
+    "message": "Bracket mismatch at line 425: expected ')' but found '>' (opening bracket at line 425)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 432,
+    "index": 15644,
+    "message": "Unexpected closing bracket ')' at line 432"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 435,
+    "index": 15748,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 435,
+    "message": "Bracket mismatch at line 435: expected ')' but found '>' (opening bracket at line 435)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 436,
+    "index": 15795,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 436,
+    "message": "Bracket mismatch at line 436: expected ')' but found '>' (opening bracket at line 436)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 436,
+    "index": 15798,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 435,
+    "message": "Bracket mismatch at line 436: expected '}' but found ')' (opening bracket at line 435)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 437,
+    "index": 15848,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 437,
+    "message": "Bracket mismatch at line 437: expected ')' but found '>' (opening bracket at line 437)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 437,
+    "index": 15875,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 436,
+    "message": "Bracket mismatch at line 437: expected '}' but found ')' (opening bracket at line 436)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 442,
+    "index": 16026,
+    "message": "Unexpected closing bracket '}' at line 442"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 443,
+    "index": 16030,
+    "message": "Unexpected closing bracket '}' at line 443"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 443,
+    "index": 16060,
+    "message": "Unexpected closing bracket ')' at line 443"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 446,
+    "index": 16130,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 446,
+    "message": "Bracket mismatch at line 446: expected ')' but found '>' (opening bracket at line 446)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 447,
+    "index": 16158,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 447,
+    "message": "Bracket mismatch at line 447: expected ')' but found '>' (opening bracket at line 447)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 447,
+    "index": 16179,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 446,
+    "message": "Bracket mismatch at line 447: expected '}' but found ')' (opening bracket at line 446)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 450,
+    "index": 16216,
+    "message": "Unexpected closing bracket '}' at line 450"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 450,
+    "index": 16244,
+    "message": "Unexpected closing bracket ')' at line 450"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 459,
+    "index": 16576,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 459,
+    "message": "Bracket mismatch at line 459: expected ')' but found '>' (opening bracket at line 459)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 460,
+    "index": 16604,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 460,
+    "message": "Bracket mismatch at line 460: expected ')' but found '>' (opening bracket at line 460)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 460,
+    "index": 16627,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 459,
+    "message": "Bracket mismatch at line 460: expected '}' but found '>' (opening bracket at line 459)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 460,
+    "index": 16630,
+    "message": "Unexpected closing bracket ')' at line 460"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 461,
+    "index": 16686,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 461,
+    "message": "Bracket mismatch at line 461: expected ')' but found '>' (opening bracket at line 461)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 461,
+    "index": 16703,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 460,
+    "message": "Bracket mismatch at line 461: expected '}' but found ')' (opening bracket at line 460)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 462,
+    "index": 16742,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 462,
+    "message": "Bracket mismatch at line 462: expected ')' but found '>' (opening bracket at line 462)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 462,
+    "index": 16745,
+    "message": "Unexpected closing bracket ')' at line 462"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 465,
+    "index": 16922,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 465,
+    "message": "Bracket mismatch at line 465: expected ')' but found '>' (opening bracket at line 465)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 479,
+    "index": 17376,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 479,
+    "message": "Bracket mismatch at line 479: expected ')' but found '>' (opening bracket at line 479)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 479,
+    "index": 17390,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 479,
+    "message": "Bracket mismatch at line 479: expected ')' but found '>' (opening bracket at line 479)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 479,
+    "index": 17428,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 477,
+    "message": "Bracket mismatch at line 479: expected '}' but found ')' (opening bracket at line 477)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 479,
+    "index": 17429,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 466,
+    "message": "Bracket mismatch at line 479: expected '}' but found ')' (opening bracket at line 466)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 484,
+    "index": 17567,
+    "message": "Unexpected closing bracket '}' at line 484"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 484,
+    "index": 17568,
+    "message": "Unexpected closing bracket ')' at line 484"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 485,
+    "index": 17580,
+    "message": "Unexpected closing bracket '}' at line 485"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 486,
+    "index": 17589,
+    "message": "Unexpected closing bracket '}' at line 486"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 487,
+    "index": 17596,
+    "message": "Unexpected closing bracket '}' at line 487"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 487,
+    "index": 17616,
+    "message": "Unexpected closing bracket ')' at line 487"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 490,
+    "index": 17695,
+    "message": "Unexpected closing bracket '>' at line 490"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 497,
+    "index": 17897,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 497,
+    "message": "Bracket mismatch at line 497: expected ')' but found '>' (opening bracket at line 497)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 498,
+    "index": 17941,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 498,
+    "message": "Bracket mismatch at line 498: expected ')' but found '>' (opening bracket at line 498)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 498,
+    "index": 17968,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 497,
+    "message": "Bracket mismatch at line 498: expected '}' but found ')' (opening bracket at line 497)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 500,
+    "index": 18028,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 500,
+    "message": "Bracket mismatch at line 500: expected ')' but found '>' (opening bracket at line 500)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 500,
+    "index": 18073,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 499,
+    "message": "Bracket mismatch at line 500: expected '}' but found ')' (opening bracket at line 499)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 504,
+    "index": 18159,
+    "message": "Unexpected closing bracket ')' at line 504"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 507,
+    "index": 18227,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 507,
+    "message": "Bracket mismatch at line 507: expected ')' but found '>' (opening bracket at line 507)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 507,
+    "index": 18244,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 507,
+    "message": "Bracket mismatch at line 507: expected ')' but found '>' (opening bracket at line 507)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 507,
+    "index": 18271,
+    "message": "Unexpected closing bracket ')' at line 507"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 507,
+    "index": 18272,
+    "message": "Unexpected closing bracket ')' at line 507"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 511,
+    "index": 18376,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 511,
+    "message": "Bracket mismatch at line 511: expected ')' but found '>' (opening bracket at line 511)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 512,
+    "index": 18420,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 512,
+    "message": "Bracket mismatch at line 512: expected ')' but found '>' (opening bracket at line 512)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 512,
+    "index": 18447,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 511,
+    "message": "Bracket mismatch at line 512: expected '}' but found ')' (opening bracket at line 511)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 514,
+    "index": 18507,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 514,
+    "message": "Bracket mismatch at line 514: expected ')' but found '>' (opening bracket at line 514)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 514,
+    "index": 18552,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 513,
+    "message": "Bracket mismatch at line 514: expected '}' but found ')' (opening bracket at line 513)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 515,
+    "index": 18565,
+    "message": "Unexpected closing bracket '}' at line 515"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 518,
+    "index": 18637,
+    "message": "Unexpected closing bracket '}' at line 518"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 518,
+    "index": 18638,
+    "message": "Unexpected closing bracket ')' at line 518"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 521,
+    "index": 18712,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 521,
+    "message": "Bracket mismatch at line 521: expected ')' but found '>' (opening bracket at line 521)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 521,
+    "index": 18729,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 521,
+    "message": "Bracket mismatch at line 521: expected ')' but found '>' (opening bracket at line 521)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 521,
+    "index": 18756,
+    "message": "Unexpected closing bracket ')' at line 521"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 521,
+    "index": 18757,
+    "message": "Unexpected closing bracket ')' at line 521"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 523,
+    "index": 18779,
+    "message": "Unexpected closing bracket '}' at line 523"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 527,
+    "index": 18914,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 527,
+    "message": "Bracket mismatch at line 527: expected ')' but found '>' (opening bracket at line 527)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 527,
+    "index": 18949,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 526,
+    "message": "Bracket mismatch at line 527: expected '}' but found ')' (opening bracket at line 526)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 529,
+    "index": 19025,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 529,
+    "message": "Bracket mismatch at line 529: expected ')' but found '>' (opening bracket at line 529)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 530,
+    "index": 19060,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 530,
+    "message": "Bracket mismatch at line 530: expected ')' but found '>' (opening bracket at line 530)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 534,
+    "index": 19178,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 529,
+    "message": "Bracket mismatch at line 534: expected '}' but found ')' (opening bracket at line 529)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 535,
+    "index": 19187,
+    "message": "Unexpected closing bracket '}' at line 535"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 535,
+    "index": 19195,
+    "message": "Unexpected closing bracket ')' at line 535"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 536,
+    "index": 19202,
+    "message": "Unexpected closing bracket '}' at line 536"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 537,
+    "index": 19206,
+    "message": "Unexpected closing bracket '}' at line 537"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 542,
+    "index": 19399,
+    "message": "Unexpected closing bracket '>' at line 542"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 568,
+    "index": 20208,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 568,
+    "message": "Bracket mismatch at line 568: expected ')' but found '>' (opening bracket at line 568)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 568,
+    "index": 20228,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 568,
+    "message": "Bracket mismatch at line 568: expected ')' but found '>' (opening bracket at line 568)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 572,
+    "index": 20379,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 566,
+    "message": "Bracket mismatch at line 572: expected '}' but found ')' (opening bracket at line 566)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 572,
+    "index": 20380,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 562,
+    "message": "Bracket mismatch at line 572: expected '}' but found ')' (opening bracket at line 562)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 575,
+    "index": 20462,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 575,
+    "message": "Bracket mismatch at line 575: expected ')' but found '>' (opening bracket at line 575)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 575,
+    "index": 20482,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 573,
+    "message": "Bracket mismatch at line 575: expected '}' but found ')' (opening bracket at line 573)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 582,
+    "index": 20639,
+    "message": "Unexpected closing bracket '}' at line 582"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 585,
+    "index": 20708,
+    "message": "Unexpected closing bracket '}' at line 585"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 588,
+    "index": 20786,
+    "message": "Unexpected closing bracket '}' at line 588"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 590,
+    "index": 20841,
+    "message": "Unexpected closing bracket '>' at line 590"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 592,
+    "index": 20923,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 592,
+    "message": "Bracket mismatch at line 592: expected ')' but found '>' (opening bracket at line 592)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 592,
+    "index": 20941,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 590,
+    "message": "Bracket mismatch at line 592: expected '}' but found ')' (opening bracket at line 590)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 597,
+    "index": 21095,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 597,
+    "message": "Bracket mismatch at line 597: expected ')' but found '>' (opening bracket at line 597)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 597,
+    "index": 21113,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 596,
+    "message": "Bracket mismatch at line 597: expected '}' but found ')' (opening bracket at line 596)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 601,
+    "index": 21165,
+    "message": "Unexpected closing bracket '}' at line 601"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 624,
+    "index": 21733,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 624,
+    "message": "Bracket mismatch at line 624: expected ')' but found '>' (opening bracket at line 624)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 624,
+    "index": 21747,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 624,
+    "message": "Bracket mismatch at line 624: expected ')' but found '>' (opening bracket at line 624)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 624,
+    "index": 21783,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 620,
+    "message": "Bracket mismatch at line 624: expected '}' but found ')' (opening bracket at line 620)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 624,
+    "index": 21784,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 605,
+    "message": "Bracket mismatch at line 624: expected '}' but found ')' (opening bracket at line 605)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 627,
+    "index": 21852,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 627,
+    "message": "Bracket mismatch at line 627: expected ')' but found '>' (opening bracket at line 627)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 627,
+    "index": 21872,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 627,
+    "message": "Bracket mismatch at line 627: expected ')' but found '>' (opening bracket at line 627)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 629,
+    "index": 21953,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 629,
+    "message": "Bracket mismatch at line 629: expected ')' but found '>' (opening bracket at line 629)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 629,
+    "index": 21989,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 627,
+    "message": "Bracket mismatch at line 629: expected '}' but found ')' (opening bracket at line 627)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 630,
+    "index": 22004,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 627,
+    "message": "Bracket mismatch at line 630: expected ')' but found '}' (opening bracket at line 627)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 630,
+    "index": 22005,
+    "message": "Unexpected closing bracket ')' at line 630"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 630,
+    "index": 22006,
+    "message": "Unexpected closing bracket ')' at line 630"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 630,
+    "index": 22007,
+    "message": "Unexpected closing bracket ')' at line 630"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 631,
+    "index": 22016,
+    "message": "Unexpected closing bracket '}' at line 631"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 632,
+    "index": 22022,
+    "message": "Unexpected closing bracket '}' at line 632"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 635,
+    "index": 22100,
+    "message": "Unexpected closing bracket '}' at line 635"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 637,
+    "index": 22153,
+    "message": "Unexpected closing bracket '>' at line 637"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 660,
+    "index": 22748,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 660,
+    "message": "Bracket mismatch at line 660: expected ')' but found '>' (opening bracket at line 660)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 660,
+    "index": 22762,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 660,
+    "message": "Bracket mismatch at line 660: expected ')' but found '>' (opening bracket at line 660)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 660,
+    "index": 22798,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 656,
+    "message": "Bracket mismatch at line 660: expected '}' but found ')' (opening bracket at line 656)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 660,
+    "index": 22799,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 640,
+    "message": "Bracket mismatch at line 660: expected '}' but found ')' (opening bracket at line 640)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 663,
+    "index": 22867,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 663,
+    "message": "Bracket mismatch at line 663: expected ')' but found '>' (opening bracket at line 663)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 663,
+    "index": 22887,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 663,
+    "message": "Bracket mismatch at line 663: expected ')' but found '>' (opening bracket at line 663)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 665,
+    "index": 22968,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 665,
+    "message": "Bracket mismatch at line 665: expected ')' but found '>' (opening bracket at line 665)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 665,
+    "index": 23004,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 663,
+    "message": "Bracket mismatch at line 665: expected '}' but found ')' (opening bracket at line 663)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 666,
+    "index": 23019,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 663,
+    "message": "Bracket mismatch at line 666: expected ')' but found '}' (opening bracket at line 663)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 666,
+    "index": 23020,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 637,
+    "message": "Bracket mismatch at line 666: expected '}' but found ')' (opening bracket at line 637)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 666,
+    "index": 23021,
+    "message": "Unexpected closing bracket ')' at line 666"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 666,
+    "index": 23022,
+    "message": "Unexpected closing bracket ')' at line 666"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 672,
+    "index": 23168,
+    "message": "Unexpected closing bracket '}' at line 672"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 673,
+    "index": 23174,
+    "message": "Unexpected closing bracket '}' at line 673"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 676,
+    "index": 23252,
+    "message": "Unexpected closing bracket '}' at line 676"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 678,
+    "index": 23307,
+    "message": "Unexpected closing bracket '>' at line 678"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 700,
+    "index": 23972,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 700,
+    "message": "Bracket mismatch at line 700: expected ')' but found '>' (opening bracket at line 700)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 701,
+    "index": 24018,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 701,
+    "message": "Bracket mismatch at line 701: expected ')' but found '>' (opening bracket at line 701)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 701,
+    "index": 24036,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 700,
+    "message": "Bracket mismatch at line 701: expected '}' but found ')' (opening bracket at line 700)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 704,
+    "index": 24147,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 688,
+    "message": "Bracket mismatch at line 704: expected '}' but found ')' (opening bracket at line 688)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 707,
+    "index": 24222,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 707,
+    "message": "Bracket mismatch at line 707: expected ')' but found '>' (opening bracket at line 707)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 707,
+    "index": 24242,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 707,
+    "message": "Bracket mismatch at line 707: expected ')' but found '>' (opening bracket at line 707)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 710,
+    "index": 24364,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 710,
+    "message": "Bracket mismatch at line 710: expected ')' but found '>' (opening bracket at line 710)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 710,
+    "index": 24382,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 708,
+    "message": "Bracket mismatch at line 710: expected '}' but found ')' (opening bracket at line 708)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 714,
+    "index": 24547,
+    "message": "Unexpected closing bracket ')' at line 714"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 714,
+    "index": 24548,
+    "message": "Unexpected closing bracket ')' at line 714"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 717,
+    "index": 24637,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 717,
+    "message": "Bracket mismatch at line 717: expected ')' but found '>' (opening bracket at line 717)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 717,
+    "index": 24657,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 717,
+    "message": "Bracket mismatch at line 717: expected ')' but found '>' (opening bracket at line 717)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 721,
+    "index": 24830,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 721,
+    "message": "Bracket mismatch at line 721: expected ')' but found '>' (opening bracket at line 721)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 723,
+    "index": 24926,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 723,
+    "message": "Bracket mismatch at line 723: expected ')' but found '>' (opening bracket at line 723)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 723,
+    "index": 24944,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 721,
+    "message": "Bracket mismatch at line 723: expected '}' but found ')' (opening bracket at line 721)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 724,
+    "index": 24965,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 721,
+    "message": "Bracket mismatch at line 724: expected ')' but found '}' (opening bracket at line 721)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 724,
+    "index": 24966,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 719,
+    "message": "Bracket mismatch at line 724: expected '}' but found ')' (opening bracket at line 719)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 724,
+    "index": 24967,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 718,
+    "message": "Bracket mismatch at line 724: expected '}' but found ')' (opening bracket at line 718)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 725,
+    "index": 25066,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 725,
+    "message": "Bracket mismatch at line 725: expected ')' but found '>' (opening bracket at line 725)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 725,
+    "index": 25084,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 717,
+    "message": "Bracket mismatch at line 725: expected '}' but found ')' (opening bracket at line 717)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 726,
+    "index": 25103,
+    "message": "Unexpected closing bracket '}' at line 726"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 727,
+    "index": 25116,
+    "message": "Unexpected closing bracket '}' at line 727"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 729,
+    "index": 25152,
+    "message": "Unexpected closing bracket '}' at line 729"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 729,
+    "index": 25153,
+    "message": "Unexpected closing bracket ')' at line 729"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 729,
+    "index": 25154,
+    "message": "Unexpected closing bracket ')' at line 729"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 732,
+    "index": 25228,
+    "message": "Unexpected closing bracket '}' at line 732"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 737,
+    "index": 25411,
+    "message": "Unexpected closing bracket '}' at line 737"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 741,
+    "index": 25546,
+    "message": "Unexpected closing bracket '}' at line 741"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 743,
+    "index": 25587,
+    "message": "Unexpected closing bracket '>' at line 743"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 762,
+    "index": 26158,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 762,
+    "message": "Bracket mismatch at line 762: expected ')' but found '>' (opening bracket at line 762)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 762,
+    "index": 26181,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 760,
+    "message": "Bracket mismatch at line 762: expected '}' but found ')' (opening bracket at line 760)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 771,
+    "index": 26408,
+    "message": "Unexpected closing bracket '}' at line 771"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 773,
+    "index": 26449,
+    "message": "Unexpected closing bracket '>' at line 773"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 793,
+    "index": 27038,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 793,
+    "message": "Bracket mismatch at line 793: expected ')' but found '>' (opening bracket at line 793)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 793,
+    "index": 27061,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 791,
+    "message": "Bracket mismatch at line 793: expected '}' but found ')' (opening bracket at line 791)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 805,
+    "index": 27406,
+    "message": "Unexpected closing bracket '}' at line 805"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 809,
+    "index": 27547,
+    "message": "Unexpected closing bracket '>' at line 809"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 822,
+    "index": 27926,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 822,
+    "message": "Bracket mismatch at line 822: expected ')' but found '>' (opening bracket at line 822)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 823,
+    "index": 27985,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 822,
+    "message": "Bracket mismatch at line 823: expected '}' but found '>' (opening bracket at line 822)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 832,
+    "index": 28294,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 832,
+    "message": "Bracket mismatch at line 832: expected ')' but found '>' (opening bracket at line 832)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 832,
+    "index": 28312,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 823,
+    "message": "Bracket mismatch at line 832: expected '}' but found ')' (opening bracket at line 823)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 836,
+    "index": 28426,
+    "message": "Unexpected closing bracket '}' at line 836"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 838,
+    "index": 28489,
+    "message": "Unexpected closing bracket '>' at line 838"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 884,
+    "index": 30069,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 884,
+    "message": "Bracket mismatch at line 884: expected ')' but found '>' (opening bracket at line 884)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 884,
+    "index": 30088,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 883,
+    "message": "Bracket mismatch at line 884: expected '}' but found ')' (opening bracket at line 883)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 915,
+    "index": 31038,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 915,
+    "message": "Bracket mismatch at line 915: expected ')' but found '>' (opening bracket at line 915)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 915,
+    "index": 31058,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 915,
+    "message": "Bracket mismatch at line 915: expected ')' but found '>' (opening bracket at line 915)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 917,
+    "index": 31196,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 917,
+    "message": "Bracket mismatch at line 917: expected ')' but found '>' (opening bracket at line 917)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 917,
+    "index": 31222,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 917,
+    "message": "Bracket mismatch at line 917: expected '}' but found ')' (opening bracket at line 917)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 919,
+    "index": 31273,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 909,
+    "message": "Bracket mismatch at line 919: expected '}' but found ')' (opening bracket at line 909)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 919,
+    "index": 31274,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 894,
+    "message": "Bracket mismatch at line 919: expected '}' but found ')' (opening bracket at line 894)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 921,
+    "index": 31327,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 921,
+    "message": "Bracket mismatch at line 921: expected ')' but found '>' (opening bracket at line 921)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 921,
+    "index": 31344,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 921,
+    "message": "Bracket mismatch at line 921: expected ')' but found '>' (opening bracket at line 921)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 921,
+    "index": 31370,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 920,
+    "message": "Bracket mismatch at line 921: expected '}' but found ')' (opening bracket at line 920)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 921,
+    "index": 31371,
+    "message": "Unexpected closing bracket ')' at line 921"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 922,
+    "index": 31386,
+    "message": "Unexpected closing bracket '}' at line 922"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 925,
+    "index": 31469,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 925,
+    "message": "Bracket mismatch at line 925: expected ')' but found '>' (opening bracket at line 925)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 925,
+    "index": 31489,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 925,
+    "message": "Bracket mismatch at line 925: expected ')' but found '>' (opening bracket at line 925)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 929,
+    "index": 31658,
+    "message": "Unexpected closing bracket ')' at line 929"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 929,
+    "index": 31659,
+    "message": "Unexpected closing bracket ')' at line 929"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 930,
+    "index": 31672,
+    "message": "Unexpected closing bracket '}' at line 930"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 933,
+    "index": 31745,
+    "message": "Unexpected closing bracket '}' at line 933"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 936,
+    "index": 31835,
+    "message": "Unexpected closing bracket '}' at line 936"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 953,
+    "index": 32536,
+    "message": "Unexpected closing bracket '}' at line 953"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 960,
+    "index": 32718,
+    "message": "Unexpected closing bracket '>' at line 960"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 964,
+    "index": 32871,
+    "message": "Unexpected closing bracket '}' at line 964"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 964,
+    "index": 32927,
+    "message": "Unexpected closing bracket ')' at line 964"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 967,
+    "index": 32993,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 967,
+    "message": "Bracket mismatch at line 967: expected ')' but found '>' (opening bracket at line 967)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 968,
+    "index": 33049,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 967,
+    "message": "Bracket mismatch at line 968: expected '}' but found '>' (opening bracket at line 967)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 975,
+    "index": 33266,
+    "message": "Unexpected closing bracket '>' at line 975"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 976,
+    "index": 33333,
+    "message": "Unexpected closing bracket '}' at line 976"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 976,
+    "index": 33353,
+    "message": "Unexpected closing bracket ')' at line 976"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 981,
+    "index": 33518,
+    "message": "Unexpected closing bracket '>' at line 981"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 982,
+    "index": 33583,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 982,
+    "message": "Bracket mismatch at line 982: expected ')' but found '>' (opening bracket at line 982)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 982,
+    "index": 33604,
+    "expected": "]",
+    "found": ")",
+    "openingLine": 982,
+    "message": "Bracket mismatch at line 982: expected ']' but found ')' (opening bracket at line 982)"
+  },
+  {
+    "type": "mismatch",
+    "char": "]",
+    "line": 982,
+    "index": 33605,
+    "expected": "}",
+    "found": "]",
+    "openingLine": 981,
+    "message": "Bracket mismatch at line 982: expected '}' but found ']' (opening bracket at line 981)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 987,
+    "index": 33751,
+    "expected": ">",
+    "found": ")",
+    "openingLine": 987,
+    "message": "Bracket mismatch at line 987: expected '>' but found ')' (opening bracket at line 987)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 995,
+    "index": 33993,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 995,
+    "message": "Bracket mismatch at line 995: expected ')' but found '>' (opening bracket at line 995)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1005,
+    "index": 34235,
+    "message": "Unexpected closing bracket '}' at line 1005"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1008,
+    "index": 34325,
+    "message": "Unexpected closing bracket '>' at line 1008"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1028,
+    "index": 34952,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1028,
+    "message": "Bracket mismatch at line 1028: expected ')' but found '>' (opening bracket at line 1028)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1028,
+    "index": 34973,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1024,
+    "message": "Bracket mismatch at line 1028: expected '}' but found ')' (opening bracket at line 1024)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1030,
+    "index": 35071,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1030,
+    "message": "Bracket mismatch at line 1030: expected ')' but found '>' (opening bracket at line 1030)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1039,
+    "index": 35364,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1029,
+    "message": "Bracket mismatch at line 1039: expected '}' but found ')' (opening bracket at line 1029)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1044,
+    "index": 35485,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1044,
+    "message": "Bracket mismatch at line 1044: expected ')' but found '>' (opening bracket at line 1044)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1044,
+    "index": 35502,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1044,
+    "message": "Bracket mismatch at line 1044: expected ')' but found '>' (opening bracket at line 1044)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1044,
+    "index": 35523,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1008,
+    "message": "Bracket mismatch at line 1044: expected '}' but found ')' (opening bracket at line 1008)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1044,
+    "index": 35524,
+    "message": "Unexpected closing bracket ')' at line 1044"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1049,
+    "index": 35669,
+    "message": "Unexpected closing bracket '}' at line 1049"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1053,
+    "index": 35805,
+    "message": "Unexpected closing bracket '}' at line 1053"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1057,
+    "index": 35946,
+    "message": "Unexpected closing bracket '}' at line 1057"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1060,
+    "index": 36102,
+    "message": "Unexpected closing bracket '>' at line 1060"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1065,
+    "index": 36292,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1065,
+    "message": "Bracket mismatch at line 1065: expected ')' but found '>' (opening bracket at line 1065)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1065,
+    "index": 36313,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1061,
+    "message": "Bracket mismatch at line 1065: expected '}' but found ')' (opening bracket at line 1061)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1069,
+    "index": 36469,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1069,
+    "message": "Bracket mismatch at line 1069: expected ')' but found '>' (opening bracket at line 1069)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1069,
+    "index": 36494,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1060,
+    "message": "Bracket mismatch at line 1069: expected '}' but found ')' (opening bracket at line 1060)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1070,
+    "index": 36549,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1070,
+    "message": "Bracket mismatch at line 1070: expected ')' but found '>' (opening bracket at line 1070)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1070,
+    "index": 36573,
+    "message": "Unexpected closing bracket ')' at line 1070"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1081,
+    "index": 36998,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1081,
+    "message": "Bracket mismatch at line 1081: expected ')' but found '>' (opening bracket at line 1081)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1090,
+    "index": 37255,
+    "message": "Unexpected closing bracket ')' at line 1090"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1095,
+    "index": 37365,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1095,
+    "message": "Bracket mismatch at line 1095: expected ')' but found '>' (opening bracket at line 1095)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1095,
+    "index": 37385,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1095,
+    "message": "Bracket mismatch at line 1095: expected ')' but found '>' (opening bracket at line 1095)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1099,
+    "index": 37497,
+    "message": "Unexpected closing bracket ')' at line 1099"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1099,
+    "index": 37498,
+    "message": "Unexpected closing bracket ')' at line 1099"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1102,
+    "index": 37564,
+    "message": "Unexpected closing bracket '}' at line 1102"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1105,
+    "index": 37646,
+    "message": "Unexpected closing bracket '}' at line 1105"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1108,
+    "index": 37719,
+    "message": "Unexpected closing bracket '>' at line 1108"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1128,
+    "index": 38347,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1128,
+    "message": "Bracket mismatch at line 1128: expected ')' but found '>' (opening bracket at line 1128)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1128,
+    "index": 38375,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1126,
+    "message": "Bracket mismatch at line 1128: expected '}' but found ')' (opening bracket at line 1126)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1141,
+    "index": 38803,
+    "message": "Unexpected closing bracket '}' at line 1141"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1143,
+    "index": 38874,
+    "message": "Unexpected closing bracket '>' at line 1143"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1152,
+    "index": 39206,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1152,
+    "message": "Bracket mismatch at line 1152: expected ')' but found '>' (opening bracket at line 1152)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1152,
+    "index": 39223,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1152,
+    "message": "Bracket mismatch at line 1152: expected ')' but found '>' (opening bracket at line 1152)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1152,
+    "index": 39249,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1151,
+    "message": "Bracket mismatch at line 1152: expected '}' but found ')' (opening bracket at line 1151)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1152,
+    "index": 39250,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1146,
+    "message": "Bracket mismatch at line 1152: expected '}' but found ')' (opening bracket at line 1146)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1154,
+    "index": 39363,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1154,
+    "message": "Bracket mismatch at line 1154: expected ')' but found '>' (opening bracket at line 1154)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1154,
+    "index": 39391,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1154,
+    "message": "Bracket mismatch at line 1154: expected ')' but found '>' (opening bracket at line 1154)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1154,
+    "index": 39417,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1153,
+    "message": "Bracket mismatch at line 1154: expected '}' but found ')' (opening bracket at line 1153)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1154,
+    "index": 39438,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1143,
+    "message": "Bracket mismatch at line 1154: expected '}' but found ')' (opening bracket at line 1143)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1155,
+    "index": 39449,
+    "message": "Unexpected closing bracket '}' at line 1155"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1156,
+    "index": 39457,
+    "message": "Unexpected closing bracket '}' at line 1156"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1157,
+    "index": 39463,
+    "message": "Unexpected closing bracket '}' at line 1157"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1160,
+    "index": 39549,
+    "message": "Unexpected closing bracket '}' at line 1160"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1163,
+    "index": 39664,
+    "message": "Unexpected closing bracket '>' at line 1163"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1167,
+    "index": 39813,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1167,
+    "message": "Bracket mismatch at line 1167: expected ')' but found '>' (opening bracket at line 1167)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1167,
+    "index": 39834,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1163,
+    "message": "Bracket mismatch at line 1167: expected '}' but found ')' (opening bracket at line 1163)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1178,
+    "index": 40190,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1178,
+    "message": "Bracket mismatch at line 1178: expected ')' but found '>' (opening bracket at line 1178)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1181,
+    "index": 40368,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1177,
+    "message": "Bracket mismatch at line 1181: expected '}' but found ')' (opening bracket at line 1177)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1182,
+    "index": 40375,
+    "message": "Unexpected closing bracket '}' at line 1182"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1186,
+    "index": 40496,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1186,
+    "message": "Bracket mismatch at line 1186: expected ')' but found '>' (opening bracket at line 1186)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1186,
+    "index": 40530,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1185,
+    "message": "Bracket mismatch at line 1186: expected '}' but found ')' (opening bracket at line 1185)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1187,
+    "index": 40537,
+    "message": "Unexpected closing bracket '}' at line 1187"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1191,
+    "index": 40654,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1191,
+    "message": "Bracket mismatch at line 1191: expected ')' but found '>' (opening bracket at line 1191)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1191,
+    "index": 40684,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1190,
+    "message": "Bracket mismatch at line 1191: expected '}' but found ')' (opening bracket at line 1190)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1192,
+    "index": 40691,
+    "message": "Unexpected closing bracket '}' at line 1192"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1196,
+    "index": 40786,
+    "message": "Unexpected closing bracket '}' at line 1196"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1199,
+    "index": 40881,
+    "message": "Unexpected closing bracket '>' at line 1199"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1200,
+    "index": 40915,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1200,
+    "message": "Bracket mismatch at line 1200: expected ')' but found '>' (opening bracket at line 1200)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1200,
+    "index": 40945,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1199,
+    "message": "Bracket mismatch at line 1200: expected '}' but found ')' (opening bracket at line 1199)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1201,
+    "index": 40957,
+    "message": "Unexpected closing bracket '}' at line 1201"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1234,
+    "index": 42129,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1234,
+    "message": "Bracket mismatch at line 1234: expected '}' but found '>' (opening bracket at line 1234)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1234,
+    "index": 42159,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1233,
+    "message": "Bracket mismatch at line 1234: expected '>' but found '}' (opening bracket at line 1233)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1236,
+    "index": 42271,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1225,
+    "message": "Bracket mismatch at line 1236: expected ')' but found '>' (opening bracket at line 1225)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1270,
+    "index": 43847,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1270,
+    "message": "Bracket mismatch at line 1270: expected '}' but found '>' (opening bracket at line 1270)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1273,
+    "index": 44129,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1273,
+    "message": "Bracket mismatch at line 1273: expected '}' but found '>' (opening bracket at line 1273)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1273,
+    "index": 44143,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1270,
+    "message": "Bracket mismatch at line 1273: expected ')' but found '}' (opening bracket at line 1270)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1275,
+    "index": 44196,
+    "message": "Unexpected closing bracket ')' at line 1275"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1275,
+    "index": 44197,
+    "message": "Unexpected closing bracket '}' at line 1275"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1283,
+    "index": 44497,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1283,
+    "message": "Bracket mismatch at line 1283: expected '}' but found '>' (opening bracket at line 1283)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1283,
+    "index": 44539,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1282,
+    "message": "Bracket mismatch at line 1283: expected '>' but found '}' (opening bracket at line 1282)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1285,
+    "index": 44634,
+    "message": "Unexpected closing bracket '>' at line 1285"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1287,
+    "index": 44714,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1287,
+    "message": "Bracket mismatch at line 1287: expected '}' but found '>' (opening bracket at line 1287)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1289,
+    "index": 44906,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1289,
+    "message": "Bracket mismatch at line 1289: expected '}' but found '>' (opening bracket at line 1289)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1289,
+    "index": 44930,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1287,
+    "message": "Bracket mismatch at line 1289: expected ')' but found '}' (opening bracket at line 1287)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1291,
+    "index": 44978,
+    "message": "Unexpected closing bracket ')' at line 1291"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1291,
+    "index": 44979,
+    "message": "Unexpected closing bracket '}' at line 1291"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1300,
+    "index": 45433,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1300,
+    "message": "Bracket mismatch at line 1300: expected '}' but found '>' (opening bracket at line 1300)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1307,
+    "index": 45717,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1295,
+    "message": "Bracket mismatch at line 1307: expected ')' but found '}' (opening bracket at line 1295)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1316,
+    "index": 46108,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1316,
+    "message": "Bracket mismatch at line 1316: expected ')' but found '>' (opening bracket at line 1316)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1322,
+    "index": 46439,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1322,
+    "message": "Bracket mismatch at line 1322: expected '}' but found '>' (opening bracket at line 1322)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1327,
+    "index": 46702,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1317,
+    "message": "Bracket mismatch at line 1327: expected '>' but found '}' (opening bracket at line 1317)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1328,
+    "index": 46730,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1316,
+    "message": "Bracket mismatch at line 1328: expected ')' but found '>' (opening bracket at line 1316)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1347,
+    "index": 47796,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1347,
+    "message": "Bracket mismatch at line 1347: expected '}' but found '>' (opening bracket at line 1347)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1350,
+    "index": 47946,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1346,
+    "message": "Bracket mismatch at line 1350: expected '>' but found '}' (opening bracket at line 1346)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1352,
+    "index": 48055,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1315,
+    "message": "Bracket mismatch at line 1352: expected ')' but found '>' (opening bracket at line 1315)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1357,
+    "index": 48228,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1311,
+    "message": "Bracket mismatch at line 1357: expected '}' but found ')' (opening bracket at line 1311)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1357,
+    "index": 48229,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1295,
+    "message": "Bracket mismatch at line 1357: expected '}' but found ')' (opening bracket at line 1295)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1358,
+    "index": 48245,
+    "message": "Unexpected closing bracket ')' at line 1358"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1358,
+    "index": 48246,
+    "message": "Unexpected closing bracket '}' at line 1358"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1361,
+    "index": 48308,
+    "message": "Unexpected closing bracket ')' at line 1361"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1361,
+    "index": 48309,
+    "message": "Unexpected closing bracket '}' at line 1361"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1383,
+    "index": 49091,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1383,
+    "message": "Bracket mismatch at line 1383: expected '}' but found '>' (opening bracket at line 1383)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1383,
+    "index": 49114,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1381,
+    "message": "Bracket mismatch at line 1383: expected '>' but found '}' (opening bracket at line 1381)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1384,
+    "index": 49127,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1380,
+    "message": "Bracket mismatch at line 1384: expected ')' but found '>' (opening bracket at line 1380)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1385,
+    "index": 49137,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1380,
+    "message": "Bracket mismatch at line 1385: expected '}' but found ')' (opening bracket at line 1380)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1385,
+    "index": 49138,
+    "message": "Unexpected closing bracket '}' at line 1385"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1398,
+    "index": 49790,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1398,
+    "message": "Bracket mismatch at line 1398: expected '}' but found '>' (opening bracket at line 1398)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1398,
+    "index": 49846,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1397,
+    "message": "Bracket mismatch at line 1398: expected '>' but found '}' (opening bracket at line 1397)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1400,
+    "index": 49925,
+    "message": "Unexpected closing bracket '>' at line 1400"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1410,
+    "index": 50417,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1410,
+    "message": "Bracket mismatch at line 1410: expected ')' but found '>' (opening bracket at line 1410)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1414,
+    "index": 50623,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1414,
+    "message": "Bracket mismatch at line 1414: expected '}' but found '>' (opening bracket at line 1414)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1417,
+    "index": 50768,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1411,
+    "message": "Bracket mismatch at line 1417: expected '>' but found '}' (opening bracket at line 1411)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1418,
+    "index": 50790,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1410,
+    "message": "Bracket mismatch at line 1418: expected ')' but found '>' (opening bracket at line 1410)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1429,
+    "index": 51343,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1429,
+    "message": "Bracket mismatch at line 1429: expected '}' but found '>' (opening bracket at line 1429)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1432,
+    "index": 51492,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1428,
+    "message": "Bracket mismatch at line 1432: expected '>' but found '}' (opening bracket at line 1428)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1434,
+    "index": 51597,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1410,
+    "message": "Bracket mismatch at line 1434: expected '}' but found '>' (opening bracket at line 1410)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1440,
+    "index": 51784,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1408,
+    "message": "Bracket mismatch at line 1440: expected '}' but found ')' (opening bracket at line 1408)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1440,
+    "index": 51785,
+    "message": "Unexpected closing bracket '}' at line 1440"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1443,
+    "index": 51918,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1443,
+    "message": "Bracket mismatch at line 1443: expected '}' but found '>' (opening bracket at line 1443)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1446,
+    "index": 52055,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1441,
+    "message": "Bracket mismatch at line 1446: expected '>' but found '}' (opening bracket at line 1441)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1447,
+    "index": 52075,
+    "message": "Unexpected closing bracket '>' at line 1447"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1454,
+    "index": 52386,
+    "message": "Unexpected closing bracket ')' at line 1454"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1454,
+    "index": 52387,
+    "message": "Unexpected closing bracket '}' at line 1454"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1460,
+    "index": 52553,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1460,
+    "message": "Bracket mismatch at line 1460: expected '}' but found '>' (opening bracket at line 1460)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1465,
+    "index": 52793,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1465,
+    "message": "Bracket mismatch at line 1465: expected ')' but found '>' (opening bracket at line 1465)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1465,
+    "index": 52796,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1463,
+    "message": "Bracket mismatch at line 1465: expected '}' but found ')' (opening bracket at line 1463)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1469,
+    "index": 52917,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1459,
+    "message": "Bracket mismatch at line 1469: expected '>' but found '}' (opening bracket at line 1459)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1469,
+    "index": 52918,
+    "message": "Unexpected closing bracket '}' at line 1469"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1471,
+    "index": 53077,
+    "message": "Unexpected closing bracket '>' at line 1471"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1482,
+    "index": 53500,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1482,
+    "message": "Bracket mismatch at line 1482: expected '}' but found '>' (opening bracket at line 1482)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1482,
+    "index": 53532,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1478,
+    "message": "Bracket mismatch at line 1482: expected '>' but found '}' (opening bracket at line 1478)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1484,
+    "index": 53720,
+    "message": "Unexpected closing bracket '>' at line 1484"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1493,
+    "index": 54251,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1493,
+    "message": "Bracket mismatch at line 1493: expected '}' but found '>' (opening bracket at line 1493)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1493,
+    "index": 54277,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1492,
+    "message": "Bracket mismatch at line 1493: expected '>' but found '}' (opening bracket at line 1492)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1499,
+    "index": 54585,
+    "message": "Unexpected closing bracket '>' at line 1499"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1510,
+    "index": 55417,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1510,
+    "message": "Bracket mismatch at line 1510: expected '}' but found '>' (opening bracket at line 1510)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1510,
+    "index": 55445,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1509,
+    "message": "Bracket mismatch at line 1510: expected '>' but found '}' (opening bracket at line 1509)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1516,
+    "index": 55755,
+    "message": "Unexpected closing bracket '>' at line 1516"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1521,
+    "index": 55929,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1521,
+    "message": "Bracket mismatch at line 1521: expected '}' but found '>' (opening bracket at line 1521)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1521,
+    "index": 55959,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1520,
+    "message": "Bracket mismatch at line 1521: expected '>' but found '}' (opening bracket at line 1520)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1523,
+    "index": 56113,
+    "message": "Unexpected closing bracket '>' at line 1523"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1535,
+    "index": 56665,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1535,
+    "message": "Bracket mismatch at line 1535: expected '}' but found '>' (opening bracket at line 1535)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1535,
+    "index": 56700,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1533,
+    "message": "Bracket mismatch at line 1535: expected '>' but found '}' (opening bracket at line 1533)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1537,
+    "index": 56848,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1529,
+    "message": "Bracket mismatch at line 1537: expected ')' but found '>' (opening bracket at line 1529)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1549,
+    "index": 57462,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1549,
+    "message": "Bracket mismatch at line 1549: expected '}' but found '>' (opening bracket at line 1549)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1549,
+    "index": 57495,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1547,
+    "message": "Bracket mismatch at line 1549: expected '>' but found '}' (opening bracket at line 1547)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1551,
+    "index": 57643,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1529,
+    "message": "Bracket mismatch at line 1551: expected '}' but found '>' (opening bracket at line 1529)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1561,
+    "index": 58178,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1561,
+    "message": "Bracket mismatch at line 1561: expected '}' but found '>' (opening bracket at line 1561)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1565,
+    "index": 58347,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1560,
+    "message": "Bracket mismatch at line 1565: expected '>' but found '}' (opening bracket at line 1560)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1567,
+    "index": 58480,
+    "message": "Unexpected closing bracket '>' at line 1567"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1571,
+    "index": 58593,
+    "message": "Unexpected closing bracket ')' at line 1571"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1571,
+    "index": 58594,
+    "message": "Unexpected closing bracket '}' at line 1571"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1585,
+    "index": 59172,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1585,
+    "message": "Bracket mismatch at line 1585: expected '}' but found '>' (opening bracket at line 1585)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1586,
+    "index": 59222,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1586,
+    "message": "Bracket mismatch at line 1586: expected ')' but found '>' (opening bracket at line 1586)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1589,
+    "index": 59327,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1589,
+    "message": "Bracket mismatch at line 1589: expected '}' but found '>' (opening bracket at line 1589)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1589,
+    "index": 59360,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1587,
+    "message": "Bracket mismatch at line 1589: expected '>' but found '}' (opening bracket at line 1587)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1596,
+    "index": 59809,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1586,
+    "message": "Bracket mismatch at line 1596: expected ')' but found '>' (opening bracket at line 1586)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1602,
+    "index": 60162,
+    "message": "Unexpected closing bracket ')' at line 1602"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1603,
+    "index": 60180,
+    "message": "Unexpected closing bracket ')' at line 1603"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1608,
+    "index": 60415,
+    "message": "Unexpected closing bracket '}' at line 1608"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1612,
+    "index": 60508,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1612,
+    "message": "Bracket mismatch at line 1612: expected '}' but found '>' (opening bracket at line 1612)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1612,
+    "index": 60535,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1611,
+    "message": "Bracket mismatch at line 1612: expected '>' but found '}' (opening bracket at line 1611)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1614,
+    "index": 60691,
+    "message": "Unexpected closing bracket '>' at line 1614"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1644,
+    "index": 62019,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1644,
+    "message": "Bracket mismatch at line 1644: expected '}' but found '>' (opening bracket at line 1644)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1644,
+    "index": 62059,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1641,
+    "message": "Bracket mismatch at line 1644: expected '>' but found '}' (opening bracket at line 1641)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1647,
+    "index": 62285,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1634,
+    "message": "Bracket mismatch at line 1647: expected ')' but found '>' (opening bracket at line 1634)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1653,
+    "index": 62579,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1653,
+    "message": "Bracket mismatch at line 1653: expected '}' but found '>' (opening bracket at line 1653)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1653,
+    "index": 62626,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1651,
+    "message": "Bracket mismatch at line 1653: expected '>' but found '}' (opening bracket at line 1651)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1657,
+    "index": 62890,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1634,
+    "message": "Bracket mismatch at line 1657: expected '}' but found '>' (opening bracket at line 1634)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1665,
+    "index": 63272,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1665,
+    "message": "Bracket mismatch at line 1665: expected '}' but found '>' (opening bracket at line 1665)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1665,
+    "index": 63312,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1662,
+    "message": "Bracket mismatch at line 1665: expected '>' but found '}' (opening bracket at line 1662)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1668,
+    "index": 63523,
+    "message": "Unexpected closing bracket '>' at line 1668"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1675,
+    "index": 63857,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1675,
+    "message": "Bracket mismatch at line 1675: expected '}' but found '>' (opening bracket at line 1675)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1675,
+    "index": 63898,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1672,
+    "message": "Bracket mismatch at line 1675: expected '>' but found '}' (opening bracket at line 1672)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1677,
+    "index": 64005,
+    "message": "Unexpected closing bracket '>' at line 1677"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1689,
+    "index": 64488,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1689,
+    "message": "Bracket mismatch at line 1689: expected '}' but found '>' (opening bracket at line 1689)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1695,
+    "index": 64785,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1688,
+    "message": "Bracket mismatch at line 1695: expected '>' but found '}' (opening bracket at line 1688)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1697,
+    "index": 64908,
+    "message": "Unexpected closing bracket '>' at line 1697"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1703,
+    "index": 65050,
+    "message": "Unexpected closing bracket ')' at line 1703"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1703,
+    "index": 65051,
+    "message": "Unexpected closing bracket '}' at line 1703"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1712,
+    "index": 65394,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1712,
+    "message": "Bracket mismatch at line 1712: expected ')' but found '>' (opening bracket at line 1712)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1712,
+    "index": 65433,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1712,
+    "message": "Bracket mismatch at line 1712: expected '}' but found ')' (opening bracket at line 1712)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1712,
+    "index": 65441,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1704,
+    "message": "Bracket mismatch at line 1712: expected ')' but found '}' (opening bracket at line 1704)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1721,
+    "index": 65809,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1721,
+    "message": "Bracket mismatch at line 1721: expected ')' but found '>' (opening bracket at line 1721)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1724,
+    "index": 66032,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1721,
+    "message": "Bracket mismatch at line 1724: expected '}' but found ')' (opening bracket at line 1721)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1724,
+    "index": 66041,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1717,
+    "message": "Bracket mismatch at line 1724: expected ')' but found '>' (opening bracket at line 1717)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1730,
+    "index": 66566,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1730,
+    "message": "Bracket mismatch at line 1730: expected ')' but found '>' (opening bracket at line 1730)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1733,
+    "index": 66813,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1730,
+    "message": "Bracket mismatch at line 1733: expected '}' but found ')' (opening bracket at line 1730)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1733,
+    "index": 66825,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1724,
+    "message": "Bracket mismatch at line 1733: expected ')' but found '}' (opening bracket at line 1724)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1743,
+    "index": 67300,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1743,
+    "message": "Bracket mismatch at line 1743: expected ')' but found '>' (opening bracket at line 1743)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1746,
+    "index": 67547,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1743,
+    "message": "Bracket mismatch at line 1746: expected '}' but found ')' (opening bracket at line 1743)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1746,
+    "index": 67561,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1746,
+    "message": "Bracket mismatch at line 1746: expected ')' but found '>' (opening bracket at line 1746)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1751,
+    "index": 67787,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1751,
+    "message": "Bracket mismatch at line 1751: expected '}' but found '>' (opening bracket at line 1751)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1756,
+    "index": 68117,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1747,
+    "message": "Bracket mismatch at line 1756: expected '>' but found '}' (opening bracket at line 1747)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1762,
+    "index": 68470,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1762,
+    "message": "Bracket mismatch at line 1762: expected '}' but found '>' (opening bracket at line 1762)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1766,
+    "index": 68747,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1746,
+    "message": "Bracket mismatch at line 1766: expected ')' but found '}' (opening bracket at line 1746)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1768,
+    "index": 68851,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1768,
+    "message": "Bracket mismatch at line 1768: expected '}' but found '>' (opening bracket at line 1768)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1774,
+    "index": 69129,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1704,
+    "message": "Bracket mismatch at line 1774: expected '}' but found '>' (opening bracket at line 1704)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1775,
+    "index": 69155,
+    "message": "Unexpected closing bracket ')' at line 1775"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1775,
+    "index": 69156,
+    "message": "Unexpected closing bracket ')' at line 1775"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1775,
+    "index": 69164,
+    "message": "Unexpected closing bracket '}' at line 1775"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1779,
+    "index": 69301,
+    "message": "Unexpected closing bracket ')' at line 1779"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1779,
+    "index": 69302,
+    "message": "Unexpected closing bracket '}' at line 1779"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1781,
+    "index": 69346,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1781,
+    "message": "Bracket mismatch at line 1781: expected ')' but found '>' (opening bracket at line 1781)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1798,
+    "index": 70409,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1798,
+    "message": "Bracket mismatch at line 1798: expected '}' but found '>' (opening bracket at line 1798)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1798,
+    "index": 70483,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1797,
+    "message": "Bracket mismatch at line 1798: expected '>' but found '}' (opening bracket at line 1797)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1800,
+    "index": 70601,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1783,
+    "message": "Bracket mismatch at line 1800: expected ')' but found '>' (opening bracket at line 1783)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1808,
+    "index": 71066,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1808,
+    "message": "Bracket mismatch at line 1808: expected '}' but found '>' (opening bracket at line 1808)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1808,
+    "index": 71100,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1807,
+    "message": "Bracket mismatch at line 1808: expected '>' but found '}' (opening bracket at line 1807)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1810,
+    "index": 71278,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1805,
+    "message": "Bracket mismatch at line 1810: expected ')' but found '>' (opening bracket at line 1805)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 1815,
+    "index": 71492,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 1805,
+    "message": "Bracket mismatch at line 1815: expected '}' but found ')' (opening bracket at line 1805)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1823,
+    "index": 71807,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1823,
+    "message": "Bracket mismatch at line 1823: expected ')' but found '>' (opening bracket at line 1823)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1828,
+    "index": 72053,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1828,
+    "message": "Bracket mismatch at line 1828: expected '}' but found '>' (opening bracket at line 1828)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1833,
+    "index": 72403,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1824,
+    "message": "Bracket mismatch at line 1833: expected '>' but found '}' (opening bracket at line 1824)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1839,
+    "index": 72780,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1839,
+    "message": "Bracket mismatch at line 1839: expected '}' but found '>' (opening bracket at line 1839)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1843,
+    "index": 73073,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1823,
+    "message": "Bracket mismatch at line 1843: expected ')' but found '}' (opening bracket at line 1823)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1845,
+    "index": 73185,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1845,
+    "message": "Bracket mismatch at line 1845: expected '}' but found '>' (opening bracket at line 1845)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1851,
+    "index": 73487,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1781,
+    "message": "Bracket mismatch at line 1851: expected '}' but found '>' (opening bracket at line 1781)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1852,
+    "index": 73517,
+    "message": "Unexpected closing bracket ')' at line 1852"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1852,
+    "index": 73518,
+    "message": "Unexpected closing bracket ')' at line 1852"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1852,
+    "index": 73519,
+    "message": "Unexpected closing bracket '}' at line 1852"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1863,
+    "index": 73977,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1863,
+    "message": "Bracket mismatch at line 1863: expected '}' but found '>' (opening bracket at line 1863)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1863,
+    "index": 74010,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1859,
+    "message": "Bracket mismatch at line 1863: expected '>' but found '}' (opening bracket at line 1859)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1864,
+    "index": 74053,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1864,
+    "message": "Bracket mismatch at line 1864: expected '}' but found '>' (opening bracket at line 1864)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1868,
+    "index": 74209,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1857,
+    "message": "Bracket mismatch at line 1868: expected ')' but found '}' (opening bracket at line 1857)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1871,
+    "index": 74427,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1857,
+    "message": "Bracket mismatch at line 1871: expected '}' but found '>' (opening bracket at line 1857)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1875,
+    "index": 74603,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1875,
+    "message": "Bracket mismatch at line 1875: expected '}' but found '>' (opening bracket at line 1875)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1875,
+    "index": 74639,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1873,
+    "message": "Bracket mismatch at line 1875: expected '>' but found '}' (opening bracket at line 1873)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1877,
+    "index": 74784,
+    "message": "Unexpected closing bracket '>' at line 1877"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1886,
+    "index": 75227,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1886,
+    "message": "Bracket mismatch at line 1886: expected '}' but found '>' (opening bracket at line 1886)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1886,
+    "index": 75262,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1883,
+    "message": "Bracket mismatch at line 1886: expected '>' but found '}' (opening bracket at line 1883)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1889,
+    "index": 75457,
+    "message": "Unexpected closing bracket '>' at line 1889"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1893,
+    "index": 75630,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1893,
+    "message": "Bracket mismatch at line 1893: expected '}' but found '>' (opening bracket at line 1893)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1893,
+    "index": 75658,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1892,
+    "message": "Bracket mismatch at line 1893: expected '>' but found '}' (opening bracket at line 1892)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1895,
+    "index": 75817,
+    "message": "Unexpected closing bracket '>' at line 1895"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1899,
+    "index": 75963,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1899,
+    "message": "Bracket mismatch at line 1899: expected '}' but found '>' (opening bracket at line 1899)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1904,
+    "index": 76233,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1898,
+    "message": "Bracket mismatch at line 1904: expected '>' but found '}' (opening bracket at line 1898)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1906,
+    "index": 76369,
+    "message": "Unexpected closing bracket '>' at line 1906"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1911,
+    "index": 76522,
+    "message": "Unexpected closing bracket ')' at line 1911"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1913,
+    "index": 76597,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1913,
+    "message": "Bracket mismatch at line 1913: expected '}' but found '>' (opening bracket at line 1913)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1913,
+    "index": 76630,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1912,
+    "message": "Bracket mismatch at line 1913: expected '>' but found '}' (opening bracket at line 1912)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1915,
+    "index": 76876,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1911,
+    "message": "Bracket mismatch at line 1915: expected ')' but found '>' (opening bracket at line 1911)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1919,
+    "index": 77071,
+    "message": "Unexpected closing bracket ')' at line 1919"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1919,
+    "index": 77072,
+    "message": "Unexpected closing bracket '}' at line 1919"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1921,
+    "index": 77128,
+    "message": "Unexpected closing bracket ')' at line 1921"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1922,
+    "index": 77147,
+    "message": "Unexpected closing bracket '}' at line 1922"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1922,
+    "index": 77148,
+    "message": "Unexpected closing bracket ')' at line 1922"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1922,
+    "index": 77149,
+    "message": "Unexpected closing bracket '}' at line 1922"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1934,
+    "index": 77647,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1934,
+    "message": "Bracket mismatch at line 1934: expected '}' but found '>' (opening bracket at line 1934)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1934,
+    "index": 77682,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1930,
+    "message": "Bracket mismatch at line 1934: expected '>' but found '}' (opening bracket at line 1930)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1935,
+    "index": 77725,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1935,
+    "message": "Bracket mismatch at line 1935: expected '}' but found '>' (opening bracket at line 1935)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1939,
+    "index": 77881,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1927,
+    "message": "Bracket mismatch at line 1939: expected ')' but found '}' (opening bracket at line 1927)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1942,
+    "index": 78093,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1927,
+    "message": "Bracket mismatch at line 1942: expected '}' but found '>' (opening bracket at line 1927)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1949,
+    "index": 78475,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1949,
+    "message": "Bracket mismatch at line 1949: expected '}' but found '>' (opening bracket at line 1949)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1949,
+    "index": 78511,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1946,
+    "message": "Bracket mismatch at line 1949: expected '>' but found '}' (opening bracket at line 1946)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1951,
+    "index": 78631,
+    "message": "Unexpected closing bracket '>' at line 1951"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1967,
+    "index": 79404,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1967,
+    "message": "Bracket mismatch at line 1967: expected '}' but found '>' (opening bracket at line 1967)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1971,
+    "index": 79595,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1966,
+    "message": "Bracket mismatch at line 1971: expected '>' but found '}' (opening bracket at line 1966)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 1973,
+    "index": 79725,
+    "message": "Unexpected closing bracket '>' at line 1973"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1979,
+    "index": 79883,
+    "message": "Unexpected closing bracket ')' at line 1979"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1981,
+    "index": 79950,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 1981,
+    "message": "Bracket mismatch at line 1981: expected '}' but found '>' (opening bracket at line 1981)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 1981,
+    "index": 79975,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 1980,
+    "message": "Bracket mismatch at line 1981: expected '>' but found '}' (opening bracket at line 1980)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 1983,
+    "index": 80153,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 1979,
+    "message": "Bracket mismatch at line 1983: expected ')' but found '>' (opening bracket at line 1979)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1989,
+    "index": 80452,
+    "message": "Unexpected closing bracket ')' at line 1989"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 1989,
+    "index": 80453,
+    "message": "Unexpected closing bracket '}' at line 1989"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 1991,
+    "index": 80494,
+    "message": "Unexpected closing bracket ')' at line 1991"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2019,
+    "index": 82228,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 2019,
+    "message": "Bracket mismatch at line 2019: expected ')' but found '>' (opening bracket at line 2019)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2046,
+    "index": 83700,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 2046,
+    "message": "Bracket mismatch at line 2046: expected ')' but found '>' (opening bracket at line 2046)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 2082,
+    "index": 85734,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 2046,
+    "message": "Bracket mismatch at line 2082: expected '}' but found ')' (opening bracket at line 2046)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2082,
+    "index": 85735,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 2037,
+    "message": "Bracket mismatch at line 2082: expected ')' but found '}' (opening bracket at line 2037)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2085,
+    "index": 85840,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2085,
+    "message": "Bracket mismatch at line 2085: expected '}' but found '>' (opening bracket at line 2085)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2091,
+    "index": 86248,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2084,
+    "message": "Bracket mismatch at line 2091: expected '>' but found '}' (opening bracket at line 2084)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2093,
+    "index": 86508,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2019,
+    "message": "Bracket mismatch at line 2093: expected '}' but found '>' (opening bracket at line 2019)"
+  },
+  {
+    "type": "mismatch",
+    "char": ")",
+    "line": 2100,
+    "index": 86814,
+    "expected": "}",
+    "found": ")",
+    "openingLine": 2019,
+    "message": "Bracket mismatch at line 2100: expected '}' but found ')' (opening bracket at line 2019)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2101,
+    "index": 86837,
+    "expected": ")",
+    "found": "}",
+    "openingLine": 1991,
+    "message": "Bracket mismatch at line 2101: expected ')' but found '}' (opening bracket at line 1991)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2101,
+    "index": 86838,
+    "message": "Unexpected closing bracket ')' at line 2101"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 2101,
+    "index": 86839,
+    "message": "Unexpected closing bracket '}' at line 2101"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2104,
+    "index": 86903,
+    "message": "Unexpected closing bracket ')' at line 2104"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 2104,
+    "index": 86904,
+    "message": "Unexpected closing bracket '}' at line 2104"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2105,
+    "index": 86916,
+    "message": "Unexpected closing bracket ')' at line 2105"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2112,
+    "index": 87379,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2112,
+    "message": "Bracket mismatch at line 2112: expected '}' but found '>' (opening bracket at line 2112)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2112,
+    "index": 87406,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2111,
+    "message": "Bracket mismatch at line 2112: expected '>' but found '}' (opening bracket at line 2111)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2114,
+    "index": 87546,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 2105,
+    "message": "Bracket mismatch at line 2114: expected ')' but found '>' (opening bracket at line 2105)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2119,
+    "index": 87686,
+    "message": "Unexpected closing bracket ')' at line 2119"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2125,
+    "index": 88064,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2125,
+    "message": "Bracket mismatch at line 2125: expected '}' but found '>' (opening bracket at line 2125)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2125,
+    "index": 88101,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2124,
+    "message": "Bracket mismatch at line 2125: expected '>' but found '}' (opening bracket at line 2124)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2127,
+    "index": 88227,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 2119,
+    "message": "Bracket mismatch at line 2127: expected ')' but found '>' (opening bracket at line 2119)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2132,
+    "index": 88350,
+    "message": "Unexpected closing bracket ')' at line 2132"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 2132,
+    "index": 88351,
+    "message": "Unexpected closing bracket '}' at line 2132"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2146,
+    "index": 88975,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2146,
+    "message": "Bracket mismatch at line 2146: expected '}' but found '>' (opening bracket at line 2146)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2146,
+    "index": 89010,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2143,
+    "message": "Bracket mismatch at line 2146: expected '>' but found '}' (opening bracket at line 2143)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2149,
+    "index": 89218,
+    "expected": ")",
+    "found": ">",
+    "openingLine": 2136,
+    "message": "Bracket mismatch at line 2149: expected ')' but found '>' (opening bracket at line 2136)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2156,
+    "index": 89481,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2156,
+    "message": "Bracket mismatch at line 2156: expected '}' but found '>' (opening bracket at line 2156)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2156,
+    "index": 89516,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2153,
+    "message": "Bracket mismatch at line 2156: expected '>' but found '}' (opening bracket at line 2153)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2159,
+    "index": 89708,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2136,
+    "message": "Bracket mismatch at line 2159: expected '}' but found '>' (opening bracket at line 2136)"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2166,
+    "index": 89976,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2166,
+    "message": "Bracket mismatch at line 2166: expected '}' but found '>' (opening bracket at line 2166)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2166,
+    "index": 90012,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2163,
+    "message": "Bracket mismatch at line 2166: expected '>' but found '}' (opening bracket at line 2163)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 2168,
+    "index": 90107,
+    "message": "Unexpected closing bracket '>' at line 2168"
+  },
+  {
+    "type": "mismatch",
+    "char": ">",
+    "line": 2179,
+    "index": 90539,
+    "expected": "}",
+    "found": ">",
+    "openingLine": 2179,
+    "message": "Bracket mismatch at line 2179: expected '}' but found '>' (opening bracket at line 2179)"
+  },
+  {
+    "type": "mismatch",
+    "char": "}",
+    "line": 2184,
+    "index": 90739,
+    "expected": ">",
+    "found": "}",
+    "openingLine": 2178,
+    "message": "Bracket mismatch at line 2184: expected '>' but found '}' (opening bracket at line 2178)"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ">",
+    "line": 2186,
+    "index": 90852,
+    "message": "Unexpected closing bracket '>' at line 2186"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2192,
+    "index": 90982,
+    "message": "Unexpected closing bracket ')' at line 2192"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 2192,
+    "index": 90983,
+    "message": "Unexpected closing bracket '}' at line 2192"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": ")",
+    "line": 2195,
+    "index": 91015,
+    "message": "Unexpected closing bracket ')' at line 2195"
+  },
+  {
+    "type": "unexpected_closing",
+    "char": "}",
+    "line": 2196,
+    "index": 91018,
+    "message": "Unexpected closing bracket '}' at line 2196"
+  }
+]

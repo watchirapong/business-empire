@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import UserProgress from '@/models/UserProgress';
 import AssessmentQuestion from '@/models/AssessmentQuestion';
@@ -19,10 +20,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || (session.user as any).id;
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     let progress = await UserProgress.findOne({ userId });
     
@@ -71,52 +69,22 @@ export async function GET(request: NextRequest) {
       phase2Completed = progress.phase2Answers.length >= phase2Questions.length;
     }
 
-    // Check for declined submissions
-    const declinedAnswers = await UserAnswer.find({
-      userId,
-      status: 'declined'
-    });
-
-    const hasDeclinedSubmissions = declinedAnswers.length > 0;
-    
-    console.log(`[Progress API] User ${userId}:`);
-    console.log(`- Phase1Completed: ${phase1Completed}`);
-    console.log(`- Phase2Completed: ${phase2Completed}`);
-    console.log(`- IsApproved: ${progress.isApproved}`);
-    console.log(`- DeclinedAnswers count: ${declinedAnswers.length}`);
-    console.log(`- HasDeclinedSubmissions: ${hasDeclinedSubmissions}`);
-
-    // Update progress status
-    progress.phase1Completed = phase1Completed;
-    progress.phase2Completed = phase2Completed;
-    await progress.save();
-
     return NextResponse.json({
-      progress: {
-        id: progress._id,
-        userId: progress.userId,
-        phase1Completed: progress.phase1Completed,
-        phase2Completed: progress.phase2Completed,
-        selectedPath: progress.selectedPath,
-        phase1Answers: progress.phase1Answers,
-        phase2Answers: progress.phase2Answers,
-        totalScore: progress.totalScore,
-        isApproved: progress.isApproved,
-        approvedAt: progress.approvedAt,
-        approvedBy: progress.approvedBy,
-        hasDeclinedSubmissions,
-        sessionState: progress.sessionState
-      },
-      settings: {
-        phase2Open: settings.phase2Open,
-        allowFriendAnswers: settings.allowFriendAnswers
-      },
-      canProceedToPhase2: settings.phase2Open && phase1Completed,
-      hasDeclinedSubmissions
+      progress: progress.toObject(),
+      settings: settings.toObject(),
+      phase1Completed,
+      phase2Completed,
+      phase1TotalQuestions: phase1Questions.length,
+      phase2TotalQuestions: progress.selectedPath ? 
+        await AssessmentQuestion.countDocuments({ 
+          phase: 2, 
+          path: progress.selectedPath,
+          isActive: true 
+        }) : 0
     });
 
   } catch (error) {
-    console.error('Error fetching progress:', error);
+    console.error('Error fetching user progress:', error);
     return NextResponse.json(
       { error: 'Failed to fetch progress' },
       { status: 500 }
@@ -124,7 +92,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Select career path
+// POST - Update user progress
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -133,342 +101,64 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { selectedPath } = body;
+    const { 
+      selectedPath, 
+      phase1Answers, 
+      phase2Answers, 
+      totalScore 
+    } = body;
 
-    if (!selectedPath) {
-      return NextResponse.json({ error: 'Path selection is required' }, { status: 400 });
-    }
+    const userId = (session.user as any).id;
 
-    const validPaths = ['health', 'creative', 'gamedev', 'engineering', 'business'];
-    if (!validPaths.includes(selectedPath)) {
-      return NextResponse.json({ error: 'Invalid path selected' }, { status: 400 });
-    }
+    await connectDB();
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
-
-    const progress = await UserProgress.findOne({ userId: (session.user as any).id });
+    // Find or create progress record
+    let progress = await UserProgress.findOne({ userId });
     
     if (!progress) {
-      return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
-    }
-
-    // Enforce Phase 1 completion before selecting a path,
-    // but allow bypass when session state explicitly enables path selection (via Skip)
-    if (!progress.phase1Completed) {
-      const canBypass = Boolean((progress as any).sessionState?.showPathSelection);
-      if (!canBypass) {
-        return NextResponse.json({ 
-          error: 'Must complete Phase 1 before selecting a path' 
-        }, { status: 400 });
-      }
-      // Mark as completed when bypassing to keep consistency
-      progress.phase1Completed = true;
-    }
-
-    // Get system settings
-    const settings = await SystemSettings.findOne();
-    if (!settings?.phase2Open) {
-      return NextResponse.json({ 
-        error: 'Phase 2 is not yet open' 
-      }, { status: 400 });
-    }
-
-    progress.selectedPath = selectedPath;
-    await progress.save();
-
-    return NextResponse.json({ 
-      message: 'Path selected successfully',
-      progress: {
-        id: progress._id,
-        selectedPath: progress.selectedPath,
-        phase1Completed: progress.phase1Completed,
-        phase2Completed: progress.phase2Completed
-      }
-    });
-
-  } catch (error) {
-    console.error('Error selecting path:', error);
-    return NextResponse.json(
-      { error: 'Failed to select path' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT - Approve user (Admin only) or Force Reset (User only)
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { userId: targetUserId, isApproved, forceReset, phase1Completed, phase2Completed } = body;
-
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
-
-    // Handle force reset (User only)
-    if (forceReset) {
-      const userId = (session.user as any).id;
-      
-      const progress = await UserProgress.findOneAndUpdate(
-        { userId },
-        {
-          phase1Completed: phase1Completed || false,
-          phase2Completed: phase2Completed || false,
-          isApproved: false,
-          approvedAt: null,
-          approvedBy: null,
-          phase1Answers: [],
-          phase2Answers: [],
-          sessionState: {
-            currentPhase: 1,
-            currentQuestionIndex: 0,
-            draftAnswerText: '',
-            timeRemainingSeconds: null,
-            timeStartedAt: null,
-            showPathSelection: false,
-            lastUpdatedAt: new Date()
-          }
-        },
-        { new: true, runValidators: true }
-      );
-
-      if (!progress) {
-        return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
-      }
-
-      // Also delete any declined answers
-      await UserAnswer.deleteMany({
+      progress = new UserProgress({
         userId,
-        status: 'declined'
-      });
-
-      console.log(`[Force Reset] User ${userId} progress reset successfully`);
-
-      return NextResponse.json({ 
-        message: 'Progress reset successfully',
-        progress: {
-          id: progress._id,
-          userId: progress.userId,
-          phase1Completed: progress.phase1Completed,
-          phase2Completed: progress.phase2Completed,
-          isApproved: progress.isApproved
+        phase1Answers: [],
+        phase2Answers: [],
+        totalScore: {
+          selfLearning: 0,
+          creative: 0,
+          algorithm: 0,
+          logic: 0,
+          communication: 0,
+          presentation: 0,
+          leadership: 0,
+          careerKnowledge: 0
         }
       });
     }
 
-    // Handle admin approval (Admin only)
-    const userId = (session.user as any).id;
-    if (!isAdmin(userId)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    // Update progress
+    if (selectedPath !== undefined) {
+      progress.selectedPath = selectedPath;
+    }
+    if (phase1Answers !== undefined) {
+      progress.phase1Answers = phase1Answers;
+    }
+    if (phase2Answers !== undefined) {
+      progress.phase2Answers = phase2Answers;
+    }
+    if (totalScore !== undefined) {
+      progress.totalScore = totalScore;
     }
 
-    if (!targetUserId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-
-    const progress = await UserProgress.findOneAndUpdate(
-      { userId: targetUserId },
-      {
-        isApproved,
-        approvedAt: isApproved ? new Date() : null,
-        approvedBy: isApproved ? userId : null
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!progress) {
-      return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ 
-      message: `User ${isApproved ? 'approved' : 'disapproved'} successfully`,
-      progress: {
-        id: progress._id,
-        userId: progress.userId,
-        isApproved: progress.isApproved,
-        approvedAt: progress.approvedAt,
-        approvedBy: progress.approvedBy
-      }
-    });
-
-  } catch (error) {
-    console.error('Error updating approval:', error);
-    return NextResponse.json(
-      { error: 'Failed to update approval' },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH - Update session state (current progress within session)
-export async function PATCH(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = (session.user as any).id;
-    const body = await request.json();
-    const {
-      currentPhase,
-      currentQuestionIndex,
-      draftAnswerText,
-      timeRemainingSeconds,
-      timeStartedAt,
-      showPathSelection
-    } = body || {};
-
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
-
-    const progress = await UserProgress.findOne({ userId });
-    if (!progress) {
-      return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
-    }
-
-    // Merge and validate minimal fields
-    progress.sessionState = {
-      currentPhase: currentPhase ?? progress.sessionState?.currentPhase ?? 1,
-      currentQuestionIndex: Math.max(0, Number(currentQuestionIndex ?? progress.sessionState?.currentQuestionIndex ?? 0)),
-      draftAnswerText: typeof draftAnswerText === 'string' ? draftAnswerText : (progress.sessionState?.draftAnswerText ?? ''),
-      timeRemainingSeconds: timeRemainingSeconds === null ? null : Number(timeRemainingSeconds ?? progress.sessionState?.timeRemainingSeconds ?? null),
-      timeStartedAt: timeStartedAt ? new Date(timeStartedAt) : (progress.sessionState?.timeStartedAt ?? null),
-      showPathSelection: Boolean(showPathSelection ?? progress.sessionState?.showPathSelection ?? false),
-      lastUpdatedAt: new Date()
-    } as any;
-
+    progress.updatedAt = new Date();
     await progress.save();
 
     return NextResponse.json({
-      message: 'Session state updated',
-      sessionState: progress.sessionState
-    });
-  } catch (error) {
-    console.error('Error updating session state:', error);
-    return NextResponse.json(
-      { error: 'Failed to update session state' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - Reset declined progress (User only)
-export async function DELETE() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = (session.user as any).id;
-
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
-
-    // Find declined answers
-    const declinedAnswers = await UserAnswer.find({
-      userId,
-      status: 'declined'
-    });
-
-    console.log(`[Reset API] User ${userId}: Found ${declinedAnswers.length} declined answers`);
-
-    if (declinedAnswers.length === 0) {
-      // Even if no declined submissions, still reset the user's progress
-      const progress = await UserProgress.findOne({ userId });
-      if (progress) {
-        progress.phase1Completed = false;
-        progress.phase2Completed = false;
-        progress.isApproved = false;
-        progress.approvedAt = null;
-        progress.approvedBy = null;
-        progress.phase1Answers = [];
-        progress.phase2Answers = [];
-        progress.sessionState = {
-          currentPhase: 1,
-          currentQuestionIndex: 0,
-          draftAnswerText: '',
-          timeRemainingSeconds: null,
-          timeStartedAt: null,
-          showPathSelection: false,
-          lastUpdatedAt: new Date()
-        } as any;
-        
-        await progress.save();
-        
-        console.log(`[Reset API] User ${userId}: No declined submissions, but reset progress anyway`);
-        
-        return NextResponse.json({ 
-          message: 'No declined submissions found, but progress reset successfully',
-          resetCount: 0
-        });
-      }
-      
-      return NextResponse.json({ 
-        message: 'No declined submissions found and no progress to reset' 
-      });
-    }
-
-    // Remove declined answers from user progress
-    const progress = await UserProgress.findOne({ userId });
-    if (progress) {
-      // Remove declined question IDs from phase answers
-      const declinedQuestionIds = declinedAnswers.map(answer => answer.questionId);
-      
-      progress.phase1Answers = progress.phase1Answers.filter(
-        (answerId: string) => !declinedQuestionIds.includes(answerId)
-      );
-      progress.phase2Answers = progress.phase2Answers.filter(
-        (answerId: string) => !declinedQuestionIds.includes(answerId)
-      );
-      
-      // Reset completion status
-      progress.phase1Completed = false;
-      progress.phase2Completed = false;
-      progress.isApproved = false;
-      progress.approvedAt = null;
-      progress.approvedBy = null;
-      progress.sessionState = {
-        currentPhase: 1,
-        currentQuestionIndex: 0,
-        draftAnswerText: '',
-        timeRemainingSeconds: null,
-        timeStartedAt: null,
-        showPathSelection: false,
-        lastUpdatedAt: new Date()
-      } as any;
-      
-      await progress.save();
-    }
-
-    // Delete declined answers
-    await UserAnswer.deleteMany({
-      userId,
-      status: 'declined'
-    });
-
-    return NextResponse.json({ 
-      message: 'Declined progress reset successfully',
-      resetCount: declinedAnswers.length
+      message: 'Progress updated successfully',
+      progress: progress.toObject()
     });
 
   } catch (error) {
-    console.error('Error resetting declined progress:', error);
+    console.error('Error updating user progress:', error);
     return NextResponse.json(
-      { error: 'Failed to reset declined progress' },
+      { error: 'Failed to update progress' },
       { status: 500 }
     );
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-import { isAdmin } from '@/lib/admin-config';
+import { isAdmin, isAdminWithDB } from '@/lib/admin-config';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -47,8 +47,9 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    if (!isAdmin(userId)) {
-      return NextResponse.json({ error: 'Unauthorized - Not admin' }, { status: 401 });
+    const isUserAdmin = await isAdminWithDB(userId);
+    if (!isUserAdmin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

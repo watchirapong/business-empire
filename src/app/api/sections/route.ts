@@ -63,3 +63,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// DELETE /api/sections - Delete all sections for a project
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+    
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
+
+    if (!projectId) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    // Delete all sections for the project
+    const result = await Section.deleteMany({ projectId });
+
+    return NextResponse.json({ 
+      message: `Deleted ${result.deletedCount} sections successfully`,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting sections:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

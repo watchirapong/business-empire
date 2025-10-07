@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
-
-const connectDB = async () => {
-  try {
-    if (mongoose.connections[0].readyState) {
-      return;
-    }
-    await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
 
 // User Behavior Schema
 const UserBehaviorSchema = new mongoose.Schema({
@@ -20,24 +8,16 @@ const UserBehaviorSchema = new mongoose.Schema({
   username: { type: String, required: true },
   globalName: { type: String },
   avatar: { type: String },
-  behaviorType: {
-    type: String,
-    required: true,
-    enum: ['shop_visit', 'gacha_play', 'university_visit', 'hamsterboard_visit', 'profile_visit', 'admin_visit', 'purchase', 'gacha_win', 'gacha_spend', 'game_space_visit', 'game_post', 'game_like', 'game_comment']
-  },
-  section: {
-    type: String,
-    required: true,
-    enum: ['shop', 'gacha', 'university', 'hamsterboard', 'profile', 'admin', 'home', 'game-space']
-  },
+  behaviorType: { type: String, required: true },
+  section: { type: String, required: true },
   action: { type: String, required: true },
   details: { type: mongoose.Schema.Types.Mixed },
-  page: { type: String, required: true },
   visitDate: { type: Date, required: true },
   visitTime: { type: Date, required: true },
-  sessionId: { type: String, required: true },
   userAgent: { type: String },
   ipAddress: { type: String },
+  referrer: { type: String },
+  sessionId: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -130,16 +110,14 @@ export async function GET(request: NextRequest) {
         $group: {
           _id: "$behaviorType",
           uniqueUsers: { $addToSet: "$userId" },
-          totalActions: { $sum: 1 },
-          avgActionsPerUser: { $avg: 1 }
+          totalActions: { $sum: 1 }
         }
       },
       {
         $project: {
           behaviorType: "$_id",
           uniqueUsers: { $size: "$uniqueUsers" },
-          totalActions: 1,
-          avgActionsPerUser: 1
+          totalActions: 1
         }
       },
       {
@@ -147,7 +125,7 @@ export async function GET(request: NextRequest) {
       }
     ]);
 
-    // Get top users by activity
+    // Get top active users
     const topUsers = await UserBehavior.aggregate([
       {
         $match: {
@@ -165,9 +143,7 @@ export async function GET(request: NextRequest) {
           avatar: { $first: "$avatar" },
           totalActions: { $sum: 1 },
           sections: { $addToSet: "$section" },
-          behaviorTypes: { $addToSet: "$behaviorType" },
-          lastActivity: { $max: "$visitTime" },
-          firstActivity: { $min: "$visitTime" }
+          behaviorTypes: { $addToSet: "$behaviorType" }
         }
       },
       {
@@ -179,8 +155,6 @@ export async function GET(request: NextRequest) {
           totalActions: 1,
           sections: 1,
           behaviorTypes: 1,
-          lastActivity: 1,
-          firstActivity: 1,
           sectionCount: { $size: "$sections" },
           behaviorTypeCount: { $size: "$behaviorTypes" }
         }
@@ -190,6 +164,55 @@ export async function GET(request: NextRequest) {
       },
       {
         $limit: 20
+      }
+    ]);
+
+    // Get purchase analytics
+    const purchaseAnalytics = await UserBehavior.aggregate([
+      {
+        $match: {
+          behaviorType: 'purchase',
+          visitDate: {
+            $gte: startDate,
+            $lt: endDate
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$visitDate" } }
+          },
+          totalPurchases: { $sum: 1 },
+          uniqueBuyers: { $addToSet: "$userId" },
+          totalSpent: {
+            $sum: {
+              $cond: {
+                if: { $and: [{ $ne: ["$details.amount", null] }, { $ne: ["$details.amount", undefined] }] },
+                then: "$details.amount",
+                else: 0
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          date: "$_id.date",
+          totalPurchases: 1,
+          uniqueBuyers: { $size: "$uniqueBuyers" },
+          totalSpent: 1,
+          avgSpentPerPurchase: {
+            $cond: {
+              if: { $gt: ["$totalPurchases", 0] },
+              then: { $divide: ["$totalSpent", "$totalPurchases"] },
+              else: 0
+            }
+          }
+        }
+      },
+      {
+        $sort: { date: 1 }
       }
     ]);
 
@@ -207,7 +230,7 @@ export async function GET(request: NextRequest) {
         $group: {
           _id: {
             date: { $dateToString: { format: "%Y-%m-%d", date: "$visitDate" } },
-            section: "$section"
+            behaviorType: "$behaviorType"
           },
           uniqueUsers: { $addToSet: "$userId" },
           totalActions: { $sum: 1 }
@@ -217,9 +240,9 @@ export async function GET(request: NextRequest) {
         $group: {
           _id: "$_id.date",
           date: { $first: "$_id.date" },
-          sections: {
+          behaviors: {
             $push: {
-              section: "$_id.section",
+              behaviorType: "$_id.behaviorType",
               uniqueUsers: { $size: "$uniqueUsers" },
               totalActions: "$totalActions"
             }
@@ -231,46 +254,51 @@ export async function GET(request: NextRequest) {
       {
         $project: {
           date: 1,
-          sections: 1,
+          behaviors: 1,
           totalUniqueUsers: { $size: "$totalUniqueUsers" },
           totalActions: 1
         }
       },
       {
-        $sort: { date: -1 }
+        $sort: { date: 1 }
       }
     ]);
 
-    // Get purchase and gacha statistics
-    const purchaseStats = await UserBehavior.aggregate([
-      {
-        $match: {
-          visitDate: {
-            $gte: startDate,
-            $lt: endDate
-          },
-          behaviorType: { $in: ['purchase', 'gacha_spend'] }
-        }
-      },
-      {
-        $group: {
-          _id: "$behaviorType",
-          totalSpent: { $sum: "$details.coinsSpent" },
-          totalTransactions: { $sum: 1 },
-          uniqueUsers: { $addToSet: "$userId" },
-          avgSpentPerUser: { $avg: "$details.coinsSpent" }
-        }
-      },
-      {
-        $project: {
-          behaviorType: "$_id",
-          totalSpent: 1,
-          totalTransactions: 1,
-          uniqueUsers: { $size: "$uniqueUsers" },
-          avgSpentPerUser: 1
-        }
+    // Try to enhance user data with Discord nicknames
+    try {
+      let EnhancedUser;
+      try {
+        EnhancedUser = mongoose.model('EnhancedUser');
+      } catch (error) {
+        // Enhanced user model not available
       }
-    ]);
+
+      if (EnhancedUser && topUsers.length > 0) {
+        // Get enhanced user data for top users
+        const userIds = topUsers.map(user => user.userId);
+        const enhancedUsers = await EnhancedUser.find({ discordId: { $in: userIds } });
+        
+        // Create a map of enhanced user data
+        const enhancedUserMap = new Map();
+        enhancedUsers.forEach(user => {
+          enhancedUserMap.set(user.discordId, {
+            discordNickname: user.discordServerData?.nickname,
+            displayName: user.discordServerData?.nickname || user.globalName || user.username
+          });
+        });
+
+        // Enhance top users with Discord nicknames
+        topUsers.forEach(user => {
+          const enhancedData = enhancedUserMap.get(user.userId);
+          if (enhancedData) {
+            user.discordNickname = enhancedData.discordNickname;
+            user.displayName = enhancedData.displayName;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error enhancing behavior analytics data:', error);
+    }
 
     return NextResponse.json({
       success: true,
@@ -283,8 +311,9 @@ export async function GET(request: NextRequest) {
         sectionStats,
         behaviorTypeStats,
         topUsers,
+        purchaseAnalytics,
         dailyBehaviorTrends,
-        purchaseStats
+        source: 'enhanced'
       }
     });
 

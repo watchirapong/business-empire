@@ -2,25 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import ShopItem from '@/models/ShopItem';
 import fs from 'fs';
 import path from 'path';
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      console.log('MongoDB already connected');
-      return;
-    }
-    await mongoose.connect(process.env.MONGODB_URI!);
-    console.log('MongoDB Connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
 
 // Comprehensive shop items data with all features
 const shopItems = [

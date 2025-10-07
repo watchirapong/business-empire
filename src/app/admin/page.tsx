@@ -16,6 +16,7 @@ const AdminManagement = lazy(() => import('@/components/admin/AdminManagement'))
 const LobbyManagement = lazy(() => import('@/components/admin/LobbyManagement'));
 const ClassManagementDashboard = lazy(() => import('@/components/ClassManagementDashboard'));
 const AdminProjectsOverview = lazy(() => import('@/components/AdminProjectsOverview'));
+const DiscordRecoveryManager = lazy(() => import('@/components/admin/DiscordRecoveryManager'));
 
 interface UserData {
   _id: string;
@@ -25,7 +26,7 @@ interface UserData {
   globalName?: string;
   avatar: string;
   createdAt: string;
-  source?: 'users' | 'voice_activity';
+  source?: 'users' | 'voice_activity' | 'enhanced';
   hasVoiceActivity?: boolean;
   voiceJoinCount?: number;
   totalVoiceTime?: number;
@@ -37,6 +38,14 @@ interface UserData {
   timeInCurrentVoice?: number;
   roles?: string[];
   roleCount?: number;
+  // Enhanced user data
+  discordNickname?: string;
+  displayName?: string;
+  currency?: {
+    hamsterCoins: number;
+    totalEarned: number;
+    totalSpent: number;
+  };
 }
 
 interface CurrencyData {
@@ -114,7 +123,7 @@ export default function AdminPage() {
   const [expandedUsers, setExpandedUsers] = useState(new Set<string>());
   const [isCurrencyManagementExpanded, setIsCurrencyManagementExpanded] = useState(true);
   const [isVoiceActivityExpanded, setIsVoiceActivityExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management' | 'remind' | 'class-management' | 'projects'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'voice-activity' | 'gacha' | 'achievements' | 'houses' | 'analytics' | 'shop' | 'shop-analytics' | 'assessment' | 'assessment-create' | 'assessment-users' | 'assessment-recent' | 'assessment-settings' | 'admin-management' | 'lobby-management' | 'remind' | 'class-management' | 'projects' | 'discord-recovery'>('users');
   const [shopAnalyticsData, setShopAnalyticsData] = useState<any>(null);
   const [shopSubTab, setShopSubTab] = useState<'management' | 'analytics'>('management');
   // Voice tracking filters for user management
@@ -263,9 +272,12 @@ export default function AdminPage() {
 
   // Using centralized admin config
 
-  // Helper function to get display name (nickname > globalName > username)
+  // Helper function to get display name (Discord nickname > currentNickname > globalName > username)
   const getDisplayName = (user: UserData) => {
-    // Prioritize currentNickname from API data
+    // Priority: Discord nickname > currentNickname > globalName > username
+    if (user.discordNickname) {
+      return user.discordNickname;
+    }
     if (user.currentNickname) {
       return user.currentNickname;
     }
@@ -1450,6 +1462,16 @@ export default function AdminPage() {
             🏛️ Lobby Management
           </button>
           <button
+            onClick={() => setActiveTab('discord-recovery')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+              activeTab === 'discord-recovery'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            🔄 Discord Recovery
+          </button>
+          <button
             onClick={() => setActiveTab('remind')}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
               activeTab === 'remind'
@@ -1797,15 +1819,29 @@ export default function AdminPage() {
                                   @{user.username} • {user.email || 'No email'}
                                 </div>
                                 
-                                {/* Show current nickname if available */}
-                                {(user.currentNickname || userNicknames[user.discordId]) && (
+                                {/* Show Discord nickname if available */}
+                                {user.discordNickname && user.discordNickname !== user.username && (
+                                  <div className="text-blue-400 text-sm font-semibold">
+                                    🏷️ Discord Nickname: {user.discordNickname}
+                                  </div>
+                                )}
+                                
+                                {/* Show current nickname if available (legacy) */}
+                                {(user.currentNickname || userNicknames[user.discordId]) && !user.discordNickname && (
                                   <div className="text-orange-400 text-sm font-semibold">
                                     🏷️ Server Nickname: {user.currentNickname || userNicknames[user.discordId]}
                                   </div>
                                 )}
                                 
+                                {/* Show global name if different */}
+                                {user.globalName && user.globalName !== user.username && user.globalName !== user.discordNickname && (
+                                  <div className="text-green-400 text-sm">
+                                    🌍 Global Name: {user.globalName}
+                                  </div>
+                                )}
+                                
                                 {/* Show if user has a different display name than username */}
-                                {getDisplayName(user) !== user.username && !user.currentNickname && !userNicknames[user.discordId] && (
+                                {getDisplayName(user) !== user.username && !user.discordNickname && !user.currentNickname && !userNicknames[user.discordId] && (
                                   <div className="text-blue-400 text-sm">
                                     📝 Display Name: {getDisplayName(user)}
                                   </div>
@@ -1886,10 +1922,13 @@ export default function AdminPage() {
                                 <div className="space-y-2 text-gray-300">
                                   <div><span className="font-medium">Display Name:</span> <span className="text-white font-semibold">{getDisplayName(user)}</span></div>
                                   <div><span className="font-medium">Username:</span> @{user.username}</div>
+                                  {user.discordNickname && (
+                                    <div><span className="font-medium">Discord Nickname:</span> <span className="text-blue-400">{user.discordNickname}</span></div>
+                                  )}
                                   {user.globalName && (
                                     <div><span className="font-medium">Global Name:</span> {user.globalName}</div>
                                   )}
-                                  {userNicknames[user.discordId] && (
+                                  {userNicknames[user.discordId] && !user.discordNickname && (
                                     <div><span className="font-medium text-orange-400">Server Nickname:</span> <span className="text-orange-400 font-semibold">{userNicknames[user.discordId]}</span></div>
                                   )}
                                   <div><span className="font-medium">Email:</span> {user.email}</div>
@@ -4633,6 +4672,13 @@ export default function AdminPage() {
         {activeTab === 'lobby-management' && (
           <Suspense fallback={<div className="text-center p-8">Loading Lobby Management...</div>}>
             <LobbyManagement />
+          </Suspense>
+        )}
+
+        {/* Discord Recovery Tab */}
+        {activeTab === 'discord-recovery' && (
+          <Suspense fallback={<div className="text-center p-8">Loading Discord Recovery...</div>}>
+            <DiscordRecoveryManager />
           </Suspense>
         )}
 

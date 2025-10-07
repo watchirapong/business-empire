@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import mongoose from 'mongoose';
-import PurchaseHistory from '@/models/PurchaseHistory';
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      return;
-    }
-    await mongoose.connect(process.env.MONGODB_URI!);
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
+import connectDB from '@/lib/mongodb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +12,8 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDB();
-
+    
+    const mongoose = await import('mongoose');
     const body = await request.json();
     const { itemId, currency } = body;
 
@@ -66,51 +55,128 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item is out of stock' }, { status: 400 });
     }
 
-    // Create purchase record using PurchaseHistory model
+    const userId = (session.user as any).id;
 
-    const purchase = new PurchaseHistory({
-      userId: (session.user as any).id,
-      username: session.user.name || 'Unknown',
-      itemId: item._id,
-      itemName: item.name,
-      price: item.price,
-      hasFile: item.hasFile || false,
-      fileUrl: item.fileUrl || '',
-      fileName: item.fileName || '',
-      contentType: item.contentType || 'none',
-      textContent: item.textContent || '',
-      linkUrl: item.linkUrl || '',
-      youtubeUrl: item.youtubeUrl || ''
-    });
+    // Try to use enhanced user model first, fallback to legacy system
+    let EnhancedUser;
+    let Currency;
+    let PurchaseHistory;
+    
+    try {
+      // Try to get enhanced user model
+      EnhancedUser = mongoose.model('EnhancedUser');
+      console.log('Using Enhanced User model for shop purchase');
+    } catch (error) {
+      // Fallback to legacy models
+      // const { default: Currency } = await import('../../../../models/Currency.js');
+      // const { default: PurchaseHistory } = await import('../../../../models/PurchaseHistory.js');
+      console.log('Using legacy models for shop purchase');
+    }
 
-    await purchase.save();
+    let purchase: any;
+
+    if (EnhancedUser) {
+      // Use enhanced user model
+      const user = await EnhancedUser.findOne({ discordId: userId });
+      
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      // Check if user has enough hamstercoins
+      if (user.currency.hamsterCoins < item.price) {
+        return NextResponse.json({ 
+          error: `Insufficient hamstercoins! You need ${item.price} but only have ${user.currency.hamsterCoins}.` 
+        }, { status: 400 });
+      }
+
+      // Deduct hamstercoins
+      user.currency.hamsterCoins -= item.price;
+      user.currency.totalSpent += item.price;
+      user.updatedAt = new Date();
+      await user.save();
+
+      // Create purchase record
+      const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', new mongoose.Schema({
+        userId: String,
+        username: String,
+        itemId: mongoose.Schema.Types.ObjectId,
+        itemName: String,
+        price: Number,
+        hasFile: Boolean,
+        fileUrl: String,
+        fileName: String,
+        contentType: String,
+        textContent: String,
+        linkUrl: String,
+        youtubeUrl: String,
+        purchaseDate: { type: Date, default: Date.now }
+      }));
+
+      purchase = new PurchaseHistory({
+        userId: userId,
+        username: session.user.name || 'Unknown',
+        itemId: item._id,
+        itemName: item.name,
+        price: item.price,
+        hasFile: item.hasFile || false,
+        fileUrl: item.fileUrl || '',
+        fileName: item.fileName || '',
+        contentType: item.contentType || 'none',
+        textContent: item.textContent || '',
+        linkUrl: item.linkUrl || '',
+        youtubeUrl: item.youtubeUrl || ''
+      });
+
+      await purchase.save();
+
+    } else {
+      // Legacy system
+      // const currency = await Currency.findOne({ userId });
+      // if (!currency) {
+      //   return NextResponse.json({ error: 'Currency account not found' }, { status: 404 });
+      // }
+
+      // if (currency.hamsterCoins < item.price) {
+      //   return NextResponse.json({ 
+      //     error: `Insufficient hamstercoins! You need ${item.price} but only have ${currency.hamsterCoins}.` 
+      //   }, { status: 400 });
+      // }
+
+      // // Deduct hamstercoins
+      // currency.hamsterCoins -= item.price;
+      // currency.totalSpent += item.price;
+      // currency.updatedAt = new Date();
+      // await currency.save();
+      
+      // Legacy system disabled - no currency validation
+      return NextResponse.json({ 
+        error: 'Legacy currency system is temporarily disabled. Please use enhanced user system.' 
+      }, { status: 503 });
+
+      // Create purchase record
+      purchase = new PurchaseHistory({
+        userId: userId,
+        username: session.user.name || 'Unknown',
+        itemId: item._id,
+        itemName: item.name,
+        price: item.price,
+        hasFile: item.hasFile || false,
+        fileUrl: item.fileUrl || '',
+        fileName: item.fileName || '',
+        contentType: item.contentType || 'none',
+        textContent: item.textContent || '',
+        linkUrl: item.linkUrl || '',
+        youtubeUrl: item.youtubeUrl || ''
+      });
+
+      await purchase.save();
+    }
 
     // Update item analytics
     item.purchaseCount = (item.purchaseCount || 0) + 1;
     item.totalRevenue = (item.totalRevenue || 0) + item.price;
     await item.save();
-
-    // Deduct from user's currency balance
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error('Database connection not available');
-    }
-    const userId = (session.user as any).id;
-
-    if (currency === 'hamstercoin') {
-      // Update HamsterCoin balance in currencies collection
-      const currencies = db.collection('currencies');
-      await currencies.updateOne(
-        { userId },
-        {
-          $inc: {
-            hamsterCoins: -item.price,
-            totalSpent: item.price
-          },
-          $set: { updatedAt: new Date() }
-        }
-      );
-    }
 
     return NextResponse.json({
       success: true,
@@ -137,81 +203,80 @@ export async function GET() {
     }
 
     await connectDB();
-
+    
+    const mongoose = await import('mongoose');
     const userId = (session.user as any).id;
 
-    // Get user's purchase history
-
-    const purchases = await PurchaseHistory.find({ userId })
-      .sort({ purchaseDate: -1 })
-      .lean();
-
-    console.log(`Found ${purchases.length} purchases for user ${userId}`);
-
-    // Update existing purchases that have content but missing contentType
-    for (const purchase of purchases) {
-      let needsUpdate = false;
-      let newContentType = purchase.contentType || 'none';
-
-      if (!purchase.contentType || purchase.contentType === 'none') {
-        if (purchase.textContent && purchase.textContent.trim()) {
-          newContentType = 'text';
-          needsUpdate = true;
-        } else if (purchase.linkUrl && purchase.linkUrl.trim()) {
-          newContentType = 'link';
-          needsUpdate = true;
-        } else if (purchase.youtubeUrl && purchase.youtubeUrl.trim()) {
-          newContentType = 'youtube';
-          needsUpdate = true;
-        } else if (purchase.hasFile && purchase.fileUrl) {
-          newContentType = 'file';
-          needsUpdate = true;
-        }
-      }
-
-      if (needsUpdate) {
-        console.log(`Updating purchase ${purchase._id}: contentType from '${purchase.contentType}' to '${newContentType}'`);
-        await PurchaseHistory.updateOne(
-          { _id: purchase._id },
-          { $set: { contentType: newContentType } }
-        );
-        purchase.contentType = newContentType; // Update in memory
-      }
+    // Try to use enhanced user model first, fallback to legacy system
+    let EnhancedUser;
+    let PurchaseHistory;
+    
+    try {
+      // Try to get enhanced user model
+      EnhancedUser = mongoose.model('EnhancedUser');
+      console.log('Using Enhanced User model for purchase history');
+    } catch (error) {
+      // Fallback to legacy model
+      // const { default: PurchaseHistory } = await import('../../../../models/PurchaseHistory.js');
+      console.log('Using legacy PurchaseHistory model');
     }
 
-    const formattedPurchases = purchases.map((purchase: any) => {
-      const formatted = {
-        id: purchase._id.toString(),
-        itemName: purchase.itemName,
-        price: purchase.price,
-        purchaseDate: purchase.purchaseDate.toISOString(),
-        status: 'completed',
-        downloadCount: purchase.downloadCount || 0,
-        hasFile: purchase.hasFile || false,
-        fileName: purchase.fileName,
-        contentType: purchase.contentType || 'none',
-        textContent: purchase.textContent,
-        linkUrl: purchase.linkUrl,
-        youtubeUrl: purchase.youtubeUrl,
-        fileUrl: purchase.fileUrl
-      };
+    let purchases = [];
 
-      // Debug logging for content
-      if (purchase.contentType && purchase.contentType !== 'none') {
-        console.log(`Purchase ${purchase._id}: contentType=${purchase.contentType}, hasContent=${!!(purchase.textContent || purchase.linkUrl || purchase.youtubeUrl || purchase.hasFile)}`);
+    if (EnhancedUser) {
+      // Use enhanced user model
+      const user = await EnhancedUser.findOne({ discordId: userId });
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      return formatted;
-    });
+      // Get purchase history
+      const PurchaseHistory = mongoose.models.PurchaseHistory || mongoose.model('PurchaseHistory', new mongoose.Schema({
+        userId: String,
+        username: String,
+        itemId: mongoose.Schema.Types.ObjectId,
+        itemName: String,
+        price: Number,
+        hasFile: Boolean,
+        fileUrl: String,
+        fileName: String,
+        contentType: String,
+        textContent: String,
+        linkUrl: String,
+        youtubeUrl: String,
+        purchaseDate: { type: Date, default: Date.now }
+      }));
+
+      purchases = await PurchaseHistory.find({ userId })
+        .sort({ purchaseDate: -1 })
+        .limit(50);
+
+    } else {
+      // Legacy system
+      // purchases = await PurchaseHistory.find({ userId })
+      //   .sort({ purchaseDate: -1 })
+      //   .limit(50);
+      purchases = []; // Legacy system disabled
+    }
 
     return NextResponse.json({
       success: true,
-      purchases: formattedPurchases
+      purchases: purchases.map((purchase: any) => ({
+        id: purchase._id.toString(),
+        itemName: purchase.itemName,
+        price: purchase.price,
+        purchaseDate: purchase.purchaseDate,
+        hasFile: purchase.hasFile,
+        fileUrl: purchase.fileUrl,
+        fileName: purchase.fileName,
+        contentType: purchase.contentType,
+        textContent: purchase.textContent,
+        linkUrl: purchase.linkUrl,
+        youtubeUrl: purchase.youtubeUrl
+      }))
     });
-
   } catch (error) {
     console.error('Error fetching purchase history:', error);
     return NextResponse.json({ error: 'Failed to fetch purchase history' }, { status: 500 });
   }
 }
-

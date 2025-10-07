@@ -11,19 +11,28 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const organizationId = searchParams.get('organizationId');
     
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // Get all projects for the user
-    const projects = await Project.find({
+    // Build query for projects
+    const query: any = {
       $or: [
         { ownerId: userId },
         { 'members.userId': userId }
       ],
       isArchived: false
-    }).sort({ createdAt: -1 });
+    };
+
+    // Add organization filter if provided
+    if (organizationId) {
+      query.organizationId = organizationId;
+    }
+
+    // Get all projects for the user (and organization if specified)
+    const projects = await Project.find(query).sort({ createdAt: -1 });
 
     // For each project, get sections and tasks
     const projectsWithData = await Promise.all(

@@ -10,6 +10,10 @@ const sectionSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  color: {
+    type: String,
+    default: '#3498db'
+  },
   position: {
     type: Number,
     default: 0

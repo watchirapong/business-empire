@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-config';
+import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import AssessmentQuestion from '@/models/AssessmentQuestion';
 
@@ -23,10 +24,7 @@ export async function GET(request: NextRequest) {
     
     console.log('Assessment Questions API - Params:', { phase, path, adminView });
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     let query: any = {};
     let questions;
@@ -55,7 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ questions });
 
   } catch (error) {
-    console.error('Error fetching questions:', error);
+    console.error('Error fetching assessment questions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch questions' },
       { status: 500 }
@@ -91,10 +89,7 @@ export async function POST(request: NextRequest) {
       order
     } = body;
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     const question = new AssessmentQuestion({
       phase,
@@ -122,20 +117,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       message: 'Question created successfully',
-      question: {
-        id: question._id,
-        phase: question.phase,
-        path: question.path,
-        questionText: question.questionText,
-        questionImage: question.questionImage,
-        questionImages: question.questionImages,
-        requiresImageUpload: question.requiresImageUpload,
-        timeLimitMinutes: question.timeLimitMinutes,
-        skillCategories: question.skillCategories,
-        awardsCategories: question.awardsCategories,
-        order: question.order,
-        isActive: question.isActive
-      }
+      question: question.toObject()
     });
 
   } catch (error) {
@@ -151,75 +133,42 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('PUT Questions API - Session:', session?.user?.id);
-    
     if (!session?.user) {
-      console.log('PUT Questions API - No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
     const userId = (session.user as any).id;
-    console.log('PUT Questions API - User ID:', userId);
-    
     if (!isAdmin(userId)) {
-      console.log('PUT Questions API - User is not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const body = await request.json();
-    console.log('PUT Questions API - Request body:', JSON.stringify(body, null, 2));
-    
     const { id, ...updateData } = body;
-    console.log('PUT Questions API - Question ID:', id);
-    console.log('PUT Questions API - Update data:', JSON.stringify(updateData, null, 2));
 
     if (!id) {
-      console.log('PUT Questions API - No ID provided');
       return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
     }
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
-    console.log('PUT Questions API - Attempting to update question with ID:', id);
-    
     const question = await AssessmentQuestion.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
 
-    console.log('PUT Questions API - Update result:', question ? 'Success' : 'Question not found');
-
     if (!question) {
-      console.log('PUT Questions API - Question not found for ID:', id);
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
     return NextResponse.json({ 
       message: 'Question updated successfully',
-      question: {
-        id: question._id,
-        phase: question.phase,
-        path: question.path,
-        questionText: question.questionText,
-        questionImage: question.questionImage,
-        questionImages: question.questionImages,
-        requiresImageUpload: question.requiresImageUpload,
-        timeLimitMinutes: question.timeLimitMinutes,
-        skillCategories: question.skillCategories,
-        awardsCategories: question.awardsCategories,
-        order: question.order,
-        isActive: question.isActive
-      }
+      question: question.toObject()
     });
 
   } catch (error) {
-    console.error('PUT Questions API - Error updating question:', error);
-    console.error('PUT Questions API - Error stack:', (error as Error).stack);
+    console.error('Error updating question:', error);
     return NextResponse.json(
       { error: 'Failed to update question' },
       { status: 500 }
@@ -248,10 +197,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
     }
 
-    // Connect to MongoDB
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/business-empire');
-    }
+    await connectDB();
 
     const question = await AssessmentQuestion.findByIdAndDelete(id);
 
@@ -259,7 +205,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Question deleted successfully' });
+    return NextResponse.json({ 
+      message: 'Question deleted successfully'
+    });
 
   } catch (error) {
     console.error('Error deleting question:', error);
