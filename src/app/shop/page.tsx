@@ -218,7 +218,7 @@ export default function ShopPage() {
           >
             🌳 Shop Item
           </button>
-          {isAdmin(session.user?.email || '') && (
+          {isAdmin((session.user as any)?.id || '') && (
             <button
               onClick={() => setActiveTab('branches')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
@@ -241,7 +241,7 @@ export default function ShopPage() {
             </div>
             
             {/* Floating Create Item Button for Admins */}
-            {isAdmin(session.user?.email || '') && (
+            {isAdmin((session.user as any)?.id || '') && (
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowCreateForm(true)}
@@ -259,7 +259,7 @@ export default function ShopPage() {
 
 
         {/* Manage Branches Tab */}
-        {activeTab === 'branches' && isAdmin(session.user?.email || '') && (
+        {activeTab === 'branches' && isAdmin((session.user as any)?.id || '') && (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-white mb-2">Manage Skill Tree Branches</h2>
