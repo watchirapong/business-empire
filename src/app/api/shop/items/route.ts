@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Validate required fields
-    if (!name || !description || !price || !category) {
+    if (!name || !description || price === undefined || price === null || !category) {
       console.error('Missing required fields validation failed');
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }

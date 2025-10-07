@@ -152,9 +152,34 @@ export default function ShopPage() {
     setSelectedNode(node);
   };
 
-  const handlePurchase = (nodeId: string) => {
-    setShowPurchaseSuccess(true);
-    setTimeout(() => setShowPurchaseSuccess(false), 3000);
+  const handlePurchase = async (nodeId: string) => {
+    try {
+      const response = await fetch('/api/skill-tree', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nodeId,
+          action: 'purchase'
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setShowPurchaseSuccess(true);
+        setTimeout(() => setShowPurchaseSuccess(false), 3000);
+        
+        // Refresh the page to update the skill tree state
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Purchase failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error purchasing node:', error);
+      alert('Purchase failed. Please try again.');
+    }
   };
 
   if (status === 'loading') {
