@@ -5,41 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { isAdmin } from '@/lib/admin-config';
+import SkillTree from '@/components/SkillTree';
+import { SkillTreeNode } from '@/types/skillTree';
 
-// Utility function to extract YouTube video ID from URL
-const extractYouTubeVideoId = (url: string | undefined): string | null => {
-  if (!url) return null;
-
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/v\/([^&\n?#]+)/
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
-};
-
-// Utility function to fetch YouTube video title using our API endpoint
-const fetchYouTubeVideoTitle = async (videoId: string): Promise<string> => {
-  try {
-    const response = await fetch(`/api/youtube/title?videoId=${videoId}`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.title || 'YouTube Video';
-    }
-  } catch (error) {
-    console.error('Error fetching YouTube video title:', error);
-  }
-  return 'YouTube Video';
-};
-
-// Comprehensive Shop item interface
+// Shop item interface
 interface ShopItem {
   id: string;
   name: string;
@@ -48,1145 +17,675 @@ interface ShopItem {
   image: string;
   inStock: boolean;
   category: string;
-  // Content types
   contentType: 'none' | 'text' | 'link' | 'file' | 'youtube';
   textContent?: string;
   linkUrl?: string;
   fileUrl?: string;
   fileName?: string;
   youtubeUrl?: string;
-  // Purchase settings
-  allowMultiplePurchases?: boolean;
-  // Role restrictions
-  requiresRole?: boolean;
+  allowMultiplePurchases: boolean;
+  requiresRole: boolean;
   requiredRoleId?: string;
   requiredRoleName?: string;
-  // File management
-  hasFile?: boolean;
-  // For form handling
-  imageFile?: File;
-  // Analytics
-  purchaseCount?: number;
-  totalRevenue?: number;
-  // Timestamps
-  createdAt?: string;
-  updatedAt?: string;
+  hasFile: boolean;
+  purchaseCount: number;
+  totalRevenue: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function ShopPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [items, setItems] = useState<ShopItem[]>([]);
-  const [cart, setCart] = useState<ShopItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCurrency, setSelectedCurrency] = useState<'hamstercoin'>('hamstercoin');
-  const [balance, setBalance] = useState<{hamstercoin: number}>({hamstercoin: 0});
-  const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
-  const [youtubeTitles, setYoutubeTitles] = useState<Record<string, string>>({});
+  const [selectedNode, setSelectedNode] = useState<SkillTreeNode | null>(null);
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
-  const [purchasedItem, setPurchasedItem] = useState<any>(null);
-  const [isShopAdmin, setIsShopAdmin] = useState(false);
-  const [editingShopItem, setEditingShopItem] = useState<any>(null);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>({});
+  const [activeTab, setActiveTab] = useState<'skill-tree' | 'items' | 'create' | 'branches'>('skill-tree');
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showBranchForm, setShowBranchForm] = useState(false);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [newItem, setNewItem] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    category: 'cosmetic',
+    contentType: 'none' as 'none' | 'text' | 'link' | 'file' | 'youtube',
+    allowMultiplePurchases: true,
+    requiresRole: false,
+    requiredRoleId: '',
+    requiredRoleName: '',
+    textContent: '',
+    linkUrl: '',
+    youtubeUrl: ''
+  });
+  const [newBranch, setNewBranch] = useState({
+    id: '',
+    name: '',
+    description: '',
+    icon: '🌳',
+    color: '#FF6B6B',
+    unlockCost: 0
+  });
 
-  // Fetch shop items and currency balance
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch shop items
-        const itemsResponse = await fetch('/api/shop/items');
-        const itemsData = await itemsResponse.json();
-        if (itemsData.success !== false && itemsData.items && Array.isArray(itemsData.items)) {
-          setItems(itemsData.items);
-        } else {
-          // If API fails or returns unexpected data, set empty array
-          setItems([]);
-        }
+    if (session) {
+      fetchShopItems();
+      fetchBranches();
+    }
+  }, [session]);
 
-          // Fetch YouTube video titles for items with YouTube URLs
-          const titles: Record<string, string> = {};
-          if (itemsData.items && Array.isArray(itemsData.items)) {
-            const titlePromises = itemsData.items
-              .filter((item: ShopItem) => item.youtubeUrl && item.youtubeUrl.trim() !== '')
-              .map(async (item: ShopItem) => {
-                if (item.youtubeUrl) {
-                  const videoId = extractYouTubeVideoId(item.youtubeUrl);
-                  if (videoId) {
-                    try {
-                      const title = await fetchYouTubeVideoTitle(videoId);
-                      titles[item.id] = title;
-    } catch (error) {
-                      console.error(`Failed to fetch title for video ${videoId}:`, error);
-                      titles[item.id] = 'YouTube Video';
-                    }
-                  }
-                }
-              });
-
-            await Promise.all(titlePromises);
-          }
-          setYoutubeTitles(titles);
-
-        // Fetch currency balance
-        const balanceResponse = await fetch('/api/currency/balance');
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          if (balanceData.success) {
-            setBalance(balanceData.balance);
-          }
+  const fetchShopItems = async () => {
+    try {
+      const response = await fetch('/api/shop/items');
+      if (response.ok) {
+        const data = await response.json();
+        setShopItems(data.items || []);
       }
     } catch (error) {
-        console.error('Error fetching data:', error);
+      console.error('Error fetching shop items:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
-
-  // Redirect if not logged in and check admin status
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
-    // Check if user is admin
-    const userId = (session.user as any).id;
-    setIsShopAdmin(isAdmin(userId));
-  }, [session, status, router]);
-
-  const filteredItems = React.useMemo(() => {
-    const safeItems = Array.isArray(items) ? items : [];
-    return safeItems.filter(item => {
-      if (!item || typeof item !== 'object') return false;
-
-      // Category filter
-      const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
-
-      // Search filter
-      const searchMatch = !searchQuery ||
-        (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      return categoryMatch && searchMatch;
-    });
-  }, [items, selectedCategory, searchQuery]);
-
-  const addToCart = async (item: ShopItem) => {
-    if (!item.inStock) return;
-    if (cart.find(cartItem => cartItem.id === item.id)) {
-      alert('Item already in cart!');
-          return;
-    }
-
-    // Check role requirements before adding to cart
-    if (item.requiresRole && item.requiredRoleId) {
-      try {
-        const response = await fetch(`/api/test-discord-role?roleId=${item.requiredRoleId}`);
+  const fetchBranches = async () => {
+    try {
+      const response = await fetch('/api/skill-tree/branches');
+      if (response.ok) {
         const data = await response.json();
-        
-        if (!data.hasRole) {
-          const roleName = item.requiredRoleName || item.requiredRoleId;
-          alert(`❌ Cannot add to cart!\n\nThis item requires the Discord role: ${roleName}\n\nPlease make sure you have this role in the Discord server before purchasing.`);
-          return;
+        setBranches(data.branches || []);
       }
     } catch (error) {
-        console.error('Error checking role requirement:', error);
-        alert('⚠️ Warning: Unable to verify role requirements. You may not be able to complete the purchase if you don\'t have the required role.');
-      }
+      console.error('Error fetching branches:', error);
     }
-
-    setCart([...cart, item]);
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.id !== itemId));
-  };
-
-  const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + item.price, 0);
-  };
-
-  const handlePurchase = async () => {
-    if (cart.length === 0) {
-      alert('Your cart is empty!');
-        return;
-      }
-      
-    const total = getTotalPrice();
-    const currentBalance = balance.hamstercoin;
-
-    if (currentBalance < total) {
-      alert(`Insufficient ${selectedCurrency} balance! You need ${total} coins but only have ${currentBalance}.`);
-      return;
-    }
-
-    setPurchasing(true);
-
+  const handleCreateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      // Process each item in cart
-      for (const item of cart) {
-      const response = await fetch('/api/shop/purchase', {
+      const response = await fetch('/api/shop/items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-            itemId: item.id,
-          currency: selectedCurrency
-        }),
+        body: JSON.stringify(newItem),
       });
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-          alert(`Purchase failed: ${data.error}`);
-        return;
-      }
-      }
-
-      // Update balance and clear cart
-      setBalance(prev => ({
-        ...prev,
-        hamstercoin: prev.hamstercoin - total
-      }));
-
-      // Find the first purchased item for the success modal
-      const firstItem = cart[0];
-          setPurchasedItem({
-        id: firstItem.id,
-        name: firstItem.name,
-        image: firstItem.image,
-        contentType: firstItem.contentType,
-        textContent: firstItem.textContent,
-        linkUrl: firstItem.linkUrl,
-        fileUrl: firstItem.fileUrl,
-        hasFile: firstItem.hasFile,
-        fileName: firstItem.fileName,
-        price: firstItem.price
-      });
-
-      setCart([]);
-          setShowPurchaseSuccess(true);
-
-      // Refresh balance after purchase
-      try {
-        const balanceResponse = await fetch('/api/currency/balance');
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          if (balanceData.success) {
-            setBalance(balanceData.balance);
-          }
-        }
-      } catch (error) {
-        console.error('Error refreshing balance:', error);
+      if (response.ok) {
+        setShowCreateForm(false);
+        setNewItem({
+          name: '',
+          description: '',
+          price: 0,
+          category: 'cosmetic',
+          contentType: 'none',
+          allowMultiplePurchases: true,
+          requiresRole: false,
+          requiredRoleId: '',
+          requiredRoleName: '',
+          textContent: '',
+          linkUrl: '',
+          youtubeUrl: ''
+        });
+        fetchShopItems();
       }
     } catch (error) {
-      console.error('Purchase error:', error);
-      alert('Purchase failed. Please try again.');
-    } finally {
-      setPurchasing(false);
+      console.error('Error creating item:', error);
     }
   };
 
-  if (status === 'loading' || loading) {
+  const handleCreateBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/skill-tree/branches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newBranch),
+      });
+
+      if (response.ok) {
+        setShowBranchForm(false);
+        setNewBranch({
+          id: '',
+          name: '',
+          description: '',
+          icon: '🌳',
+          color: '#FF6B6B',
+          unlockCost: 0
+        });
+        fetchBranches();
+      }
+    } catch (error) {
+      console.error('Error creating branch:', error);
+    }
+  };
+
+  const handleNodeClick = (node: SkillTreeNode) => {
+    setSelectedNode(node);
+  };
+
+  const handlePurchase = (nodeId: string) => {
+    setShowPurchaseSuccess(true);
+    setTimeout(() => setShowPurchaseSuccess(false), 3000);
+  };
+
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-orange-400 border-t-transparent"></div>
       </div>
     );
   }
 
   if (!session) {
-    return null;
+  return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔐</div>
+          <h1 className="text-3xl font-bold text-white mb-4">Authentication Required</h1>
+          <p className="text-gray-400 mb-6">Please log in to access the Shop</p>
+          <button
+            onClick={() => router.push('/api/auth/signin')}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold transition-all"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-      <div className="container mx-auto px-4 py-8 pb-32">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent mb-2">
-            🛒 Shop
-          </h1>
-          <p className="text-gray-300 text-lg">Purchase exclusive items and boosts</p>
-
-          {/* Admin and Purchase History Buttons */}
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <button
-              onClick={() => router.push('/purchases')}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
-          >
-              📦 View Purchase History
-          </button>
-          
-          <button
-              onClick={() => router.push('/skill-tree-shop')}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-2 rounded-lg transition-all"
-          >
-              🌳 Skill Tree Shop
-          </button>
-
-            {isShopAdmin && (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      {/* Header */}
+      <div className="bg-black/50 backdrop-blur-sm border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
               <button
-                onClick={() => {
-                  setEditingShopItem(null);
-                  setEditFormData({
-                    name: '',
-                    description: '',
-                    price: 0,
-                    category: '',
-                    image: '',
-                    inStock: true,
-                    allowMultiplePurchases: false,
-                    contentType: 'none',
-                    textContent: '',
-                    linkUrl: '',
-                    youtubeUrl: '',
-                    fileUrl: '',
-                    fileName: '',
-                    hasFile: false,
-                    requiresRole: false,
-                    requiredRoleId: '',
-                    requiredRoleName: '',
-                    imageFile: undefined
-                  });
-                  setShowEditForm(true);
-                }}
-                className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
+                onClick={() => router.push('/')}
+                className="text-gray-400 hover:text-white transition-colors"
               >
-                ➕ Post New Item
+                ← Back to Home
               </button>
-            )}
-        </div>
-
-          {/* Balance Display */}
-          <div className="mt-4 flex flex-wrap justify-center gap-4">
-            {/* HamsterCoin Balance */}
-            <div className={`inline-flex items-center border rounded-full px-6 py-3 transition-all ${
-              selectedCurrency === 'hamstercoin' 
-                ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-500/50 ring-2 ring-yellow-500/30' 
-                : 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
-            }`}>
-              <span className="text-2xl mr-2">🪙</span>
-              <span className="text-yellow-400 font-bold text-xl">{balance.hamstercoin.toLocaleString()}</span>
-              <span className="text-yellow-300 ml-1">Hamster Coins</span>
+              <h1 className="text-2xl font-bold text-white">🌳 Business Empire Shop</h1>
             </div>
-            
-          </div>
-          
-          
-          {/* Search Bar */}
-          <div className="mt-6 max-w-md mx-auto">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="🔍 Search items by name or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 pl-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all"
-              />
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                🔍
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-400">
+                Welcome, {session.user?.name}
               </div>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  title="Clear search"
-                >
-                  ✕
-                </button>
-              )}
             </div>
-            {searchQuery && (
-              <p className="text-center text-gray-400 text-sm mt-2">
-                Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} matching &quot;{searchQuery}&quot;
-              </p>
-            )}
+          </div>
           </div>
           </div>
           
-        {/* Category Filter */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white/10 rounded-lg p-2 flex space-x-2">
-            {['all', 'cosmetic', 'gaming'].map(category => (
+      {/* Navigation Tabs */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex space-x-1 bg-gray-800/50 rounded-lg p-1 mb-6">
+          <button
+            onClick={() => setActiveTab('skill-tree')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'skill-tree'
+                ? 'bg-orange-500 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            🌳 Skill Tree
+          </button>
+          <button
+            onClick={() => setActiveTab('items')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'items'
+                ? 'bg-orange-500 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            🛒 Shop Items
+          </button>
+          {isAdmin(session.user?.email || '') && (
+            <>
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                  selectedCategory === category
+                onClick={() => setActiveTab('create')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  activeTab === 'create'
                     ? 'bg-orange-500 text-white'
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                {category === 'all' ? 'All Items' : category.charAt(0).toUpperCase() + category.slice(1)}
+                ➕ Create Item
               </button>
-            ))}
-          </div>
+              <button
+                onClick={() => setActiveTab('branches')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  activeTab === 'branches'
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                🌿 Manage Branches
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          {filteredItems.map(item => (
-            <div
-              key={item.id}
-              className={`rounded-xl p-6 transition-all duration-300 relative ${
-                item.requiresRole
-                  ? 'bg-gradient-to-br from-yellow-900/40 to-amber-800/30 border-2 border-yellow-500/60 hover:border-yellow-400/80 shadow-lg shadow-yellow-500/30'
-                  : item.inStock
-                  ? 'bg-white/10 border border-white/20 hover:border-white/40'
-                  : 'bg-gray-800/50 border border-gray-600/50 opacity-60'
-              }`}
-            >
-              <div className="text-center mb-4">
-                {item.requiresRole && (
-                  <div className="absolute top-2 right-2 text-2xl animate-bounce">
-                    👑
-                  </div>
-                )}
-                <div className="mb-4 relative">
-                  {item.image.startsWith('/') ? (
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      width={96}
-                      height={96}
-                      className={`w-24 h-24 object-cover rounded-lg mx-auto border ${
-                        item.requiresRole
-                          ? 'border-yellow-400/60 shadow-lg shadow-yellow-500/40'
-                          : 'border-white/20'
-                      }`}
-                    />
-                  ) : (
-                    <div className={`text-6xl ${
-                      item.requiresRole ? 'drop-shadow-lg drop-shadow-yellow-500/40' : ''
-                    }`}>{item.image}</div>
-                  )}
-                </div>
-                <h3 className={`text-xl font-bold mb-2 ${
-                  item.requiresRole
-                    ? 'text-yellow-200 drop-shadow-lg drop-shadow-yellow-500/50'
-                    : 'text-white'
-                }`}>{item.name}</h3>
-                <p className="text-gray-300 text-sm mb-4">{item.description}</p>
-
-                {/* YouTube Link */}
-                {item.youtubeUrl && item.youtubeUrl.trim() !== '' && (
-                  <div className="mb-4">
-                    <a
-                      href={item.youtubeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-red-400 hover:text-red-300 transition-colors text-sm font-medium"
-                      title={`Watch: ${youtubeTitles[item.id] || 'YouTube Video'}`}
-                    >
-                      <span className="mr-2">🎬</span>
-                      <span>{youtubeTitles[item.id] || 'YouTube Video'}</span>
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
+        {/* Skill Tree Tab */}
+        {activeTab === 'skill-tree' && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-white mb-2">Skill Tree Shop</h2>
+              <p className="text-gray-400">Invest in your skills and unlock new abilities</p>
+            </div>
+            <SkillTree onNodeClick={handleNodeClick} onPurchase={handlePurchase} />
                   </div>
                 )}
 
-                <div className="text-2xl font-bold text-orange-400 mb-2">${item.price}</div>
-
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`text-sm px-2 py-1 rounded-full ${
+        {/* Shop Items Tab */}
+        {activeTab === 'items' && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-white mb-2">Shop Items</h2>
+              <p className="text-gray-400">Browse and purchase available items</p>
+            </div>
+            
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-400 border-t-transparent"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {shopItems.map((item) => (
+                  <div key={item.id} className="bg-gray-800/50 rounded-lg p-6 border border-gray-700 hover:border-orange-500/50 transition-all">
+                    <div className="text-4xl mb-4">{item.image}</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
+                    <p className="text-gray-400 mb-4">{item.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-orange-400">{item.price} 🪙</span>
+                      <span className={`px-3 py-1 rounded-full text-sm ${
                     item.inStock
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-red-500/20 text-red-400'
                   }`}>
                     {item.inStock ? 'In Stock' : 'Out of Stock'}
                   </span>
-                  <div className="flex space-x-1">
-                    {item.hasFile && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-                          📁 Has File
-                        </span>
-                        <span className="text-xs text-gray-400 mt-1">Purchase to download</span>
-                      </div>
-                    )}
-                    {item.requiresRole && (
-                      <span
-                        className="text-sm px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-600 to-amber-500 text-white font-semibold shadow-lg border border-yellow-400/50 animate-pulse cursor-help"
-                        title={`This item requires the Discord role: ${item.requiredRoleName || item.requiredRoleId || 'Unknown Role'}`}
-                      >
-                        🔒 {item.requiredRoleName || 'Role Required'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-              <button
-                  onClick={() => addToCart(item)}
-                  disabled={!item.inStock}
-                  className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Add to Cart
-              </button>
-
-                {isShopAdmin && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingShopItem(item);
-                        setEditFormData({...item});
-                        setShowEditForm(true);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
-                      title="Edit Item (Admin)"
-                    >
-                      ✏️
-              </button>
-              <button
-                onClick={async () => {
-                        if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
-                          try {
-                            const response = await fetch(`/api/shop/items/${item.id}`, {
-                              method: 'DELETE',
-                      });
-                      
-                      if (response.ok) {
-                              // Remove item from local state
-                              setItems(prevItems => prevItems.filter(i => i.id !== item.id));
-                              alert('Item deleted successfully!');
-                            } else {
-                              const error = await response.json();
-                              alert(`Failed to delete item: ${error.error}`);
-                            }
-                  } catch (error) {
-                            console.error('Delete error:', error);
-                            alert('Failed to delete item. Please try again.');
-                          }
-                        }
-                      }}
-                      className="bg-red-600 hover:bg-red-500 text-white px-3 py-3 rounded-lg font-semibold transition-colors"
-                      title="Delete Item (Admin)"
-                    >
-                      🗑️
-              </button>
-            </div>
-          )}
-        </div>
                     </div>
-          ))}
+                    <div className="mt-4 text-sm text-gray-500">
+                      <div>Category: {item.category}</div>
+                      <div>Purchases: {item.purchaseCount}</div>
+                      </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Create Item Tab */}
+        {activeTab === 'create' && isAdmin(session.user?.email || '') && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-white mb-2">Create New Item</h2>
+              <p className="text-gray-400">Add new items to the shop</p>
                 </div>
 
-        {/* Edit Item Modal */}
-        {showEditForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  {editingShopItem ? 'Edit Shop Item' : 'Post New Item'}
-                </h2>
-
-                <div className="space-y-4">
+            <div className="max-w-2xl mx-auto">
+              <form onSubmit={handleCreateItem} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Item Name
+                    </label>
                   <input
                       type="text"
-                      value={editFormData.name || ''}
-                      onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                      value={newItem.name}
+                      onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      required
                   />
                 </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea
-                      value={editFormData.description || ''}
-                      onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Price (Hamster Coins)
+                    </label>
+                    <input
+                      type="number"
+                      value={newItem.price}
+                      onChange={(e) => setNewItem({...newItem, price: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      required
                     />
               </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-                  <input
-                        type="number"
-                        value={editFormData.price || ''}
-                        onChange={(e) => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                      />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                      <select
-                        value={editFormData.category || ''}
-                        onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                      >
-                        <option value="">Select Category</option>
-                        <option value="weapons">Weapons</option>
-                        <option value="armor">Armor</option>
-                        <option value="consumables">Consumables</option>
-                        <option value="cosmetics">Cosmetics</option>
-                        <option value="other">Other</option>
-                      </select>
-              </div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newItem.description}
+                    onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    required
+                  />
               </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setEditFormData({...editFormData, imageFile: file, image: ''});
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Upload an image file (JPG, PNG, GIF, etc.) for the item.</p>
-                    {editFormData.imageFile && (
-                      <p className="text-sm text-green-600 mt-1">
-                        📁 Selected: {editFormData.imageFile.name}
-                      </p>
-                    )}
-              </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
-                <select
-                      value={editFormData.contentType || 'none'}
-                      onChange={(e) => setEditFormData({...editFormData, contentType: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={newItem.category}
+                      onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
-                      <option value="none">No Content (Digital Item)</option>
+                      <option value="cosmetic">Cosmetic</option>
+                      <option value="gaming">Gaming</option>
+                      <option value="utility">Utility</option>
+                      <option value="premium">Premium</option>
+                    </select>
+              </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Content Type
+                    </label>
+                <select
+                      value={newItem.contentType}
+                      onChange={(e) => setNewItem({...newItem, contentType: e.target.value as any})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="none">None</option>
                   <option value="text">Text Content</option>
-                  <option value="link">External Link</option>
-                      <option value="file">Downloadable File</option>
+                      <option value="link">Link</option>
                       <option value="youtube">YouTube Video</option>
+                      <option value="file">File Download</option>
                 </select>
+                  </div>
             </div>
 
-                  {/* Text Content Field */}
-                  {editFormData.contentType === 'text' && (
+                {newItem.contentType === 'text' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Text Content</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Text Content
+                    </label>
                 <textarea
-                        value={editFormData.textContent || ''}
-                        onChange={(e) => setEditFormData({...editFormData, textContent: e.target.value})}
-                        rows={5}
-                        placeholder="Enter the text content that will be shown to buyers after purchase..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-gray-900 bg-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">This text will be displayed to users after they purchase this item.</p>
+                      value={newItem.textContent}
+                      onChange={(e) => setNewItem({...newItem, textContent: e.target.value})}
+                      rows={4}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
               </div>
             )}
 
-                  {/* Link Content Field */}
-                  {editFormData.contentType === 'link' && (
+                {newItem.contentType === 'link' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">External Link URL</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Link URL
+                    </label>
                 <input
                   type="url"
-                        value={editFormData.linkUrl || ''}
-                        onChange={(e) => setEditFormData({...editFormData, linkUrl: e.target.value})}
-                        placeholder="https://example.com/your-link"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Users will be able to access this link after purchasing the item.</p>
+                      value={newItem.linkUrl}
+                      onChange={(e) => setNewItem({...newItem, linkUrl: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
               </div>
             )}
 
-                  {/* File Content Fields */}
-                  {editFormData.contentType === 'file' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">File URL</label>
-              <input
-                          type="text"
-                          value={editFormData.fileUrl || ''}
-                          onChange={(e) => setEditFormData({...editFormData, fileUrl: e.target.value})}
-                          placeholder="/uploads/files/your-file.zip"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                        />
-            </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">File Name (for download)</label>
-                <input
-                          type="text"
-                          value={editFormData.fileName || ''}
-                          onChange={(e) => setEditFormData({...editFormData, fileName: e.target.value})}
-                          placeholder="my-file.zip"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                        />
-                  </div>
-              </div>
-            )}
-
-                  {/* YouTube Video Preview Field (Optional for all item types) */}
+                {newItem.contentType === 'youtube' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Video Preview (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      YouTube URL
+                    </label>
                       <input
                         type="url"
-                        value={editFormData.youtubeUrl || ''}
-                        onChange={(e) => setEditFormData({...editFormData, youtubeUrl: e.target.value})}
-                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
+                      value={newItem.youtubeUrl}
+                      onChange={(e) => setNewItem({...newItem, youtubeUrl: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                <input
+                  type="checkbox"
+                      checked={newItem.allowMultiplePurchases}
+                      onChange={(e) => setNewItem({...newItem, allowMultiplePurchases: e.target.checked})}
+                      className="mr-2"
+                    />
+                    <span className="text-gray-300">Allow Multiple Purchases</span>
+                  </label>
+
+                  <label className="flex items-center">
+                <input
+                  type="checkbox"
+                      checked={newItem.requiresRole}
+                      onChange={(e) => setNewItem({...newItem, requiresRole: e.target.checked})}
+                      className="mr-2"
+                    />
+                    <span className="text-gray-300">Requires Role</span>
+                  </label>
+              </div>
+
+                {newItem.requiresRole && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Required Role ID
+                      </label>
+                    <input
+                      type="text"
+                        value={newItem.requiredRoleId}
+                        onChange={(e) => setNewItem({...newItem, requiredRoleId: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
-                    <p className="text-xs text-gray-500 mt-1">Optional: Add a YouTube video that will show as a preview in the shop item card.</p>
-                  </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                      id="inStock"
-                      checked={editFormData.inStock || false}
-                      onChange={(e) => setEditFormData({...editFormData, inStock: e.target.checked})}
-                      className="rounded"
-                    />
-                    <label htmlFor="inStock" className="text-sm font-medium text-gray-700">In Stock</label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                      id="allowMultiple"
-                      checked={editFormData.allowMultiplePurchases || false}
-                      onChange={(e) => setEditFormData({...editFormData, allowMultiplePurchases: e.target.checked})}
-                      className="rounded"
-                    />
-                    <label htmlFor="allowMultiple" className="text-sm font-medium text-gray-700">Allow Multiple Purchases</label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                      id="requiresRole"
-                      checked={editFormData.requiresRole || false}
-                      onChange={(e) => setEditFormData({...editFormData, requiresRole: e.target.checked})}
-                      className="rounded"
-                    />
-                    <label htmlFor="requiresRole" className="text-sm font-medium text-gray-700">Require Discord Role</label>
-              </div>
-
-                  {editFormData.requiresRole && (
-                    <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <h4 className="text-sm font-semibold text-yellow-800">Discord Role Requirements</h4>
-
-                  <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Role ID</label>
-                    <input
-                      type="text"
-                          value={editFormData.requiredRoleId || ''}
-                          onChange={(e) => setEditFormData({...editFormData, requiredRoleId: e.target.value})}
-                          placeholder="1234567890123456789"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">The Discord role ID that users must have to purchase this item.</p>
                   </div>
 
                   <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Role Name (Optional)</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Required Role Name
+                      </label>
                     <input
                       type="text"
-                          value={editFormData.requiredRoleName || ''}
-                          onChange={(e) => setEditFormData({...editFormData, requiredRoleName: e.target.value})}
-                          placeholder="VIP Member"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 bg-white"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Display name for the role (optional, will use Role ID if not provided).</p>
-                  </div>
+                        value={newItem.requiredRoleName}
+                        onChange={(e) => setNewItem({...newItem, requiredRoleName: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
                 </div>
               )}
-            </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                <div className="flex justify-end space-x-4">
               <button
-                onClick={() => {
-                  setShowEditForm(false);
-                      setEditingShopItem(null);
-                      setEditFormData({});
-                    }}
-                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    type="button"
+                    onClick={() => setShowCreateForm(false)}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>
                   <button
-                    onClick={async () => {
-                      try {
-                        const isEditing = editingShopItem !== null;
-                        const method = isEditing ? 'PUT' : 'POST';
-                        const successMessage = isEditing ? 'Item updated successfully!' : 'Item created successfully!';
-
-                        // Handle file upload if image is selected
-                        let response;
-                        if (editFormData.imageFile) {
-                          // Use FormData for file upload
-                          const formData = new FormData();
-
-                          // Add all form fields
-                          Object.keys(editFormData).forEach(key => {
-                            if (key !== 'imageFile' && editFormData[key] !== undefined && editFormData[key] !== null) {
-                              formData.append(key, editFormData[key]);
-                            }
-                          });
-
-                          // Add file
-                          formData.append('imageFile', editFormData.imageFile);
-
-                          // Set hasFile flag
-                          formData.set('hasFile', (editFormData.contentType === 'file').toString());
-
-                          response = await fetch('/api/shop/items', {
-                            method: method,
-                            body: formData,
-                          });
-                        } else {
-                          // Regular JSON submission without file
-                          const formDataToSubmit = {
-                            ...editFormData,
-                            hasFile: editFormData.contentType === 'file'
-                          };
-
-                          response = await fetch('/api/shop/items', {
-                            method: method,
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(formDataToSubmit),
-                          });
-                        }
-
-                        if (response.ok) {
-                          // Refresh items
-                          const itemsResponse = await fetch('/api/shop/items');
-                          const data = await itemsResponse.json();
-                          setItems(data);
-
-                          setShowEditForm(false);
-                          setEditingShopItem(null);
-                          setEditFormData({});
-                          alert(successMessage);
-                        } else {
-                          const errorData = await response.json();
-                          alert(`Failed to ${isEditing ? 'update' : 'create'} item: ${errorData.error || 'Unknown error'}`);
-                        }
-                      } catch (error) {
-                        console.error(`Error ${editingShopItem ? 'updating' : 'creating'} item:`, error);
-                        alert(`Error ${editingShopItem ? 'updating' : 'creating'} item`);
-                      }
-                    }}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                    type="submit"
+                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
                   >
-                    {editingShopItem ? 'Update Item' : 'Create Item'}
+                    Create Item
                   </button>
-                      </div>
-                  </div>
+                </div>
+              </form>
             </div>
-                          </div>
-                        )}
+          </div>
+        )}
 
-        {/* Cart Summary */}
-        {cart.length > 0 && (
-          <div className="fixed bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg min-w-[300px]">
-            <h3 className="text-xl font-bold text-white mb-4">🛒 Cart ({cart.length} items)</h3>
+        {/* Manage Branches Tab */}
+        {activeTab === 'branches' && isAdmin(session.user?.email || '') && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-white mb-2">Manage Skill Tree Branches</h2>
+              <p className="text-gray-400">Create and manage skill tree branches</p>
+            </div>
 
-            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-              {cart.map(item => (
-                <div key={item.id} className="flex items-center justify-between bg-white/5 rounded-lg p-2">
-                  <div className="flex items-center space-x-2">
-                    <span>{item.image}</span>
-                    <span className="text-white text-sm">{item.name}</span>
-                      </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-orange-400 text-sm">${item.price}</span>
-                      <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                      ✕
-                      </button>
+            <div className="flex justify-end mb-6">
+              <button
+                onClick={() => setShowBranchForm(true)}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                ➕ Create New Branch
+              </button>
+            </div>
+
+            {/* Existing Branches */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {branches.map((branch) => (
+                <div key={branch.id} className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-3xl">{branch.icon}</div>
+                    <div className="flex space-x-2">
+                      <button className="text-blue-400 hover:text-blue-300">✏️</button>
+                      <button className="text-red-400 hover:text-red-300">🗑️</button>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">{branch.name}</h3>
+                  <p className="text-gray-400 mb-4">{branch.description}</p>
+                  <div className="text-sm text-gray-500">
+                    <div>ID: {branch.id}</div>
+                    <div>Unlock Cost: {branch.unlockCost} 🪙</div>
+                    <div>Nodes: {branch.nodes?.length || 0}</div>
                   </div>
                 </div>
               ))}
-        </div>
-
-            <div className="border-t border-white/20 pt-4">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-white font-semibold">Total:</span>
-                <span className="text-2xl text-orange-400 font-bold">${getTotalPrice()}</span>
-                    </div>
-
-                  <button
-                onClick={handlePurchase}
-                disabled={purchasing}
-                className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors"
-                  >
-                {purchasing ? 'Processing...' : 'Purchase Now'}
-                  </button>
             </div>
-          </div>
-        )}
 
-        {/* Purchase Success Modal */}
-        {showPurchaseSuccess && purchasedItem && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-xl p-8 border border-white/20 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-2xl font-bold text-white mb-2">Purchase Successful!</h2>
-                <p className="text-gray-300 mb-4">
-                  You&apos;ve successfully purchased <span className="text-orange-400 font-semibold">{purchasedItem.name}</span>
-                </p>
-                
-                {/* Item Image */}
-                <div className="mb-6">
-                  {purchasedItem.image && purchasedItem.image.startsWith('/') ? (
-                    <Image 
-                      src={purchasedItem.image} 
-                      alt={purchasedItem.name}
-                      width={96}
-                      height={96}
-                      className="w-24 h-24 object-cover rounded-lg mx-auto border border-white/20 shadow-lg"
-                    />
-                  ) : (
-                    <div className="text-5xl mx-auto">{purchasedItem.image || '🛒'}</div>
-                  )}
-                </div>
-
-                {/* Content Display Based on Type */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">🎁 Your Purchased Content:</h3>
-
-                  {/* Text Content */}
-                  {purchasedItem.contentType === 'text' && purchasedItem.textContent && (
-                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-5 mb-4 border border-green-500/30 shadow-lg">
-                      <div className="flex items-center mb-3">
-                        <div className="text-3xl mr-3">📝</div>
-                        <div>
-                          <h4 className="text-green-300 font-bold text-lg">Text Content</h4>
-                          <p className="text-green-200 text-sm">Your exclusive text content</p>
-                        </div>
+            {/* Create Branch Form */}
+            {showBranchForm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-gray-800 rounded-lg p-6 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-2xl font-bold text-white mb-6">Create New Branch</h3>
+                  
+                  <form onSubmit={handleCreateBranch} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Branch ID
+                        </label>
+                        <input
+                          type="text"
+                          value={newBranch.id}
+                          onChange={(e) => setNewBranch({...newBranch, id: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="e.g., creativity"
+                          required
+                        />
                       </div>
-                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <div className="text-white text-base leading-relaxed whitespace-pre-wrap font-mono">
-                          {purchasedItem.textContent}
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center text-green-300 text-sm">
-                        <span className="mr-2">✅</span>
-                        <span>Content unlocked and available</span>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Branch Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newBranch.name}
+                          onChange={(e) => setNewBranch({...newBranch, name: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="e.g., Creativity Branch"
+                          required
+                        />
                       </div>
                     </div>
-                  )}
 
-                  {/* Link Content */}
-                {purchasedItem.contentType === 'link' && purchasedItem.linkUrl && (
-                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-5 mb-4 border border-blue-500/30 shadow-lg">
-                      <div className="flex items-center mb-3">
-                        <div className="text-3xl mr-3">🔗</div>
-                        <div>
-                          <h4 className="text-blue-300 font-bold text-lg">External Link</h4>
-                          <p className="text-blue-200 text-sm">Access your exclusive link</p>
-                        </div>
-                      </div>
-                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 mr-4">
-                            <p className="text-blue-300 font-semibold mb-1">Your Exclusive Link:</p>
-                            <p className="text-blue-400 text-sm break-all font-mono bg-blue-900/30 rounded p-2">
-                              {purchasedItem.linkUrl}
-                            </p>
-                          </div>
-                    <a 
-                      href={purchasedItem.linkUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
-                          >
-                            🌐 Open Link
-                          </a>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center text-blue-300 text-sm">
-                        <span className="mr-2">🔓</span>
-                        <span>Link unlocked - opens in new tab</span>
-                      </div>
-                  </div>
-                )}
-                
-                  {/* File Content */}
-                {purchasedItem.contentType === 'file' && purchasedItem.hasFile && (
-                    <div className="bg-gradient-to-br from-purple-500/20 to-violet-500/20 rounded-xl p-5 mb-4 border border-purple-500/30 shadow-lg">
-                      <div className="flex items-center mb-3">
-                        <div className="text-3xl mr-3">📁</div>
-                        <div>
-                          <h4 className="text-purple-300 font-bold text-lg">Downloadable File</h4>
-                          <p className="text-purple-200 text-sm">Download your purchased file</p>
-                  </div>
-                      </div>
-                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 mr-4">
-                            <p className="text-purple-300 font-semibold mb-1">File Details:</p>
-                            <p className="text-purple-400 text-sm">
-                              {purchasedItem.fileName || 'Download file'}
-                            </p>
-                          </div>
-                          <button
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`/api/shop/download?itemId=${purchasedItem.id}`);
-                                if (response.ok) {
-                                  const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-
-                                  // Get filename from Content-Disposition header or use default
-                                  const contentDisposition = response.headers.get('content-disposition');
-                                  let filename = purchasedItem.fileName || 'download';
-                                  if (contentDisposition) {
-                                    const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-                                    if (filenameMatch) {
-                                      filename = filenameMatch[1];
-                                    }
-                                  }
-
-                                  a.download = filename;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-
-                                  alert('✅ Download completed successfully!');
-                                } else {
-                                  alert('❌ Download failed. Please try again.');
-                                }
-                              } catch (error) {
-                                console.error('Download error:', error);
-                                alert('❌ Download failed. Please try again.');
-                              }
-                            }}
-                            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
-                          >
-                            📥 Download
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center text-purple-300 text-sm">
-                        <span className="mr-2">📋</span>
-                        <span>File ready for download</span>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={newBranch.description}
+                        onChange={(e) => setNewBranch({...newBranch, description: e.target.value})}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Describe what this branch is about..."
+                        required
+                      />
                     </div>
-                  </div>
-                )}
 
-                  {/* YouTube Video Preview */}
-                  {purchasedItem.youtubeUrl && purchasedItem.youtubeUrl.trim() !== '' && (
-                    <div className="bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl p-5 mb-4 border border-red-500/30 shadow-lg">
-                      <div className="flex items-center mb-3">
-                        <div className="text-3xl mr-3">🎥</div>
-                        <div>
-                          <h4 className="text-red-300 font-bold text-lg">YouTube Video Preview</h4>
-                          <p className="text-red-200 text-sm">Watch the video preview for this item</p>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Icon
+                        </label>
+                        <input
+                          type="text"
+                          value={newBranch.icon}
+                          onChange={(e) => setNewBranch({...newBranch, icon: e.target.value})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="🎨"
+                          required
+                        />
                       </div>
-                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <div className="relative">
-                          <div className="aspect-video bg-gray-800 rounded flex items-center justify-center relative overflow-hidden mb-3">
-                            {/* YouTube Play Button Overlay */}
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                              <div className="bg-red-600 rounded-full p-4 shadow-lg">
-                                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M8 5v10l8-5-8-5z"/>
-                                </svg>
-                              </div>
-                            </div>
 
-                            {/* Video Title */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                              <p className="text-white text-sm font-semibold">
-                                {youtubeTitles[purchasedItem.id] || 'YouTube Video Preview'}
-                              </p>
-                            </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Color
+                        </label>
+                        <input
+                          type="color"
+                          value={newBranch.color}
+                          onChange={(e) => setNewBranch({...newBranch, color: e.target.value})}
+                          className="w-full h-10 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
 
-                            {/* Fallback */}
-                            <div className="text-red-400 text-4xl opacity-50">
-                              📺
-                            </div>
-                          </div>
-
-                          <a
-                            href={purchasedItem.youtubeUrl}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                            className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg inline-block text-center w-full"
-                          >
-                            🎬 Watch Video on YouTube
-                          </a>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center text-red-300 text-sm">
-                        <span className="mr-2">▶️</span>
-                        <span>Video preview available - opens in new tab</span>
-                      </div>
-                  </div>
-                )}
-
-                  {/* No Content */}
-                  {(!purchasedItem.contentType || purchasedItem.contentType === 'none') && (
-                    <div className="bg-gradient-to-br from-gray-500/20 to-slate-500/20 rounded-xl p-5 mb-4 border border-gray-500/30 shadow-lg">
-                      <div className="flex items-center mb-3">
-                        <div className="text-3xl mr-3">🎁</div>
-                        <div>
-                          <h4 className="text-gray-300 font-bold text-lg">Digital Item</h4>
-                          <p className="text-gray-200 text-sm">You now own this exclusive item</p>
-                        </div>
-                      </div>
-                      <div className="bg-gray-900/70 rounded-lg p-4 border border-gray-600/50">
-                        <p className="text-white text-center">
-                          ✨ <strong>{purchasedItem.name}</strong> is now in your collection!
-                        </p>
-                      </div>
-                      <div className="mt-3 flex items-center text-gray-300 text-sm">
-                        <span className="mr-2">🏆</span>
-                        <span>Item unlocked and added to your inventory</span>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Unlock Cost
+                        </label>
+                        <input
+                          type="number"
+                          value={newBranch.unlockCost}
+                          onChange={(e) => setNewBranch({...newBranch, unlockCost: parseInt(e.target.value)})}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          min="0"
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => {
-                      setShowPurchaseSuccess(false);
-                      setPurchasedItem(null);
-                    }}
-                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    🛒 Continue Shopping
-                  </button>
+                    <div className="flex justify-end space-x-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowBranchForm(false)}
+                        className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+                      >
+                        Create Branch
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                
-                <p className="text-gray-400 text-sm">
-                  You can access this content anytime from your <span className="text-blue-400 cursor-pointer" onClick={() => router.push('/purchases')}>Purchase History</span>
-                </p>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Purchase Success Modal */}
+      {showPurchaseSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm mx-4">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎉</div>
+              <h3 className="text-xl font-semibold text-white mb-2">Purchase Successful!</h3>
+              <p className="text-gray-400">Your skill has been unlocked!</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

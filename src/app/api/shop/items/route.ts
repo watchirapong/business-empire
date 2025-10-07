@@ -8,8 +8,8 @@ import ShopItem from '@/models/ShopItem';
 import fs from 'fs';
 import path from 'path';
 
-// Comprehensive shop items data with all features
-const shopItems = [
+// Default shop items - can be overridden by database items
+const defaultShopItems = [
   {
     id: '1',
     name: 'Premium Avatar Frame',
@@ -213,8 +213,8 @@ export async function POST(request: NextRequest) {
     if (body.itemId) {
       const { itemId } = body;
 
-      // Simple purchase simulation
-      const item = shopItems.find(item => item.id === itemId);
+      // Find item in database
+      const item = await ShopItem.findById(itemId);
       if (!item) {
         return NextResponse.json({ error: 'Item not found' }, { status: 404 });
       }

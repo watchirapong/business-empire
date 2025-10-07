@@ -1,5 +1,6 @@
 import { SkillTreeData, SkillTreeBranch } from '@/types/skillTree';
 
+// Dynamic skill tree data - can be extended with database integration
 export const skillTreeData: SkillTreeData = {
   branches: [
     {
