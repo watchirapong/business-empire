@@ -39,9 +39,7 @@ export default function ShopPage() {
   const router = useRouter();
   const [selectedNode, setSelectedNode] = useState<SkillTreeNode | null>(null);
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'skill-tree' | 'items' | 'create' | 'branches'>('skill-tree');
-  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'skill-tree' | 'branches'>('skill-tree');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
@@ -70,24 +68,10 @@ export default function ShopPage() {
 
   useEffect(() => {
     if (session) {
-      fetchShopItems();
       fetchBranches();
     }
   }, [session]);
 
-  const fetchShopItems = async () => {
-    try {
-      const response = await fetch('/api/shop/items');
-      if (response.ok) {
-        const data = await response.json();
-        setShopItems(data.items || []);
-      }
-    } catch (error) {
-      console.error('Error fetching shop items:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
   const fetchBranches = async () => {
     try {
@@ -128,7 +112,6 @@ export default function ShopPage() {
           linkUrl: '',
           youtubeUrl: ''
         });
-        fetchShopItems();
       }
     } catch (error) {
       console.error('Error creating item:', error);
@@ -233,41 +216,19 @@ export default function ShopPage() {
                 : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
             }`}
           >
-            🌳 Skill Tree
-          </button>
-          <button
-            onClick={() => setActiveTab('items')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'items'
-                ? 'bg-orange-500 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            🛒 Shop Items
+            🌳 Shop Item
           </button>
           {isAdmin(session.user?.email || '') && (
-            <>
-              <button
-                onClick={() => setActiveTab('create')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'create'
-                    ? 'bg-orange-500 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                ➕ Create Item
-              </button>
-              <button
-                onClick={() => setActiveTab('branches')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'branches'
-                    ? 'bg-orange-500 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                🌿 Manage Branches
-              </button>
-            </>
+            <button
+              onClick={() => setActiveTab('branches')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'branches'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              🌿 Manage Branches
+            </button>
           )}
         </div>
 
@@ -275,250 +236,27 @@ export default function ShopPage() {
         {activeTab === 'skill-tree' && (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Skill Tree Shop</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">Shop Item</h2>
               <p className="text-gray-400">Invest in your skills and unlock new abilities</p>
             </div>
-            <SkillTree onNodeClick={handleNodeClick} onPurchase={handlePurchase} />
-                  </div>
-                )}
-
-        {/* Shop Items Tab */}
-        {activeTab === 'items' && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Shop Items</h2>
-              <p className="text-gray-400">Browse and purchase available items</p>
-            </div>
             
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-400 border-t-transparent"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {shopItems.map((item) => (
-                  <div key={item.id} className="bg-gray-800/50 rounded-lg p-6 border border-gray-700 hover:border-orange-500/50 transition-all">
-                    <div className="text-4xl mb-4">{item.image}</div>
-                    <h3 className="text-xl font-semibold text-white mb-2">{item.name}</h3>
-                    <p className="text-gray-400 mb-4">{item.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-orange-400">{item.price} 🪙</span>
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                    item.inStock
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-red-500/20 text-red-400'
-                  }`}>
-                    {item.inStock ? 'In Stock' : 'Out of Stock'}
-                  </span>
-                    </div>
-                    <div className="mt-4 text-sm text-gray-500">
-                      <div>Category: {item.category}</div>
-                      <div>Purchases: {item.purchaseCount}</div>
-                      </div>
-                  </div>
-                ))}
+            {/* Floating Create Item Button for Admins */}
+            {isAdmin(session.user?.email || '') && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+                >
+                  ➕ Create New Item
+                </button>
               </div>
             )}
+            
+            <SkillTree onNodeClick={handleNodeClick} onPurchase={handlePurchase} />
           </div>
         )}
 
-        {/* Create Item Tab */}
-        {activeTab === 'create' && isAdmin(session.user?.email || '') && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Create New Item</h2>
-              <p className="text-gray-400">Add new items to the shop</p>
-                </div>
 
-            <div className="max-w-2xl mx-auto">
-              <form onSubmit={handleCreateItem} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Item Name
-                    </label>
-                  <input
-                      type="text"
-                      value={newItem.name}
-                      onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                  />
-                </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Price (Hamster Coins)
-                    </label>
-                    <input
-                      type="number"
-                      value={newItem.price}
-                      onChange={(e) => setNewItem({...newItem, price: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                    />
-              </div>
-                    </div>
-
-                    <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={newItem.description}
-                    onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-              </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={newItem.category}
-                      onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="cosmetic">Cosmetic</option>
-                      <option value="gaming">Gaming</option>
-                      <option value="utility">Utility</option>
-                      <option value="premium">Premium</option>
-                    </select>
-              </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Content Type
-                    </label>
-                <select
-                      value={newItem.contentType}
-                      onChange={(e) => setNewItem({...newItem, contentType: e.target.value as any})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="none">None</option>
-                  <option value="text">Text Content</option>
-                      <option value="link">Link</option>
-                      <option value="youtube">YouTube Video</option>
-                      <option value="file">File Download</option>
-                </select>
-                  </div>
-            </div>
-
-                {newItem.contentType === 'text' && (
-                    <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Text Content
-                    </label>
-                <textarea
-                      value={newItem.textContent}
-                      onChange={(e) => setNewItem({...newItem, textContent: e.target.value})}
-                      rows={4}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-              </div>
-            )}
-
-                {newItem.contentType === 'link' && (
-                    <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Link URL
-                    </label>
-                <input
-                  type="url"
-                      value={newItem.linkUrl}
-                      onChange={(e) => setNewItem({...newItem, linkUrl: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-              </div>
-            )}
-
-                {newItem.contentType === 'youtube' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      YouTube URL
-                    </label>
-                      <input
-                        type="url"
-                      value={newItem.youtubeUrl}
-                      onChange={(e) => setNewItem({...newItem, youtubeUrl: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center">
-                <input
-                  type="checkbox"
-                      checked={newItem.allowMultiplePurchases}
-                      onChange={(e) => setNewItem({...newItem, allowMultiplePurchases: e.target.checked})}
-                      className="mr-2"
-                    />
-                    <span className="text-gray-300">Allow Multiple Purchases</span>
-                  </label>
-
-                  <label className="flex items-center">
-                <input
-                  type="checkbox"
-                      checked={newItem.requiresRole}
-                      onChange={(e) => setNewItem({...newItem, requiresRole: e.target.checked})}
-                      className="mr-2"
-                    />
-                    <span className="text-gray-300">Requires Role</span>
-                  </label>
-              </div>
-
-                {newItem.requiresRole && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Required Role ID
-                      </label>
-                    <input
-                      type="text"
-                        value={newItem.requiredRoleId}
-                        onChange={(e) => setNewItem({...newItem, requiredRoleId: e.target.value})}
-                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                  </div>
-
-                  <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Required Role Name
-                      </label>
-                    <input
-                      type="text"
-                        value={newItem.requiredRoleName}
-                        onChange={(e) => setNewItem({...newItem, requiredRoleName: e.target.value})}
-                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                    </div>
-                </div>
-              )}
-
-                <div className="flex justify-end space-x-4">
-              <button
-                    type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                  >
-                    Create Item
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* Manage Branches Tab */}
         {activeTab === 'branches' && isAdmin(session.user?.email || '') && (
@@ -673,6 +411,201 @@ export default function ShopPage() {
           </div>
         )}
       </div>
+
+      {/* Create Item Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-2xl font-bold text-white mb-6">Create New Item</h3>
+            
+            <form onSubmit={handleCreateItem} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Price (Hamster Coins)
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.price}
+                    onChange={(e) => setNewItem({...newItem, price: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={newItem.category}
+                    onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="cosmetic">Cosmetic</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="utility">Utility</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Content Type
+                  </label>
+                  <select
+                    value={newItem.contentType}
+                    onChange={(e) => setNewItem({...newItem, contentType: e.target.value as any})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="none">None</option>
+                    <option value="text">Text Content</option>
+                    <option value="link">Link</option>
+                    <option value="youtube">YouTube Video</option>
+                    <option value="file">File Download</option>
+                  </select>
+                </div>
+              </div>
+
+              {newItem.contentType === 'text' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Text Content
+                  </label>
+                  <textarea
+                    value={newItem.textContent}
+                    onChange={(e) => setNewItem({...newItem, textContent: e.target.value})}
+                    rows={4}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              )}
+
+              {newItem.contentType === 'link' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Link URL
+                  </label>
+                  <input
+                    type="url"
+                    value={newItem.linkUrl}
+                    onChange={(e) => setNewItem({...newItem, linkUrl: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              )}
+
+              {newItem.contentType === 'youtube' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    YouTube URL
+                  </label>
+                  <input
+                    type="url"
+                    value={newItem.youtubeUrl}
+                    onChange={(e) => setNewItem({...newItem, youtubeUrl: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={newItem.allowMultiplePurchases}
+                    onChange={(e) => setNewItem({...newItem, allowMultiplePurchases: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <span className="text-gray-300">Allow Multiple Purchases</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={newItem.requiresRole}
+                    onChange={(e) => setNewItem({...newItem, requiresRole: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <span className="text-gray-300">Requires Role</span>
+                </label>
+              </div>
+
+              {newItem.requiresRole && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Required Role ID
+                    </label>
+                    <input
+                      type="text"
+                      value={newItem.requiredRoleId}
+                      onChange={(e) => setNewItem({...newItem, requiredRoleId: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Required Role Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newItem.requiredRoleName}
+                      onChange={(e) => setNewItem({...newItem, requiredRoleName: e.target.value})}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+                >
+                  Create Item
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Purchase Success Modal */}
       {showPurchaseSuccess && (
