@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     const UserSkillTree = mongoose.models.UserSkillTree || mongoose.model('UserSkillTree', UserSkillTreeSchema);
     
-    let userProgress = await UserSkillTree.findOne({ userId });
+    const userProgress = await UserSkillTree.findOne({ userId });
     
     if (!userProgress) {
       return NextResponse.json({ error: 'User progress not found' }, { status: 404 });
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
       const Currency = mongoose.models.Currency || mongoose.model('Currency', CurrencySchema);
       
-      let userCurrency = await Currency.findOne({ userId });
+      const userCurrency = await Currency.findOne({ userId });
       
       if (!userCurrency) {
         return NextResponse.json({ error: 'User currency not found' }, { status: 404 });

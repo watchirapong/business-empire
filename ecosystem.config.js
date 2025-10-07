@@ -2,15 +2,16 @@ module.exports = {
   apps: [
     {
       name: 'business-empire',
-      script: 'npm',
-            args: 'run start:prod',
+      script: 'server.js',
       cwd: '/root/projects/business-empire',
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      max_memory_restart: '1G',
+      max_memory_restart: '2G',
       min_uptime: '10s',
       max_restarts: 10,
+      restart_delay: 4000,
       env: {
         NODE_ENV: 'production',
         PORT: 3000
@@ -26,7 +27,17 @@ module.exports = {
       merge_logs: true,
       kill_timeout: 5000,
       wait_ready: true,
-      listen_timeout: 10000
+      listen_timeout: 10000,
+      // Production optimizations
+      node_args: '--max-old-space-size=2048',
+      // Health monitoring
+      health_check_grace_period: 3000,
+      // Process management
+      force: true,
+      // Logging
+      log_type: 'json',
+      // Performance
+      increment_var: 'PORT'
     }
   ]
 };
